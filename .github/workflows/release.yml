@@ -57,8 +57,6 @@ jobs:
             SOURCE_URL=https://github.com/${{ github.repository }}
           sbom: true
           provenance: mode=max
-          cache-from: type=gha,scope=release
-          cache-to: type=gha,mode=max,scope=release,ignore-error=true,timeout=2m
       - name: Record published image digest
         env:
           IMAGE: ${{ steps.identity.outputs.image }}

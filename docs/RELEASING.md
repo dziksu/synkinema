@@ -41,9 +41,10 @@ by `make check` or `npm run release:check`.
 Repository settings cannot be applied by files in this checkout. After the first
 run, protect `main`, require pull requests and successful checks, disable force
 pushes, and prefer squash merging with the PR title as the default commit message.
-Use these check names: **Verify code and API contract**, **Container (linux/amd64)**,
-**Container (linux/arm64)** and **Conventional PR title**. Require the last one for
-PRs only. CodeQL runs separately for public repositories; private repositories need
+Use these check names: **Verify code and API contract**, **Studio tests and build**,
+**Container (linux/amd64)**, **Container (linux/arm64)** and
+**Conventional PR title**. Require the last one for PRs only. CodeQL runs separately
+for public repositories; private repositories need
 GitHub Code Security and the `ENABLE_CODEQL=true` repository variable.
 Enable private vulnerability reporting in Settings → Security for the advisory
 link in `SECURITY.md`. Dependabot uses the checked-in configuration automatically.
@@ -52,9 +53,10 @@ link in `SECURITY.md`. Dependabot uses the checked-in configuration automaticall
 
 | Stage | Behavior |
 |---|---|
-| Verify | Formatting, Ruff, release-tool tests, API codegen drift, Python/Studio tests, TypeScript and Vite build |
+| Verify | Formatting, Ruff, release-tool tests, dependency consistency, API codegen drift and Python tests |
+| Studio | Independent React tests, TypeScript check and production Vite build, even if Python tests fail |
 | Containers | Native Linux amd64/arm64 builds; real FFmpeg render, MCP handshake, non-root/version checks, live HTTP/UI smoke test |
-| Semantic release | Runs only after both stages succeed on `main` in a non-fork repository; creates `vX.Y.Z` and GitHub release notes/assets |
+| Semantic release | Runs only after Verify, Studio and both container builds succeed on `main` in a non-fork repository; creates `vX.Y.Z` and GitHub release notes/assets |
 | Publish image | Called directly with the tested SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
 | CodeQL | Separate Python/JavaScript security analysis on PRs, main and weekly |
 | PR title | Validates Conventional Commit syntax without evaluating the title as code |
@@ -63,8 +65,9 @@ PRs never receive publishing credentials. Main runs are serialized and not
 cancelled halfway through publication. New PR commits cancel superseded runs.
 The release workflow is invoked through `workflow_call` because tags created with
 `GITHUB_TOKEN` do not trigger a second workflow. All third-party actions are pinned
-to full commit SHAs; Dependabot maintains them. Cache upload failure cannot turn a
-successful image build or publication into a failure.
+to full commit SHAs; Dependabot maintains them. CI image caches are best effort.
+The release build does not export a second cache after pushing image tags, so a
+slow cache service cannot hold a successful publication open.
 
 ## Version and image identity
 
