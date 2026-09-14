@@ -1,0 +1,107 @@
+[
+  {
+    "id": "intro",
+    "title": "SYNKINEMA",
+    "subtitle": "Lokalny montaż dla ludzi i agentów",
+    "narration": "Synkinema to lokalne studio montażu wideo, w którym człowiek i agent pracują nad tym samym projektem.",
+    "hold_ms": 14000
+  },
+  {
+    "id": "channels",
+    "title": "OD POMYSŁU",
+    "subtitle": "Kanały, zasady i wspólny kierunek",
+    "narration": "Zaczynasz od pomysłu. Kanały pomagają zapisać język, odbiorcę i zasady, które prowadzą kolejne produkcje.",
+    "hold_ms": 12000
+  },
+  {
+    "id": "library",
+    "title": "MEDIA POD KONTROLĄ",
+    "subtitle": "Biblioteka i prywatne kolekcje projektów",
+    "narration": "Media trafiają do biblioteki albo do prywatnej kolekcji projektu. Możesz je wyszukać, oznaczyć i wykorzystać ponownie.",
+    "hold_ms": 13000
+  },
+  {
+    "id": "editor",
+    "title": "JEDNA OŚ CZASU",
+    "subtitle": "Obraz, napisy, lektor i muzyka",
+    "narration": "Na osi czasu łączysz klipy, obrazy, napisy, lektora, muzykę i efekty na osobnych ścieżkach.",
+    "hold_ms": 15000
+  },
+  {
+    "id": "preview",
+    "title": "PODGLĄD NA ŻYWO",
+    "subtitle": "Sprawdź rytm przed eksportem",
+    "narration": "Podgląd pokazuje kompozycję, a przycięcia i przejścia możesz sprawdzić przed pełnym renderem.",
+    "hold_ms": 13000
+  },
+  {
+    "id": "inspector",
+    "title": "KADR I RUCH",
+    "subtitle": "Każdy klip pozostaje edytowalny",
+    "narration": "Wybrany klip ma własne ustawienia kadru, koloru, ruchu i animacji. Zmiany pozostają edytowalne.",
+    "hold_ms": 14000
+  },
+  {
+    "id": "captions",
+    "title": "NAPISY JAKO WARSTWY",
+    "subtitle": "Styl, pozycja i czas pod kontrolą",
+    "narration": "Napisy to osobne warstwy. Możesz ustawić styl, pozycję i czas, a potem wyeksportować plik SRT.",
+    "hold_ms": 14000
+  },
+  {
+    "id": "script",
+    "title": "SCENARIUSZ OBOK MONTAŻU",
+    "subtitle": "Brief, tekst i sceny w projekcie",
+    "narration": "Scenariusz i sceny są zapisane obok projektu. Dzięki temu treść nie ginie w samych klipach.",
+    "hold_ms": 12000
+  },
+  {
+    "id": "voice",
+    "title": "LEKTOR W STUDIO",
+    "subtitle": "Nagranie własne lub lokalny Supertonic",
+    "narration": "Lektora możesz nagrać albo wygenerować lokalnie. Synkinema zapisuje prawdziwe pliki audio, które umieszczasz na osi czasu.",
+    "hold_ms": 13000
+  },
+  {
+    "id": "audio",
+    "title": "MIKS DŹWIĘKU",
+    "subtitle": "Osobne ścieżki i pomiar głośności",
+    "narration": "Dźwięk ma osobne ścieżki, wyciszanie muzyki pod głosem i pomiar głośności gotowego miksu.",
+    "hold_ms": 12000
+  },
+  {
+    "id": "exports",
+    "title": "EKSPORT NA TWOICH ZASADACH",
+    "subtitle": "Pion, poziom, podgląd i finał",
+    "narration": "Eksport obejmuje formaty pionowe i poziome, od podglądu po wersję finalną, z kontrolą rozdzielczości i jakości.",
+    "hold_ms": 13000
+  },
+  {
+    "id": "history",
+    "title": "HISTORIA ZMIAN",
+    "subtitle": "Rewizje i możliwość powrotu",
+    "narration": "Historia rewizji pozwala wrócić do wcześniejszego stanu. Człowiek może poprawić pracę agenta bez tracenia kontroli.",
+    "hold_ms": 12000
+  },
+  {
+    "id": "queue",
+    "title": "GOTOWE PLIKI POD RĘKĄ",
+    "subtitle": "Kolejka renderów i kontrola eksportu",
+    "narration": "Kolejka renderów przechowuje gotowe pliki. Każdy eksport można obejrzeć, sprawdzić i pobrać lokalnie.",
+    "hold_ms": 13000
+  },
+  {
+    "id": "agents",
+    "title": "CZŁOWIEK I AGENT",
+    "subtitle": "Wspólny projekt przez Studio, API i MCP",
+    "narration": "Przez API i MCP agent może przygotować montaż, a Ty dalej dopracujesz go w tym samym Studio.",
+    "hold_ms": 15000
+  },
+  {
+    "id": "outro",
+    "title": "OD POMYSŁU DO MP4",
+    "subtitle": "Synkinema · lektor AI: Supertonic 3",
+    "narration": "To pierwsza, ogólna prezentacja Synkinema. Od pomysłu, przez montaż, aż po gotowy film, wszystko w jednym lokalnym miejscu.",
+    "hold_ms": 14000
+  }
+]

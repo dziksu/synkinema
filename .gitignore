@@ -31,3 +31,4 @@ examples/steam-breakout-en/assets/
 examples/steam-breakout-en/out/
 examples/steam-breakout-en/*-steam.json
 examples/steam-breakout-en/*-hls.txt
+examples/product-demo/out/

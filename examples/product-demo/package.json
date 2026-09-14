@@ -1,0 +1,11 @@
+{
+  "name": "synkinema-product-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}
