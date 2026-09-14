@@ -22,12 +22,12 @@ Odpowiedniki HTTP:
 
 | Adres | Zawartość |
 |---|---|
-| [Przewodnik agenta](http://localhost:8080/api/agent/guide) | Pełna instrukcja Markdown |
-| [Operacje](http://localhost:8080/api/schema/operations) | Formaty payload, przykłady i skutki uboczne |
-| [Model projektu](http://localhost:8080/api/schema/project) | JSON Schema |
-| [Możliwości](http://localhost:8080/api/capabilities) | Funkcje, ograniczenia, granice wartości |
-| [Dokumentacja API](http://localhost:8080/api/docs) | Interaktywne opisy endpointów |
-| [OpenAPI](http://localhost:8080/api/openapi.json) | Specyfikacja maszynowa |
+| [Przewodnik agenta](http://localhost:18080/api/agent/guide) | Pełna instrukcja Markdown |
+| [Operacje](http://localhost:18080/api/schema/operations) | Formaty payload, przykłady i skutki uboczne |
+| [Model projektu](http://localhost:18080/api/schema/project) | JSON Schema |
+| [Możliwości](http://localhost:18080/api/capabilities) | Funkcje, ograniczenia, granice wartości |
+| [Dokumentacja API](http://localhost:18080/api/docs) | Interaktywne opisy endpointów |
+| [OpenAPI](http://localhost:18080/api/openapi.json) | Specyfikacja maszynowa |
 
 Instrukcja rozróżnia zachowanie UI i API: przyciąganie i przeliczanie animacji pozostają funkcjami UI; dopinanie, duplikowanie i wyodrębnianie audio mają teraz jawne operacje backendu. Atomowe partie zmian obsługują tryb próbny bez zapisu. Opisuje płytkie zastępowanie obiektów, dokładne skutki ripple, powrót po konflikcie, odczyt JSON z odpowiedzi MCP, sprawdzanie obrazów oraz analizę konkretnego joba audio.
 

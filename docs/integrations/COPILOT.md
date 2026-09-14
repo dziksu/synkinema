@@ -8,7 +8,7 @@ instructions for Copilot in a terminal. Their JSON configuration roots differ.
 ## VS Code
 
 Open the Command Palette, run **MCP: Add Server**, select HTTP and enter
-`http://localhost:8080/mcp/`. Name the server `synkinema`, then choose user or
+`http://localhost:18080/mcp/`. Name the server `synkinema`, then choose user or
 workspace scope. No Synkinema source checkout is required.
 
 For manual workspace setup, create or merge `.vscode/mcp.json`:
@@ -18,7 +18,7 @@ For manual workspace setup, create or merge `.vscode/mcp.json`:
   "servers": {
     "synkinema": {
       "type": "http",
-      "url": "http://localhost:8080/mcp/"
+      "url": "http://localhost:18080/mcp/"
     }
   }
 }
@@ -34,7 +34,7 @@ in an agent chat. This file uses **`servers`**, not `mcpServers`.
 With a current Copilot CLI installed:
 
 ```sh
-copilot mcp add --transport http synkinema http://localhost:8080/mcp/
+copilot mcp add --transport http synkinema http://localhost:18080/mcp/
 ```
 
 You can also run `/mcp add` inside Copilot CLI and choose HTTP, the same URL and
@@ -46,7 +46,7 @@ the name `synkinema`. For manual user configuration, merge into
   "mcpServers": {
     "synkinema": {
       "type": "http",
-      "url": "http://localhost:8080/mcp/",
+      "url": "http://localhost:18080/mcp/",
       "tools": ["*"]
     }
   }

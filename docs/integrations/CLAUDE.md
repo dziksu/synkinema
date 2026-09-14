@@ -10,7 +10,7 @@ directly over HTTP; local Claude Desktop tools can use a stdio bridge.
 Start Synkinema, then run:
 
 ```sh
-claude mcp add --transport http --scope user synkinema http://localhost:8080/mcp/
+claude mcp add --transport http --scope user synkinema http://localhost:18080/mcp/
 claude mcp list
 claude mcp get synkinema
 ```
@@ -24,7 +24,7 @@ Alternatively, merge this into that file:
   "mcpServers": {
     "synkinema": {
       "type": "http",
-      "url": "http://localhost:8080/mcp/"
+      "url": "http://localhost:18080/mcp/"
     }
   }
 }
@@ -48,7 +48,7 @@ Install Node.js with `npx` on the computer running Claude Desktop, then merge:
       "args": [
         "-y",
         "mcp-remote@0.13.5",
-        "http://localhost:8080/mcp/",
+        "http://localhost:18080/mcp/",
         "--transport",
         "http-only",
         "--allow-http"
@@ -88,7 +88,7 @@ it connected is not a substitute for actual tool results.
 ## Claude web connectors and Cowork
 
 Claude's remote connectors connect from Anthropic's cloud, including when added
-through Desktop or Cowork. Pasting `http://localhost:8080/mcp/` into that remote
+through Desktop or Cowork. Pasting `http://localhost:18080/mcp/` into that remote
 connector flow will not reach your computer. Local Desktop MCP tools use the
 configuration above and are separate from remote connectors.
 [Official connector networking](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).

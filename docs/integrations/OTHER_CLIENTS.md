@@ -2,7 +2,7 @@
 
 [All clients](../AGENT_SETUP.md) · [First MCP reel](../AGENT_QUICKSTART.md)
 
-Start Synkinema and verify [Studio](http://localhost:8080) opens before configuring
+Start Synkinema and verify [Studio](http://localhost:18080) opens before configuring
 your client. Merge entries into existing files; preserve other configured servers.
 
 ## Cursor
@@ -13,7 +13,7 @@ Use `.cursor/mcp.json` in a workspace or `~/.cursor/mcp.json` for user-wide acce
 {
   "mcpServers": {
     "synkinema": {
-      "url": "http://localhost:8080/mcp/"
+      "url": "http://localhost:18080/mcp/"
     }
   }
 }
@@ -31,7 +31,7 @@ Merge into `~/.gemini/settings.json`, or `.gemini/settings.json` in the project:
 {
   "mcpServers": {
     "synkinema": {
-      "httpUrl": "http://localhost:8080/mcp/",
+      "httpUrl": "http://localhost:18080/mcp/",
       "timeout": 180000
     }
   }
@@ -46,7 +46,7 @@ the server in Gemini CLI.
 
 ## Generic MCP clients
 
-Choose a native **Streamable HTTP** connection to `http://localhost:8080/mcp/`.
+Choose a native **Streamable HTTP** connection to `http://localhost:18080/mcp/`.
 Configuration key names are client-specific: do not assume that another client's
 `type`, `url` or JSON root is accepted. Authentication is absent by default.
 

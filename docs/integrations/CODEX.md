@@ -2,7 +2,7 @@
 
 [All clients](../AGENT_SETUP.md) · [First MCP reel](../AGENT_QUICKSTART.md)
 
-Start Synkinema and open [Studio](http://localhost:8080). Codex's local desktop app,
+Start Synkinema and open [Studio](http://localhost:18080). Codex's local desktop app,
 CLI and IDE extension share MCP configuration on the same machine. Configure one
 server entry using either the CLI or TOML below.
 [Official Codex MCP guide](https://developers.openai.com/codex/mcp/).
@@ -12,7 +12,7 @@ server entry using either the CLI or TOML below.
 With Codex CLI installed:
 
 ```sh
-codex mcp add synkinema --url http://localhost:8080/mcp/
+codex mcp add synkinema --url http://localhost:18080/mcp/
 codex mcp list
 codex mcp get synkinema
 ```
@@ -26,7 +26,7 @@ Merge this into `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.synkinema]
-url = "http://localhost:8080/mcp/"
+url = "http://localhost:18080/mcp/"
 startup_timeout_sec = 20
 tool_timeout_sec = 180
 ```

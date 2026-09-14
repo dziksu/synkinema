@@ -39,7 +39,6 @@ import {
   Settings2,
   SkipBack,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
   Type,
   Upload,
@@ -87,7 +86,8 @@ import CaptionPreview, {
   captionFade,
 } from "./CaptionPreview";
 import AgentPromptCopyButton from "./AgentPromptCopyButton";
-import { agentInstructionsPrompt, projectAgentPrompt } from "./agentPrompts";
+import AgentConnectionGuide from "./AgentConnectionGuide";
+import { projectAgentPrompt } from "./agentPrompts";
 
 import {
   freeStart,
@@ -1772,6 +1772,7 @@ export default function App() {
               )}
             />
             <div className="content-page settings-grid">
+              <AgentConnectionGuide onNotice={setNotice} />
               <div className="setting-card">
                 <Clapperboard />
                 <h2>{tr("FFmpeg Engine")}</h2>
@@ -1782,44 +1783,6 @@ export default function App() {
                   )}{" "}
                 </p>
                 <span className="badge">{tr("LOCAL RENDERER")}</span>
-              </div>
-              <div className="setting-card">
-                <Sparkles />
-                <h2>{tr("MCP agent")}</h2>
-                <p>
-                  {" "}
-                  {tr(
-                    "Connect an agent to this studio to edit the timeline, render videos and inspect exported frames.",
-                  )}{" "}
-                </p>
-                <code>http://localhost:8080/mcp/</code>
-                <button
-                  className="button"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText("http://localhost:8080/mcp/")
-                      .then(() => setNotice(tr("MCP address copied")))
-                  }
-                >
-                  <Copy size={15} /> {tr("Copy address")}{" "}
-                </button>
-              </div>
-              <div className="setting-card agent-instructions-card">
-                <Radio />
-                <h2>{tr("Agent workflow instructions")}</h2>
-                <p>
-                  {tr(
-                    "Copy this ready-to-use instruction when handing a Synkinema task to an agent. It identifies the MCP endpoint, safe discovery steps and the required revision-aware workflow.",
-                  )}
-                </p>
-                <pre className="agent-instructions-preview">
-                  {agentInstructionsPrompt()}
-                </pre>
-                <AgentPromptCopyButton
-                  prompt={agentInstructionsPrompt()}
-                  onNotice={setNotice}
-                  label={tr("Copy agent instructions")}
-                />
               </div>
               <div className="setting-card">
                 <Layers />
@@ -2022,7 +1985,7 @@ export default function App() {
                   onClick={() => state.set({ page: "settings" })}
                 >
                   {" "}
-                  {tr("View integrations")} <ArrowRight size={17} />
+                  {tr("Connect an AI agent")} <ArrowRight size={17} />
                 </button>
               </div>
             </div>

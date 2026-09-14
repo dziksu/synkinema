@@ -4,7 +4,7 @@ This is the guide shipped with the running server. REST, MCP, CLI and the editor
 
 ## Discover before editing
 
-Default origin: `http://localhost:8080`. REST base: `/api`. MCP: `/mcp/`, **Streamable HTTP**, not a REST JSON endpoint and not a stdio command. Configure an MCP client with that URL; it handles initialize, tools/list and tools/call. Resources: `synkinema://agent-guide` (this Markdown), `synkinema://operations` (JSON).
+Default origin: `http://localhost:18080`. REST base: `/api`. MCP: `/mcp/`, **Streamable HTTP**, not a REST JSON endpoint and not a stdio command. Configure an MCP client with that URL; it handles initialize, tools/list and tools/call. Resources: `synkinema://agent-guide` (this Markdown), `synkinema://operations` (JSON).
 
 1. Read `get_agent_guide` once per context; discover `get_capabilities`, `get_production_capabilities` and `get_project_schema` when needed. Request `get_operation_reference(operation="add_clip")` for the specific unfamiliar operation, not the entire catalog. Production capabilities describe remote imports, installed models, typed tasks, composition and verification; see the complete production workflow below.
 2. Prefer `browse_projects(request={query,limit:20})` → `get_edit_context(request={project_id,limit:40})` to continue an existing project. Pin the returned revision across pages. Use `get_project(project_id)` for full nested replacement edits, or `create_project(name, brief)` for a new reel. `list_projects` is the legacy unpaginated FULL-timeline inventory, not the efficient default. MCP create defaults to 1080×1920, 30 FPS; change `profile` through `update_project` for other formats. REST creation accepts a full Project.
@@ -171,7 +171,7 @@ Mute/unmute the sound track to compare a mix. Audio inspections measure the whol
 REST large-file import (multipart, no manually set Content-Type):
 
 ```sh
-curl --fail-with-body http://localhost:8080/api/assets \
+curl --fail-with-body http://localhost:18080/api/assets \
   -F 'file=@/absolute/path/film.mp4' \
   -F 'tags=["source","nature"]' \
   -F 'source=https://example.org/original' \

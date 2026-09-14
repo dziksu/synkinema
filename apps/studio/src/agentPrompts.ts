@@ -2,13 +2,28 @@ import type { Channel } from "./api/generated/client";
 import { tr } from "./i18n";
 import type { Project } from "./types";
 
-export const synkinemaMcpUrl = "http://localhost:8080/mcp/";
+export function mcpUrlForStudioLocation(href: string): string {
+  try {
+    const studio = new URL(href);
+    if (studio.protocol === "http:" || studio.protocol === "https:") {
+      const port = studio.port ? `:${studio.port}` : "";
+      return `${studio.protocol}//localhost${port}/mcp/`;
+    }
+  } catch {
+    // A non-browser context uses the documented local default.
+  }
+  return "http://localhost:18080/mcp/";
+}
 
-export function agentInstructionsPrompt() {
+export const synkinemaMcpUrl = mcpUrlForStudioLocation(
+  typeof window === "undefined" ? "" : window.location.href,
+);
+
+export function agentInstructionsPrompt(url = synkinemaMcpUrl) {
   return [
     tr("Synkinema agent instructions"),
     "",
-    tr("Agent instruction connection", { url: synkinemaMcpUrl }),
+    tr("Agent instruction connection", { url }),
     tr("Agent instruction workflow"),
     tr("Agent instruction safety"),
   ].join("\n");

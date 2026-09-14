@@ -148,7 +148,7 @@ Independent ASR alignment is approximate; `estimated` word timings need review.
 Server verification cannot confirm browser playback or subjective editorial
 quality. Report those checks honestly if the client cannot perform them. Resolve
 relative output URLs against the configured Synkinema origin; for example,
-`/media/...` becomes `http://localhost:8080/media/...` in the default setup.
+`/media/...` becomes `http://localhost:18080/media/...` in the default setup.
 
 The final handoff should include the project URL, confirmed revision, completed
 job ID, final MP4 and bundle links, and a short account of the checks and remaining

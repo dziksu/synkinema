@@ -24,13 +24,13 @@ Node.js or local FFmpeg installation is needed:**
 
 ```sh
 docker run -d --name synkinema --init \
-  -p 127.0.0.1:8080:8080 \
+  -p 127.0.0.1:18080:8080 \
   -v synkinema-data:/data \
   --restart unless-stopped \
   ghcr.io/dziksu/synkinema:latest
 ```
 
-Open **[http://localhost:8080](http://localhost:8080)** and create a project.
+Open **[http://localhost:18080](http://localhost:18080)** and create a project.
 The first run downloads the image. Projects, media, models and exports persist in
 the `synkinema-data` Docker volume; restarting the container keeps them.
 
@@ -43,12 +43,12 @@ Check startup:
 
 ```sh
 docker logs --tail 100 synkinema
-curl --fail http://localhost:8080/api/health
+curl --fail http://localhost:18080/api/health
 ```
 
 Run `docker start` after stopping an existing container; repeating `docker run`
-with the same name will fail. If port 8080 is occupied, use
-`-p 127.0.0.1:8081:8080` and port **8081** in your browser and MCP client.
+with the same name will fail. If host port 18080 is occupied, use
+`-p 127.0.0.1:18081:8080` and port **18081** in your browser and MCP client.
 
 The default setup is local and single-user, with no login. Keep it on localhost
 unless you deliberately configure [trusted network access](docs/DEPLOYMENT.md#trusted-home-network).
@@ -77,7 +77,9 @@ docker compose up --build -d
 If you already have a checkout, run only the last command there. Once an image is
 published, `docker compose -f compose.release.yaml up -d` uses it without building.
 The default Compose mapping is `127.0.0.1:43817:8080`; open
-`http://localhost:43817` after starting it.
+`http://localhost:43817` after starting it. To restore an existing
+Compose installation without rebuilding, run `docker compose up -d synkinema` in
+the same checkout; it keeps the existing Compose volume.
 Compose normally uses **`synkinema_synkinema-data`**, a different volume from the
 standalone command's **`synkinema-data`**. Reuse the original volume when moving an
 existing installation; see [deployment and backups](docs/DEPLOYMENT.md).
@@ -119,15 +121,18 @@ editing tools, local media processing and durable production jobs.
 
 ## MCP and agents
 
-Use **`http://localhost:8080/mcp/`**, transport **Streamable HTTP**. The container
+Use **`http://localhost:18080/mcp/`**, transport **Streamable HTTP**. The container
 already includes the MCP server. You do not need to clone this repository, install
 the Synkinema Python package on your agent's machine, or configure a Synkinema API
 key for the default local setup. Your AI client's own account requirements apply.
+Studio's **Engine and integrations → Connect an AI agent** guide offers copyable
+configuration for Codex, Claude, Copilot, Cursor, Gemini and other MCP clients,
+followed by a read-only connection check and a video-production workflow prompt.
 
 For example, with Codex CLI installed:
 
 ```sh
-codex mcp add synkinema --url http://localhost:8080/mcp/
+codex mcp add synkinema --url http://localhost:18080/mcp/
 ```
 
 Codex's local CLI, desktop app and IDE extension use the same MCP configuration.
@@ -157,7 +162,7 @@ choose a client running locally or use the documented private connection setup.
 For exact payloads, let the agent discover `get_project_schema` and
 `get_operation_reference`. The canonical [agent guide](apps/server/synkinema/agent_guide.md)
 also ships inside the image, available via `get_agent_guide`, the MCP resource
-`synkinema://agent-guide` and [HTTP](http://localhost:8080/api/agent/guide).
+`synkinema://agent-guide` and [HTTP](http://localhost:18080/api/agent/guide).
 Read capabilities from the running version instead of assuming every image has
 the same tool set. [API and MCP reference](docs/API_MCP.md).
 

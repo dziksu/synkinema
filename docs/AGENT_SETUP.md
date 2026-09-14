@@ -5,24 +5,29 @@
 Run Synkinema once, connect your local AI client, then ask it to edit the same
 projects you see in Studio. No repository checkout or Synkinema SDK is needed on
 the client. Start the container with the [README quick start](../README.md#quick-start).
+Studio's **Engine and integrations → Connect an AI agent** section lets you pick
+Codex, Claude Code/Desktop, GitHub Copilot (VS Code/CLI), Cursor, Gemini CLI or
+another MCP client. It shows a copyable client-specific configuration, a read-only
+connection check and a workflow prompt. It does not install software or claim a
+connection before the client returns actual MCP tool results.
 
 ## Connection details
 
 | Setting | Value for the default installation |
 |---|---|
 | Server name | `synkinema` |
-| URL | `http://localhost:8080/mcp/` |
+| URL | `http://localhost:18080/mcp/` |
 | Transport | Streamable HTTP |
 | Authentication | None on the default local installation |
-| Studio | [http://localhost:8080](http://localhost:8080) |
-| Health | [http://localhost:8080/api/health](http://localhost:8080/api/health) |
+| Studio | [http://localhost:18080](http://localhost:18080) |
+| Health | [http://localhost:18080/api/health](http://localhost:18080/api/health) |
 
 Keep the trailing `/` in the MCP URL. `/api` is REST, `/api/docs` is Swagger,
 and `/` is the editor; none of these is the MCP endpoint. Synkinema does not
 provide a native stdio command or a legacy SSE endpoint. The MCP client handles
 the protocol handshake and tool calls; do not POST tool JSON directly to `/mcp/`.
 
-If you mapped a different host port, replace **8080 in every client URL**.
+If you mapped a different host port, replace **18080 in every client URL**.
 You can use `127.0.0.1` instead of `localhost` if local IPv6 resolution causes
 connection failures.
 
@@ -92,13 +97,13 @@ agent on another trusted computer, an SSH local forward keeps the server's defau
 loopback binding and the MCP host header intact:
 
 ```sh
-ssh -N -L 127.0.0.1:8081:127.0.0.1:8080 your-user@your-synkinema-host
+ssh -N -L 127.0.0.1:18081:127.0.0.1:18080 your-user@your-synkinema-host
 ```
 
 Run this on the **agent's computer** using an existing SSH account on the Synkinema
 host. Keep the SSH session open, then configure the agent with
-`http://localhost:8081/mcp/`. Studio is available through the same tunnel at
-`http://localhost:8081`. No public Synkinema port is needed.
+`http://localhost:18081/mcp/`. Studio is available through the same tunnel at
+`http://localhost:18081`. No public Synkinema port is needed.
 
 Remote containers, WSL and SSH workspaces can also put the client in a different
 network namespace. Establish which machine actually runs the MCP connection

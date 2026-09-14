@@ -6,15 +6,15 @@ With Docker running and a public image published:
 
 ```sh
 docker run -d --name synkinema --init \
-  -p 127.0.0.1:8080:8080 \
+  -p 127.0.0.1:18080:8080 \
   -v synkinema-data:/data \
   --restart unless-stopped \
   ghcr.io/dziksu/synkinema:latest
 ```
 
-Open [Studio](http://localhost:8080). FFmpeg, fonts, Studio and the server are inside
+Open [Studio](http://localhost:18080). FFmpeg, fonts, Studio and the server are inside
 the image; optional speech/transcription weights are installed separately into
-the persistent volume. MCP is at `http://localhost:8080/mcp/`;
+the persistent volume. MCP is at `http://localhost:18080/mcp/`;
 [connect your agent](AGENT_SETUP.md).
 
 These examples use POSIX shell line continuations (macOS, Linux, WSL or Git Bash).
@@ -25,7 +25,7 @@ In PowerShell, put the command on one line or use its backtick continuation.
 ```sh
 docker logs --tail 100 synkinema
 docker inspect --format '{{.State.Health.Status}}' synkinema
-curl --fail http://localhost:8080/api/health
+curl --fail http://localhost:18080/api/health
 ```
 
 To stop and later resume the **same** container:
@@ -46,7 +46,7 @@ environment. It does not download a newer image.
 | Cannot connect to Docker daemon | Start Docker Desktop, Docker Engine or Colima before running the command. |
 | GHCR `denied` / `manifest unknown` | Confirm a release/image has been published and the GHCR package is public, or use the source build below. A repository can exist before its public image does. |
 | Container name already in use | Inspect the existing container and use `docker start synkinema`; do not remove its volume just to reuse the name. |
-| Port is already allocated | Choose `-p 127.0.0.1:8081:8080` for a new container, then use port 8081 in Studio and every client URL. |
+| Port is already allocated | Choose `-p 127.0.0.1:18081:8080` for a new container, then use port 18081 in Studio and every client URL. |
 | Existing projects seem missing | Check the mounted volume name and Docker context. A different volume or Docker daemon is a different installation. |
 | Model download / render fails writing files | Check host and Docker disk space, then the task error and logs. Preserve the data volume. |
 
@@ -60,7 +60,7 @@ locally. After a release exists, `docker compose -f compose.release.yaml up -d`
 uses the published image. Keep the same Compose project name when switching
 between these two files to retain the same volume.
 
-The standalone container uses host port 8080; the default Compose service uses
+The standalone container uses host port 18080; the default Compose service uses
 43817. Keep separate data volumes for independent installations.
 
 ## Container and storage
@@ -167,7 +167,7 @@ docker pull ghcr.io/dziksu/synkinema:latest
 docker stop --time 30 synkinema
 docker rm synkinema
 docker run -d --name synkinema --init \
-  -p 127.0.0.1:8080:8080 \
+  -p 127.0.0.1:18080:8080 \
   -v synkinema-data:/data \
   --restart unless-stopped \
   ghcr.io/dziksu/synkinema:latest
