@@ -1,0 +1,134 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  verify:
+    name: Verify code and API contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            pyproject.toml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/studio/package-lock.json
+      - name: Install FFmpeg and fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Install locked dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --no-build-isolation --no-deps -e .
+          npm ci --ignore-scripts
+          npm --prefix apps/studio ci
+      - name: Validate workflow syntax
+        run: npm run workflows:check
+      - name: Format, release rules, API drift, tests and production build
+        run: make check PYTHON=python RUFF=ruff
+  docker:
+    name: Container (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+            cache: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            cache: arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Build the release layout with a test version
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: false
+          load: true
+          tags: synkinema:ci
+          build-args: |
+            APP_VERSION=0.0.0
+            VCS_REF=${{ github.sha }}
+            SOURCE_URL=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=ci-${{ matrix.cache }}
+          cache-to: type=gha,mode=min,scope=ci-${{ matrix.cache }},ignore-error=true,timeout=2m
+      - name: Real render, inspection and MCP smoke test as non-root
+        run: >-
+          docker run --rm -e SYNKINEMA_EXPECT_VERSION=0.0.0
+          -v "$PWD/scripts:/smoke:ro" --entrypoint python
+          synkinema:ci /smoke/container_smoke.py
+      - name: Test the actual HTTP server and bundled Studio
+        run: |
+          docker run -d --name synkinema-ci -p 127.0.0.1:18080:8080 synkinema:ci
+          python3 scripts/http_smoke.py --url http://127.0.0.1:18080 --version 0.0.0
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs synkinema-ci 2>/dev/null || true
+          docker rm --force --volumes synkinema-ci 2>/dev/null || true
+  release:
+    name: Semantic release
+    needs: [verify, docker]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      github.event.repository.fork == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Publish tag and generated GitHub release notes
+        id: release
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish:
+    name: Publish release image
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+      ref: ${{ github.sha }}

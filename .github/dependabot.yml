@@ -1,0 +1,61 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(deps-dev)
+    groups:
+      release-toolchain:
+        patterns: ['semantic-release', '@semantic-release/*', 'conventional-changelog-*']
+    ignore:
+      # Preset 10 requires a newer changelog writer; update the toolchain together.
+      - dependency-name: conventional-changelog-conventionalcommits
+        update-types: [version-update:semver-major]
+  - package-ecosystem: npm
+    directory: /apps/studio
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build(deps)
+      prefix-development: build(deps-dev)
+    groups:
+      react:
+        patterns: [react, react-dom, '@types/react', '@types/react-dom']
+      tanstack:
+        patterns: ['@tanstack/*']
+      i18n:
+        patterns: [i18next, react-i18next]
+      build-tools:
+        dependency-type: development
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build(deps)
+      prefix-development: build(deps-dev)
+    groups:
+      api:
+        patterns: [fastapi, starlette, pydantic, pydantic-core, mcp]
+      speech:
+        patterns: [supertonic, onnxruntime, numpy, soundfile, huggingface-hub]
+    ignore:
+      # Archived provider/model adapter is upgraded only after an explicit review.
+      - dependency-name: supertonic
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build(deps)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci(deps)

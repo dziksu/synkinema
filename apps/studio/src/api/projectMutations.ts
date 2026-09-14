@@ -1,0 +1,179 @@
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
+import { http } from "./transport";
+import { keys, reads } from "./queries";
+import { optimistic, type OptimisticContext } from "./cache";
+import { EditQueue } from "../editQueue";
+import { identifySteps, projectAfter, type EditPlan } from "./projectReducer";
+import type { ProjectSnapshot as Project, Operation } from "./generated/client";
+import { tr } from "../i18n";
+
+type Session = {
+  prepare: Promise<unknown>;
+  queue: EditQueue;
+  confirmed?: Project;
+  pending: number;
+  generation: number;
+};
+const sessions = new WeakMap<QueryClient, Map<string, Session>>();
+function session(client: QueryClient, id: string) {
+  let all = sessions.get(client);
+  if (!all) {
+    all = new Map();
+    sessions.set(client, all);
+  }
+  let value = all.get(id);
+  if (!value) {
+    value = {
+      prepare: Promise.resolve(),
+      queue: new EditQueue(),
+      pending: 0,
+      generation: 0,
+    };
+    all.set(id, value);
+  }
+  return value;
+}
+export type ProjectEdit = {
+  projectId: string;
+  resolve: (current: Project) => EditPlan | Promise<EditPlan>;
+  plan?: EditPlan;
+  generation?: number;
+};
+type Context = {
+  transaction: OptimisticContext;
+  before: Project;
+  plan: EditPlan;
+};
+export const projectWrites = (client: QueryClient) =>
+  mutationOptions<Project, Error, ProjectEdit, Context>({
+    mutationKey: ["project-edit"],
+    retry: false,
+    onMutate: (edit) => {
+      const state = session(client, edit.projectId);
+      // Planning is ordered too, so two same-tick gestures see each other's projection.
+      const generation = state.generation;
+      const prepare = state.prepare.then(async () => {
+        if (generation !== state.generation)
+          throw new Error(
+            tr("Pending edits were cancelled after a save error. Try again."),
+          );
+        await client.cancelQueries({
+          queryKey: keys.project(edit.projectId),
+          exact: true,
+        });
+        const current = client.getQueryData<Project>(
+          keys.project(edit.projectId),
+        );
+        if (!current)
+          throw new Error(tr("This project is closed. Open it again."));
+        if (!state.pending) {
+          state.confirmed = current;
+          state.queue = new EditQueue();
+        }
+        client.setQueryData(
+          [...keys.project(current.id), current.revision],
+          state.confirmed,
+        );
+        const resolved = await edit.resolve(current);
+        const plan = { ...resolved, steps: identifySteps(resolved.steps) };
+        const restore = plan.steps.find((s) => s.type === "restore_revision");
+        if (restore?.type === "restore_revision")
+          plan.restored = await client.fetchQuery(
+            reads.project(client, current.id, restore.payload.revision),
+          );
+        // Fail before adding a cache layer if a dependent object is no longer present.
+        projectAfter(current, plan);
+        edit.plan = plan;
+        edit.generation = state.generation;
+        const transaction = await optimistic(
+          client,
+          [
+            {
+              key: keys.project(current.id),
+              apply: (old: Project) => projectAfter(old, plan),
+            },
+            {
+              key: keys.projects,
+              apply: (old: Project[] = []) =>
+                old.map((p) =>
+                  p.id === current.id
+                    ? {
+                        ...projectAfter(current, plan),
+                        revision: Math.max(p.revision, current.revision),
+                      }
+                    : p,
+                ),
+            },
+          ],
+          `project:${current.id}`,
+        );
+        state.pending++;
+        return { transaction, before: current, plan };
+      });
+      state.prepare = prepare.catch(() => undefined);
+      return prepare;
+    },
+    mutationFn: (edit) => {
+      const state = session(client, edit.projectId);
+      return state.queue.enqueue(async () => {
+        if (edit.generation !== state.generation)
+          throw new Error(
+            tr("Pending edits were cancelled after a save error. Try again."),
+          );
+        const revision = state.confirmed!.revision;
+        const plan = edit.plan!;
+        try {
+          const project =
+            plan.batch || plan.steps.length !== 1
+              ? (
+                  await http.api.batch(edit.projectId, {
+                    expected_revision: revision,
+                    operations: plan.steps,
+                  })
+                ).project
+              : await http.api.operation(edit.projectId, {
+                  ...plan.steps[0],
+                  expected_revision: revision,
+                } as Operation);
+          state.confirmed = project;
+          return project;
+        } catch (error) {
+          state.generation++;
+          throw error;
+        }
+      });
+    },
+    onSettled: async (project, _error, edit, context) => {
+      const state = session(client, edit.projectId);
+      if (context) {
+        if (!project) context.transaction.rollbackGroup();
+        context.transaction.settle(
+          !!project,
+          (key, old: Project | Project[]) =>
+            key[0] === "project"
+              ? project
+              : ((old as Project[]) || []).map((p) =>
+                  p.id === edit.projectId ? project! : p,
+                ),
+        );
+        state.pending--;
+      }
+      if (project)
+        client.setQueryData(
+          [...keys.project(project.id), project.revision],
+          project,
+        );
+      if (!state.pending) {
+        await Promise.all([
+          client.invalidateQueries({
+            queryKey: keys.project(edit.projectId),
+            exact: true,
+          }),
+          client.invalidateQueries({ queryKey: keys.projects }),
+          client.invalidateQueries({ queryKey: ["channel"] }),
+          client.invalidateQueries({ queryKey: ["history", edit.projectId] }),
+          client.invalidateQueries({ queryKey: keys.assets(edit.projectId) }),
+        ]);
+      }
+    },
+  });

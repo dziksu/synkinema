@@ -1,0 +1,53 @@
+name: Bug report
+description: Report an editor, API, render or deployment problem
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove tokens and private media from logs and attachments.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal project or public sample if it helps.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Desktop editor / timeline / canvas
+        - Library / project media
+        - Rendering / exported video / audio
+        - REST API / generated web client
+        - MCP / agent workflow
+        - Docker / installation / release
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Shown in Studio and /api/health.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, browser and installation method
+      placeholder: macOS, Chrome, Docker Compose, Apple Silicon
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Include the render job ID for export problems.

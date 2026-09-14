@@ -1,0 +1,148 @@
+{
+  "channel": {
+    "archived": false,
+    "audience": "",
+    "avoid": "",
+    "concept": "",
+    "created_at": "",
+    "cta_guidance": "",
+    "hook_guidance": "",
+    "id": "",
+    "language": "en",
+    "learnings": "",
+    "links": [],
+    "logo_id": null,
+    "lowercase_hashtags": true,
+    "name": "New channel",
+    "rules": "",
+    "tone": "",
+    "updated_at": "",
+    "version": 1,
+    "visual_guidance": "",
+    "voice_gender": "unspecified",
+    "voice_id": "",
+    "voice_provider": ""
+  },
+  "clip": {
+    "animations": [],
+    "asset_id": null,
+    "caption_style": "editorial",
+    "color": "#d8fb76",
+    "duration_ms": 4000,
+    "effects": [],
+    "fade_in_ms": 0,
+    "fade_out_ms": 0,
+    "font_size": 80,
+    "gain_db": 0,
+    "id": "",
+    "name": "Untitled clip",
+    "placement": {
+      "height": 1,
+      "width": 1,
+      "x": 0.5,
+      "y": 0.5
+    },
+    "shape": null,
+    "source_in_ms": 0,
+    "speed": 1,
+    "start_ms": 0,
+    "subtitle": "",
+    "text": "",
+    "text_x": 0.09,
+    "text_y": 0.66,
+    "transform": {
+      "fit": "cover",
+      "opacity": 1,
+      "rotation": 0,
+      "scale": 1,
+      "x": 0.5,
+      "y": 0.5
+    },
+    "transition": {
+      "duration_ms": 300,
+      "type": "cut"
+    }
+  },
+  "profile": {
+    "crf": 18,
+    "fps": 30,
+    "height": 1920,
+    "kind": "reel",
+    "name": "Instagram Reel",
+    "normalize": true,
+    "target_lufs": -16,
+    "true_peak": -1.5,
+    "width": 1080
+  },
+  "project": {
+    "asset_ids": [],
+    "brief": "",
+    "channel_context": null,
+    "channel_id": null,
+    "created_at": "",
+    "duration_ms": 0,
+    "id": "",
+    "name": "New project",
+    "profile": {
+      "crf": 18,
+      "fps": 30,
+      "height": 1920,
+      "kind": "reel",
+      "name": "Instagram Reel",
+      "normalize": true,
+      "target_lufs": -16.0,
+      "true_peak": -1.5,
+      "width": 1080
+    },
+    "revision": 1,
+    "scenes": [],
+    "script": "",
+    "tracks": [
+      {
+        "clips": [],
+        "ducking": false,
+        "gain_db": 0.0,
+        "id": "video",
+        "kind": "video",
+        "muted": false,
+        "name": "Video"
+      },
+      {
+        "clips": [],
+        "ducking": false,
+        "gain_db": 0.0,
+        "id": "titles",
+        "kind": "text",
+        "muted": false,
+        "name": "Captions"
+      },
+      {
+        "clips": [],
+        "ducking": false,
+        "gain_db": 0.0,
+        "id": "voice",
+        "kind": "voiceover",
+        "muted": false,
+        "name": "Voiceover"
+      },
+      {
+        "clips": [],
+        "ducking": true,
+        "gain_db": 0.0,
+        "id": "music",
+        "kind": "music",
+        "muted": false,
+        "name": "Music"
+      }
+    ]
+  },
+  "track": {
+    "clips": [],
+    "ducking": false,
+    "gain_db": 0,
+    "id": "",
+    "kind": "overlay",
+    "muted": false,
+    "name": ""
+  }
+}

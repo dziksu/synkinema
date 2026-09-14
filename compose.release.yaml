@@ -1,0 +1,16 @@
+# Use only after the first successful release and GHCR publication.
+services:
+  synkinema:
+    image: ${SYNKINEMA_IMAGE:-ghcr.io/dziksu/synkinema:latest}
+    ports:
+      - "${SYNKINEMA_BIND_HOST:-127.0.0.1}:8080:8080"
+    volumes:
+      - synkinema-data:/data
+    environment:
+      SYNKINEMA_FFMPEG_THREADS: "4"
+      SYNKINEMA_ALLOWED_HOSTS: "${SYNKINEMA_ALLOWED_HOSTS:-}"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+volumes:
+  synkinema-data:

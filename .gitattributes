@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.mp4 binary
+*.wav binary
+*.ogg binary
+apps/studio/src/api/generated/* linguist-generated=true
+package-lock.json linguist-generated=true
+apps/studio/package-lock.json linguist-generated=true

@@ -1,0 +1,25 @@
+{
+  "name": "synkinema",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Local video editing for people and agents. Release tooling for the Python server and React studio.",
+  "engines": {
+    "node": ">=24.10.0"
+  },
+  "scripts": {
+    "test": "node --test scripts/release/*.test.mjs",
+    "release": "node scripts/release/publish.mjs",
+    "release:check": "node scripts/release/check.mjs",
+    "pr:check": "node scripts/release/pr-title.mjs",
+    "workflows:check": "bash scripts/check-workflows.sh"
+  },
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/release-notes-generator": "14.1.1",
+    "conventional-changelog-conventionalcommits": "9.3.1",
+    "semantic-release": "25.0.9"
+  }
+}

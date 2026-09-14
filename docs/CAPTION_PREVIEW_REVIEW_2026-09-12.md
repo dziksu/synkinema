@@ -1,0 +1,25 @@
+# Caption preview correction — 2026-09-12
+
+The reported frame was at 15.2 s in `Zanim zapadnie cisza • Polska`, project `5c1436ab1fe743ff96d13a99c3df559c`, revision 9. Studio drew `Wodniczka` with CSS while the exporter rasterized it with Pillow. The CSS pseudo-element ended at an opaque edge, producing the visible horizontal dark rectangle. Font metrics, subtitle size, line spacing and wrapping also differed.
+
+The actual FFmpeg inspection frame at 15.2 s showed a smoothly faded contrast band and larger subtitle. The project content was not changed.
+
+Studio now requests a transparent text layer from the same rasterizer and cache used by FFmpeg, pinned to the current project revision. It scales the complete layer with the preview canvas instead of independently laying out browser text. This aligns font selection, line wrapping, safe-area clamping, accents, subtitle size and top/bottom contrast gradients across project aspect ratios. Static opacity, opacity animation and both fades apply during playback. Only the next two unmuted captions are preloaded. Failed loads show an English retry action; a later revision automatically retries its new layer. Cache writes are atomic so parallel preview/export requests cannot read partial PNGs.
+
+Regression coverage checks pixel equality with the export rasterizer, a smooth alpha profile for the top contrast band, revision pinning, cache reuse, portrait/landscape dimensions, fade-out behavior, bounded preloading and UI error recovery. Existing real-render, cache and agent API contract tests are included in validation.
+
+Desktop verification: the original 15.2 s frame now uses the loaded 1080 × 1920 caption PNG, with no CSS title duplicate or abrupt background edge. At 17.34 s the caption fade is 0.5; the next multiline caption at 18.2 s is preloaded and displays correctly. Verified normal/expanded desktop preview at 1440 × 900 and expanded resizing to 1280 × 720. The canvas preserves the exact 9:16 ratio (182.8125 × 325, 408.375 × 726, 307.125 × 546 respectively), using the available preview area measured with ResizeObserver. Project revision remains 9. Per user direction, further phone-specific work is deferred; desktop correctness is the acceptance target.
+
+## Selection bounds and desktop resizing
+
+The later screenshot exposed a separate selection issue: text hit targets had a fixed 82% maximum width and 10% frame height. These did not follow actual font metrics, centered styles, line wrapping, subtitles or the renderer's vertical clamping.
+
+`POST /api/preview/caption` now returns the export raster URL and foreground bounds from the same atomic PNG cache entry. Geometry includes strokes, boxed backgrounds and the editorial accent; the large contrast wash is excluded. Pillow writes the layout into PNG metadata, so cache hits require no pixel decoding or repeat font measurement. The raw PNG endpoints remain compatible. Cache versioning and reference-aware deletion cover both old and current files.
+
+Studio uses generated `previewCaption` through TanStack Query, keyed by the entire candidate clip and profile. The matching decoded image is required before showing its bounding box. Changing style, size, content, subtitle, position or profile cannot attach an old box to a new image. Keyboard focus survives loading; resize/drag drafts transform the image and its measured bounds together. All four corner handles accept horizontal and vertical resizing. Undo reuses the matching cached layout.
+
+Regression validation: 119 frontend tests and 88 backend tests passed, alongside production build, OpenAPI generation drift check, Biome and Ruff. New coverage includes four distinct style geometries, Polish glyphs, wrapping, subtitle extent, portrait/landscape profiles, clamped text near the bottom, pixel containment, cache reuse, out-of-order requests, undo, focus preservation and every resize corner.
+
+Desktop testing used a caption-only disposable project, preserving existing sources and projects. Actual UI checks covered Editorial → Bold hook → Subtitles → Minimal, font size 100 → 150 (two lines becoming three), a Polish subtitle, Y=0.85, horizontal dragging, ArrowRight with preserved focus, vertical corner resizing and Undo. The expanded preview showed the entire caption and subtitle within the selection. Testing 1280 × 720 after closing the 1440 × 900 expanded view exposed an intrinsic minimum-height issue in the viewer grid item; `min-height: 0` allows the measured canvas to shrink back to its available desktop panel.
+
+The final repeat of expand → close → resize passed: canvas 408.375 × 726 px in the 1440 × 900 expanded view became 149.0625 × 265 px in the 1280 × 720 editor. Both image and selection remained inside the viewer. The current server result `{left:18, top:1083, width:860, height:594}` matched the PNG metadata and the UI's normalized geometry exactly. Browser console reported no errors. The disposable project and its caption cache were removed; all 11 existing project documents, 33 media records and 13 export records matched the pre-test snapshot, with zero pending file cleanup.

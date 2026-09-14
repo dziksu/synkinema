@@ -1,0 +1,38 @@
+[
+  {
+    "key": "hamster",
+    "filename": "hamster.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:C.cricetus_Lublin1.jpg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/9/9b/C.cricetus_Lublin1.jpg",
+    "author": "Agnieszka Szeląg",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "description": "European hamster photographed in Lublin, Poland.",
+    "changes": "Crop, zoom, color grading and text overlays in composition.",
+    "sha256": "11338a8f09f69e6aa9b887f39175e777713c73cf0f748b73e3f61831f9bc45a5"
+  },
+  {
+    "key": "warbler",
+    "filename": "warbler.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Aquatic_warbler_-_Waterrietzanger_-_Acrocephalus_paludicola.jpg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Aquatic_warbler_-_Waterrietzanger_-_Acrocephalus_paludicola.jpg",
+    "author": "Bouke ten Cate",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "description": "Aquatic warbler in Biebrza marshes, Poland.",
+    "changes": "Crop, zoom, color grading and text overlays in composition.",
+    "sha256": "34f128bb86fd8bc1130f3f2aeb72ff5408a816e9d82ab8ad9fe5e99849ccb694"
+  },
+  {
+    "key": "porpoise",
+    "filename": "porpoise.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Harbor_Porpoise_Fjord_Baelt_Denmark.JPG",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/4/45/Harbor_Porpoise_Fjord_Baelt_Denmark.JPG",
+    "author": "Rene (da.wikipedia)",
+    "license": "Public domain",
+    "license_url": "https://commons.wikimedia.org/wiki/File:Harbor_Porpoise_Fjord_Baelt_Denmark.JPG",
+    "description": "Harbour porpoise at Fjord & Bælt Centre, Denmark. Species illustration, not a photograph of the Baltic Proper population.",
+    "changes": "Crop, zoom, color grading and text overlays in composition.",
+    "sha256": "1ecc374d100ec081fc15650d563282ab263748350e9d0e0fdf911645ab59b184"
+  }
+]

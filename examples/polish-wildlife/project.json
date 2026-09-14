@@ -1,0 +1,1247 @@
+{
+  "id": "5c1436ab1fe743ff96d13a99c3df559c",
+  "name": "Zanim zapadnie cisza • Polska",
+  "brief": "40-sekundowy reel edukacyjny, 9:16. Prawdziwe zdjęcia, polski lektor, oryginalna muzyka, dynamiczne przejścia. Źródła: WWF Polska i OTOP. Status morświna dotyczy populacji Bałtyku właściwego. Zdjęcie morświna pochodzi z ośrodka w Danii i ilustruje gatunek. Pełne autorstwo w CREDITS.md. Finalna kontrola obrazu i pełnej długości miksu audio przez MCP.",
+  "script": "Znikają tuż obok nas. Poznaj trzy historie z Polski.\n\nChomik europejski. Krytycznie zagrożony wyginięciem. Intensywne rolnictwo i zanik siedlisk odbierają mu dom.\n\nWodniczka. Ten mały ptak potrzebuje mokradeł. Osuszanie zabiera mu miejsca do życia.\n\nMorświn. Populacja Bałtyku właściwego jest krytycznie zagrożona. Przyłów w sieciach i podwodny hałas to realne zagrożenia.\n\nChrońmy mokradła, pola i morze. Wspieraj ochronę przyrody. Udostępnij ich historię. Zanim zapadnie cisza.",
+  "revision": 2,
+  "profile": {
+    "name": "Instagram Reel",
+    "kind": "reel",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "crf": 20,
+    "target_lufs": -16.0,
+    "true_peak": -1.5,
+    "normalize": true
+  },
+  "scenes": [
+    {
+      "id": "b558b6c8ce2e40d6999b11fb2f37ce75",
+      "title": "Otwarcie",
+      "narration": "Znikają tuż obok nas. Poznaj trzy historie z Polski.",
+      "notes": "",
+      "start_ms": 300,
+      "duration_ms": 3596,
+      "voice_asset_id": "949106a5284f4063baae36f454ac1571"
+    },
+    {
+      "id": "9167879e0d2546559c2cc497b299ab45",
+      "title": "Chomik europejski",
+      "narration": "Chomik europejski. Krytycznie zagrożony wyginięciem. Intensywne rolnictwo i zanik siedlisk odbierają mu dom.",
+      "notes": "",
+      "start_ms": 5000,
+      "duration_ms": 6970,
+      "voice_asset_id": "ed63ef9f33674a0a895b6f9cb5f1cb08"
+    },
+    {
+      "id": "bf4745df43334eb18fc5e5d1aa897e25",
+      "title": "Wodniczka",
+      "narration": "Wodniczka. Ten mały ptak potrzebuje mokradeł. Osuszanie zabiera mu miejsca do życia.",
+      "notes": "",
+      "start_ms": 13500,
+      "duration_ms": 5535,
+      "voice_asset_id": "e95ecc2a69e147cba083fefff13d764f"
+    },
+    {
+      "id": "ca734b6bfcff43ad87431361c9a4b3cb",
+      "title": "Morświn",
+      "narration": "Morświn. Populacja Bałtyku właściwego jest krytycznie zagrożona. Przyłów w sieciach i podwodny hałas to realne zagrożenia.",
+      "notes": "",
+      "start_ms": 22000,
+      "duration_ms": 7451,
+      "voice_asset_id": "c0546bd5b8994a888f44ca9463c95a05"
+    },
+    {
+      "id": "89bd72f4d27349a6a99c8bf86be6fd1a",
+      "title": "Wezwanie do działania",
+      "narration": "Chrońmy mokradła, pola i morze. Wspieraj ochronę przyrody. Udostępnij ich historię. Zanim zapadnie cisza.",
+      "notes": "",
+      "start_ms": 32200,
+      "duration_ms": 7376,
+      "voice_asset_id": "44fd3ce6d49e4347b27053bd02844594"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "video",
+      "name": "Obraz",
+      "kind": "video",
+      "muted": false,
+      "ducking": false,
+      "clips": [
+        {
+          "id": "dfbe410e5fad4d5d9e35e3e367868741",
+          "name": "hamster",
+          "asset_id": "9a008f3b973b4f2789d236a60582a50b",
+          "start_ms": 0,
+          "duration_ms": 1600,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.08,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.02,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 1600,
+                  "value": 1.18,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 0
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "ac87d8a1e9004fb4848acfcaf5d0a834",
+          "name": "warbler",
+          "asset_id": "f5e7bdd5202b4dcd947563978cc731fb",
+          "start_ms": 1400,
+          "duration_ms": 1600,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.4,
+            "y": 0.8,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.5,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 1600,
+                  "value": 1.7,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "zoom",
+            "duration_ms": 200
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "85f169dc6dd9474293ec89d08c838f5d",
+          "name": "porpoise",
+          "asset_id": "88f51b95ee5e4dbcbe9e96c4f709bab7",
+          "start_ms": 2800,
+          "duration_ms": 2000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.1,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 2000,
+                  "value": 1.22,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "wipe",
+            "duration_ms": 200
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "06a0738ec07c4ddd9bcb357b42f52e57",
+          "name": "hamster",
+          "asset_id": "9a008f3b973b4f2789d236a60582a50b",
+          "start_ms": 4500,
+          "duration_ms": 9000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.04,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.02,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 9000,
+                  "value": 1.16,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "crossfade",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "73ff4439b04943f6a27812a4a5e535f3",
+          "name": "warbler",
+          "asset_id": "f5e7bdd5202b4dcd947563978cc731fb",
+          "start_ms": 13200,
+          "duration_ms": 9000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.43,
+            "y": 0.82,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.8,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 9000,
+                  "value": 2.1,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "slide",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "d44cb1453d7740b29d85972b4058726f",
+          "name": "porpoise",
+          "asset_id": "88f51b95ee5e4dbcbe9e96c4f709bab7",
+          "start_ms": 21800,
+          "duration_ms": 10500,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.52,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.04,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 10500,
+                  "value": 1.18,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "blur",
+            "duration_ms": 400
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "47ba2cb955c14cbea3ba941ebd225c1a",
+          "name": "warbler",
+          "asset_id": "f5e7bdd5202b4dcd947563978cc731fb",
+          "start_ms": 32000,
+          "duration_ms": 8000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.45,
+            "y": 0.7,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [
+            {
+              "type": "saturation",
+              "value": 0.9,
+              "enabled": true
+            },
+            {
+              "type": "contrast",
+              "value": 1.08,
+              "enabled": true
+            },
+            {
+              "type": "vignette",
+              "value": 0.38,
+              "enabled": true
+            }
+          ],
+          "animations": [
+            {
+              "property": "scale",
+              "keyframes": [
+                {
+                  "time_ms": 0,
+                  "value": 1.1,
+                  "easing": "linear"
+                },
+                {
+                  "time_ms": 8000,
+                  "value": 1.32,
+                  "easing": "ease_in_out"
+                }
+              ]
+            }
+          ],
+          "transition": {
+            "type": "crossfade",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        }
+      ]
+    },
+    {
+      "id": "titles",
+      "name": "Napisy",
+      "kind": "text",
+      "muted": false,
+      "ducking": false,
+      "clips": [
+        {
+          "id": "82548ddbf8ff41529679aa6430e92e67",
+          "name": "Znikają.",
+          "asset_id": null,
+          "start_ms": 150,
+          "duration_ms": 2600,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Znikają.",
+          "subtitle": "TUŻ OBOK NAS.",
+          "color": "#d8fb76",
+          "font_size": 148,
+          "text_y": 0.59
+        },
+        {
+          "id": "8916658f46e742f5a33f0abd046f1a4c",
+          "name": "3 historie.",
+          "asset_id": null,
+          "start_ms": 2900,
+          "duration_ms": 1600,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "3 historie.",
+          "subtitle": "POLSKA • DZIKA PRZYRODA",
+          "color": "#d8fb76",
+          "font_size": 110,
+          "text_y": 0.65
+        },
+        {
+          "id": "d3c2a5f5561c446b91a1d2435a907217",
+          "name": "Chomik europejski",
+          "asset_id": null,
+          "start_ms": 4900,
+          "duration_ms": 4000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Chomik\neuropejski",
+          "subtitle": "01 / KRYTYCZNIE ZAGROŻONY GLOBALNIE",
+          "color": "#d8fb76",
+          "font_size": 92,
+          "text_y": 0.62
+        },
+        {
+          "id": "5f09180b6b254c7089274ec9f112a5aa",
+          "name": "Traci swój dom.",
+          "asset_id": null,
+          "start_ms": 9100,
+          "duration_ms": 3700,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Traci swój dom.",
+          "subtitle": "INTENSYWNE ROLNICTWO • ZANIK SIEDLISK",
+          "color": "#d8fb76",
+          "font_size": 91,
+          "text_y": 0.64
+        },
+        {
+          "id": "019b288d4f4d4dea982e3360d75cbe0b",
+          "name": "Wodniczka",
+          "asset_id": null,
+          "start_ms": 13700,
+          "duration_ms": 3700,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Wodniczka",
+          "subtitle": "02 / GATUNEK NARAŻONY GLOBALNIE",
+          "color": "#d8fb76",
+          "font_size": 102,
+          "text_y": 0.18
+        },
+        {
+          "id": "0fbca3b28ced46f2ad341635ad80fbf7",
+          "name": "Bez mokradeł nie przetrwa.",
+          "asset_id": null,
+          "start_ms": 17800,
+          "duration_ms": 3600,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Bez mokradeł\nnie przetrwa.",
+          "subtitle": "OSUSZANIE ODBIERA JEJ SIEDLISKA",
+          "color": "#d8fb76",
+          "font_size": 86,
+          "text_y": 0.18
+        },
+        {
+          "id": "9abf5fd9dbf44d978469ff19829138c4",
+          "name": "Morświn",
+          "asset_id": null,
+          "start_ms": 22300,
+          "duration_ms": 4200,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Morświn",
+          "subtitle": "03 / BAŁTYK WŁAŚCIWY",
+          "color": "#a2e1f3",
+          "font_size": 106,
+          "text_y": 0.63
+        },
+        {
+          "id": "191e3c0907a4425ba6e3a5bc27904976",
+          "name": "Sieci. Hałas. Coraz mniej ciszy.",
+          "asset_id": null,
+          "start_ms": 26900,
+          "duration_ms": 4700,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Sieci. Hałas.\nCoraz mniej ciszy.",
+          "subtitle": "KRYTYCZNIE ZAGROŻONA POPULACJA",
+          "color": "#a2e1f3",
+          "font_size": 83,
+          "text_y": 0.6
+        },
+        {
+          "id": "598677ac8a5645d8ab2d90a007ef3a19",
+          "name": "Ich dom. Nasza sprawa.",
+          "asset_id": null,
+          "start_ms": 32500,
+          "duration_ms": 3300,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Ich dom.\nNasza sprawa.",
+          "subtitle": "CHROŃMY MOKRADŁA, POLA I MORZE.",
+          "color": "#d8fb76",
+          "font_size": 99,
+          "text_y": 0.2
+        },
+        {
+          "id": "a6dc4cd9704841ff98c37a96173541db",
+          "name": "Zanim zapadnie cisza.",
+          "asset_id": null,
+          "start_ms": 36100,
+          "duration_ms": 3900,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 0.0,
+          "fade_in_ms": 100,
+          "fade_out_ms": 120,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "Zanim zapadnie\ncisza.",
+          "subtitle": "WSPIERAJ OCHRONĘ PRZYRODY. PODAJ DALEJ.",
+          "color": "#d8fb76",
+          "font_size": 94,
+          "text_y": 0.2
+        }
+      ]
+    },
+    {
+      "id": "voice",
+      "name": "Lektor",
+      "kind": "voiceover",
+      "muted": false,
+      "ducking": false,
+      "clips": [
+        {
+          "id": "813adc50d05449639f7087b085b4f505",
+          "name": "Lektor 1",
+          "asset_id": "949106a5284f4063baae36f454ac1571",
+          "start_ms": 300,
+          "duration_ms": 3596,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 2.0,
+          "fade_in_ms": 30,
+          "fade_out_ms": 60,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "ec190039804e4191bd74e5859433c11b",
+          "name": "Lektor 2",
+          "asset_id": "ed63ef9f33674a0a895b6f9cb5f1cb08",
+          "start_ms": 5000,
+          "duration_ms": 6970,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 2.0,
+          "fade_in_ms": 30,
+          "fade_out_ms": 60,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "1e41ebb96de34614b6249eacbb8f15e1",
+          "name": "Lektor 3",
+          "asset_id": "e95ecc2a69e147cba083fefff13d764f",
+          "start_ms": 13500,
+          "duration_ms": 5535,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 2.0,
+          "fade_in_ms": 30,
+          "fade_out_ms": 60,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "9afb43b920054b67b5159beb74de2e84",
+          "name": "Lektor 4",
+          "asset_id": "c0546bd5b8994a888f44ca9463c95a05",
+          "start_ms": 22000,
+          "duration_ms": 7451,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 2.0,
+          "fade_in_ms": 30,
+          "fade_out_ms": 60,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "9c1fee3e4a194430ba3b7edc6a50142f",
+          "name": "Lektor 5",
+          "asset_id": "44fd3ce6d49e4347b27053bd02844594",
+          "start_ms": 32200,
+          "duration_ms": 7376,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": 2.0,
+          "fade_in_ms": 30,
+          "fade_out_ms": 60,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "name": "Muzyka",
+      "kind": "music",
+      "muted": false,
+      "ducking": true,
+      "clips": [
+        {
+          "id": "9fd5db3163eb4b5d805cbbb0048601be",
+          "name": "Original • Before the silence",
+          "asset_id": "9891e9fa5b354e9ea7d2f4d932c95646",
+          "start_ms": 0,
+          "duration_ms": 40000,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -2.0,
+          "fade_in_ms": 600,
+          "fade_out_ms": 1800,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        }
+      ]
+    },
+    {
+      "id": "sfx",
+      "name": "Akcenty",
+      "kind": "sound",
+      "muted": false,
+      "ducking": false,
+      "clips": [
+        {
+          "id": "9a560c3ca9434f75af094c96690bbf53",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 1200,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "6b023f781d454f5bb2a60524953d4984",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 2600,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "ea2f3b8847f6420cbb13f69b05146694",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 4200,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "65625aa76f4b4c7f86f81e8285dfb39c",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 12900,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "4f194b3f3aac4eaab9f4d3230512c396",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 21500,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        },
+        {
+          "id": "cdc2ec796fa74b8f8b6466d3b362dbd1",
+          "name": "Przejście",
+          "asset_id": "cbd7d7c1b75d4ed9938463132e2ef08b",
+          "start_ms": 31700,
+          "duration_ms": 650,
+          "source_in_ms": 0,
+          "speed": 1.0,
+          "gain_db": -9.0,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "transform": {
+            "scale": 1.0,
+            "x": 0.5,
+            "y": 0.5,
+            "rotation": 0.0,
+            "opacity": 1.0,
+            "fit": "cover"
+          },
+          "effects": [],
+          "animations": [],
+          "transition": {
+            "type": "cut",
+            "duration_ms": 300
+          },
+          "text": "",
+          "subtitle": "",
+          "color": "#d8fb76",
+          "font_size": 80,
+          "text_y": 0.66
+        }
+      ]
+    }
+  ],
+  "asset_ids": [
+    "9a008f3b973b4f2789d236a60582a50b",
+    "f5e7bdd5202b4dcd947563978cc731fb",
+    "88f51b95ee5e4dbcbe9e96c4f709bab7",
+    "949106a5284f4063baae36f454ac1571",
+    "ed63ef9f33674a0a895b6f9cb5f1cb08",
+    "e95ecc2a69e147cba083fefff13d764f",
+    "c0546bd5b8994a888f44ca9463c95a05",
+    "44fd3ce6d49e4347b27053bd02844594",
+    "9891e9fa5b354e9ea7d2f4d932c95646",
+    "cbd7d7c1b75d4ed9938463132e2ef08b"
+  ]
+}

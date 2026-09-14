@@ -1,0 +1,251 @@
+{
+  "packs": {
+    "rpg": {
+      "url": "https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip",
+      "page": "https://kenney.nl/assets/rpg-audio"
+    },
+    "interface": {
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "page": "https://kenney.nl/assets/interface-sounds"
+    },
+    "impact": {
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "page": "https://kenney.nl/assets/impact-sounds"
+    }
+  },
+  "items": [
+    {
+      "pack": "rpg",
+      "original": "knifeSlice.ogg",
+      "name": "Przejście — szybki świst.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "transition",
+        "whoosh",
+        "świst"
+      ]
+    },
+    {
+      "pack": "rpg",
+      "original": "knifeSlice2.ogg",
+      "name": "Przejście — świst 2.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "transition",
+        "whoosh",
+        "świst"
+      ]
+    },
+    {
+      "pack": "rpg",
+      "original": "drawKnife1.ogg",
+      "name": "Przejście — metaliczny ruch.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "transition",
+        "metal"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "bong_001.ogg",
+      "name": "Zaskoczenie — bong.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "zaskoczenie",
+        "surprise",
+        "bong",
+        "hook"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "question_001.ogg",
+      "name": "Zaskoczenie — pytanie.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "zaskoczenie",
+        "surprise",
+        "question"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "glitch_001.ogg",
+      "name": "Zaskoczenie — glitch.wav",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "zaskoczenie",
+        "surprise",
+        "glitch"
+      ],
+      "pad_to_ms": 120
+    },
+    {
+      "pack": "interface",
+      "original": "maximize_001.ogg",
+      "name": "Przejście — narastanie.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "transition",
+        "riser",
+        "UI"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "minimize_001.ogg",
+      "name": "Przejście — opadanie.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "transition",
+        "UI"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "confirmation_001.ogg",
+      "name": "Potwierdzenie — CTA.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "potwierdzenie",
+        "confirmation",
+        "CTA",
+        "UI"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "click_001.ogg",
+      "name": "Klik — interfejs.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "klik",
+        "click",
+        "UI"
+      ]
+    },
+    {
+      "pack": "interface",
+      "original": "switch_001.ogg",
+      "name": "Przełączenie — interfejs.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "przejście",
+        "switch",
+        "UI"
+      ]
+    },
+    {
+      "pack": "impact",
+      "original": "impactPunch_heavy_000.ogg",
+      "name": "Uderzenie — mocny akcent.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "uderzenie",
+        "impact",
+        "punch",
+        "hook"
+      ]
+    },
+    {
+      "pack": "impact",
+      "original": "impactMetal_medium_000.ogg",
+      "name": "Uderzenie — metal.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "uderzenie",
+        "impact",
+        "metal",
+        "moduły"
+      ]
+    },
+    {
+      "pack": "impact",
+      "original": "impactBell_heavy_000.ogg",
+      "name": "Uderzenie — dzwon.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "uderzenie",
+        "impact",
+        "bell"
+      ]
+    },
+    {
+      "pack": "impact",
+      "original": "impactSoft_medium_000.ogg",
+      "name": "Uderzenie — miękki akcent.ogg",
+      "tags": [
+        "sfx",
+        "krótki",
+        "short",
+        "Kenney",
+        "CC0",
+        "uderzenie",
+        "impact",
+        "soft"
+      ]
+    }
+  ]
+}

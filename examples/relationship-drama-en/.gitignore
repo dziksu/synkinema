@@ -1,0 +1,4 @@
+# Licensed source media, generated audio, exports, local IDs and review captures.
+/assets/
+/out/
+/__pycache__/
