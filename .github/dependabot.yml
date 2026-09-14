@@ -30,7 +30,13 @@ updates:
       i18n:
         patterns: [i18next, react-i18next]
       build-tools:
-        dependency-type: development
+        patterns: ['vite', 'vitest', '@vitejs/plugin-react', '@tailwindcss/vite']
+    ignore:
+      # Compiler and OpenAPI generator majors require source and contract migrations.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: swagger-typescript-api
+        update-types: [version-update:semver-major]
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -47,12 +53,21 @@ updates:
     ignore:
       # Archived provider/model adapter is upgraded only after an explicit review.
       - dependency-name: supertonic
+      # MCP 2 changes the server contract and requires a deliberate migration.
+      - dependency-name: mcp
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
     commit-message:
       prefix: build(deps)
+    ignore:
+      # Runtime majors must move with .nvmrc/.python-version and both smoke tests.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+      - dependency-name: python
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:

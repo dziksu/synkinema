@@ -193,7 +193,7 @@ ElevenLabs is a separate optional provider using your server-side key and credit
 
 ## Development
 
-Use Python 3.12, Node 24.14.1 (`nvm use`), FFmpeg and ffprobe. Docker includes FFmpeg
+Use Python 3.12, Node 24.21.0 (`nvm use`), FFmpeg and ffprobe. Docker includes FFmpeg
 and the required fonts; local development needs DejaVu Sans or a configured TTF.
 Windows users can use Docker or WSL2.
 
