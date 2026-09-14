@@ -45,6 +45,67 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+it.each([1, 1.5])(
+  "keeps the decoded video across consecutive source cuts at speed %s",
+  (speed) => {
+    const project = structuredClone(defaults.project) as Project;
+    project.id = "continuous-source";
+    project.duration_ms = 6000;
+    const first = {
+      ...structuredClone(defaults.clip),
+      id: "first",
+      name: "First shot",
+      asset_id: "source",
+      start_ms: 0,
+      source_in_ms: 1000,
+      duration_ms: 3000,
+      speed,
+    } as Clip;
+    const second = {
+      ...structuredClone(first),
+      id: "second",
+      name: "Next shot",
+      start_ms: 3000,
+      source_in_ms: 1000 + 3000 * speed,
+    };
+    // Restored/edited clips need not be stored in chronological order.
+    project.tracks[0].clips = [second, first];
+    useStudio.setState({ time: 2999 });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Preview
+          project={project}
+          assets={[
+            {
+              id: "source",
+              kind: "video",
+              url: "/media/continuous.mp4",
+            } as Asset,
+          ]}
+          onChange={vi.fn()}
+          onInsert={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    const decoder = container.querySelector("video")!;
+    // Model the already-decoded source position as the playhead crosses the cut.
+    const atCut = second.source_in_ms / 1000;
+    decoder.currentTime = atCut;
+    const seek = vi.spyOn(decoder, "currentTime", "set");
+    act(() => useStudio.setState({ time: 3000 }));
+    expect(container.querySelectorAll("video")).toHaveLength(1);
+    expect(container.querySelector("video")).toBe(decoder);
+    expect(seek).not.toHaveBeenCalled();
+    expect(decoder.currentTime).toBe(atCut);
+    expect(
+      container.querySelector<HTMLElement>(".placed-media")!.style.opacity,
+    ).toBe("1");
+    expect(
+      screen.getByRole("button", { name: "Position Next shot on canvas" }),
+    ).toBeTruthy();
+  },
+);
 it("selects canvas elements and clears selection on canvas and surrounding empty background", () => {
   const base = structuredClone(defaults.project) as Project;
   const p = projectAfter(

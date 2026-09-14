@@ -64,6 +64,7 @@ import NumberField from "./NumberField";
 import SourceMonitor from "./SourceMonitor";
 import VoiceGenerator from "./VoiceGenerator";
 import { usePreviewSize } from "./usePreviewSize";
+import { previewLayers } from "./previewLayers";
 import { sourceInsert, type SourceInsert } from "./sourceInsert";
 import RenderQueue from "./RenderQueue";
 import ExportSettings, { formatLabel } from "./ExportSettings";
@@ -2445,14 +2446,7 @@ export function Preview({
     frameSize.height,
     previewZoom,
   );
-  const visual = project.tracks
-    .filter((t) => !t.muted && ["video", "overlay", "text"].includes(t.kind))
-    .sort((a, b) => Number(b.kind === "video") - Number(a.kind === "video"))
-    .flatMap((t) => t.clips.map((c) => ({ track: t, clip: c })))
-    .filter(
-      ({ clip: c }) =>
-        state.time >= c.start_ms && state.time < c.start_ms + c.duration_ms,
-    );
+  const visual = previewLayers(project, state.time);
   const audio = project.tracks
     .filter(
       (t) =>
@@ -2580,7 +2574,7 @@ export function Preview({
         ) : (
           <>
             <CaptionPreloader project={project} time={state.time} />
-            {visual.map(({ track, clip: original }, index) => {
+            {visual.map(({ track, clip: original, key }, index) => {
               const clip =
                 draft?.projectId === project.id && draft.id === original.id
                   ? { ...original, ...draft.changes }
@@ -2610,7 +2604,7 @@ export function Preview({
               }
               return (
                 <div
-                  key={clip.id}
+                  key={key}
                   className="preview-composition-layer"
                   style={{ zIndex: index + 1 }}
                 >

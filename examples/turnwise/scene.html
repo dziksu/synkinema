@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Turnwise • The long way through</title>
+<style>html,body{margin:0;background:#15262b;overflow:hidden}canvas{display:block}</style>
+<script type="module">
+import * as THREE from '/three/build/three.module.js';
+import { RoomEnvironment } from '/three/examples/jsm/environments/RoomEnvironment.js';
+const W=1080,H=1920;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setSize(W,H); renderer.setPixelRatio(1);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#20353b');
+const env=new THREE.PMREMGenerator(renderer);
+scene.environment=env.fromScene(new RoomEnvironment(),0.05).texture;
+const camera=new THREE.OrthographicCamera(-2.98,2.98,5.298,-5.298,.1,100);
+const hemi=new THREE.HemisphereLight(0xe1f4ff,0x536664,1.35);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffeedc,4.0);key.position.set(-5,10,6);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-7;key.shadow.camera.right=7;
+key.shadow.camera.top=9;key.shadow.camera.bottom=-6;key.shadow.normalBias=.018;
+key.shadow.bias=-.0001;key.shadow.radius=4;scene.add(key);
+const fill=new THREE.DirectionalLight(0xb7e9ff,1.5);fill.position.set(5,4,-5);scene.add(fill);
+const ivory=new THREE.MeshStandardMaterial({color:'#e5e1cf',roughness:.3,metalness:.12});
+const brass=new THREE.MeshStandardMaterial({color:'#be7c32',roughness:.23,metalness:.72});
+const darkBrass=new THREE.MeshStandardMaterial({color:'#9b5d22',roughness:.31,metalness:.65});
+const teal=new THREE.MeshStandardMaterial({color:'#345f61',roughness:.4,metalness:.32});
+const dark=new THREE.MeshStandardMaterial({color:'#182f35',roughness:.54,metalness:.12});
+function mesh(g,m,x=0,y=0,z=0){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
+function rounded(w,h,r){const s=new THREE.Shape(),x=-w/2,y=-h/2;s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s;}
+function slab(shape,depth,mat,y){const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSize:.045,bevelThickness:.045,bevelSegments:4,curveSegments:64});g.rotateX(-Math.PI/2);return mesh(g,mat,0,y,0);}
+const gateShape=rounded(4.65,3.35,.28);const hole=new THREE.Path();hole.absarc(0,.3,.51,0,Math.PI*2,true);gateShape.holes.push(hole);
+slab(gateShape,.25,ivory,2.5);
+const rim=mesh(new THREE.TorusGeometry(.535,.021,12,96),darkBrass,0,2.805,-.3);rim.rotation.x=-Math.PI/2;
+slab(rounded(4.95,3.65,.32),.23,teal,-1.28);
+slab(rounded(4.48,3.18,.25),.055,dark,-.99);
+for(const x of [-2.02,2.02])for(const z of [-1.36,1.36]){
+ mesh(new THREE.CylinderGeometry(.065,.065,3.55,24),teal,x,.75,z);
+ mesh(new THREE.CylinderGeometry(.105,.105,.13,24),darkBrass,x,2.35,z);
+ mesh(new THREE.CylinderGeometry(.105,.105,.13,24),darkBrass,x,-.88,z);
+}
+const floor=mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#203b42',roughness:.92}),0,-1.38,0);floor.rotation.x=-Math.PI/2;
+// One rigid capsule, never scaled, morphed or swapped. Length 3.10, diameter .72.
+const L=3.10,R=.36,rod=new THREE.Group();scene.add(rod);
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(R,L-2*R,16,48),brass);body.position.y=L/2;body.castShadow=true;body.receiveShadow=true;rod.add(body);
+// Three fine engraved bands make the same piece traceable through the reveal.
+for(const y of [.71,.77,.83]){const b=new THREE.Mesh(new THREE.TorusGeometry(R+.002,.007,8,64),darkBrass);b.rotation.x=Math.PI/2;b.position.y=y;rod.add(b);}
+const smooth=(a,b,t)=>{const x=THREE.MathUtils.clamp((t-a)/(b-a),0,1);return x*x*(3-2*x);};
+const mix=THREE.MathUtils.lerp;
+window.renderAt=(t)=>{
+ let x=-L/2,y=3.26,z=.95,angle=-Math.PI/2;
+ // 0–3.2: compare the long piece and hole, slide across and meet the rim.
+ z=mix(.95,-.3,smooth(.35,1.8,t));
+ y=mix(3.26,3.16,smooth(1.8,2.15,t));
+ y+=.075*Math.sin(Math.PI*smooth(2.15,2.65,t));
+ // 3.2–6: lift clear and move forward, revealing the unobstructed opening.
+ y=mix(y,3.40,smooth(3.1,4.2,t));z=mix(z,.75,smooth(3.5,4.8,t));
+ // 5–10.8: tip the same solid piece onto its end, entirely above the plate.
+ angle=mix(-Math.PI/2,0,smooth(5.0,10.8,t));
+ y=mix(y,3.02,smooth(5.0,10.8,t));
+ // 10.8–13: align the narrow circular end with the circular opening.
+ x=mix(x,0,smooth(10.8,12.7,t));z=mix(z,-.3,smooth(10.8,12.7,t));
+ // 13–16.8: descend continuously through the real hole to the lower tray.
+ y=mix(y,-.88,smooth(13.15,16.8,t));
+ // 17–19.7: the same engraved piece settles sideways in full view below.
+ const settle=smooth(17.15,19.65,t);angle=mix(angle,-Math.PI/2,settle);
+ y=mix(y,-.53,settle);x=mix(x,-L/2,settle);z=mix(z,.58,settle);
+ rod.position.set(x,y,z);rod.rotation.set(0,0,angle);
+ // Motivated camera reveal: a high view establishes the hole; a lower one proves passage.
+ const low=smooth(11.5,18.8,t),orbit=smooth(18.8,22,t);
+ const az=mix(.18,-.12,orbit),elevation=mix(.93,.32,low),distance=18;
+ const target=new THREE.Vector3(-.12,mix(1.75,1.45,low),0);
+ camera.position.set(target.x+distance*Math.sin(az)*Math.cos(elevation),target.y+distance*Math.sin(elevation),distance*Math.cos(az)*Math.cos(elevation));
+ camera.lookAt(target);renderer.render(scene,camera);
+};
+window.renderAt(0);window.ready=true;
+</script>
+</html>
