@@ -60,14 +60,19 @@ locally. After a release exists, `docker compose -f compose.release.yaml up -d`
 uses the published image. Keep the same Compose project name when switching
 between these two files to retain the same volume.
 
-The standalone container and the default Compose service both use port 8080;
-stop the existing service before switching, or deliberately choose a different
-port and data volume for an independent installation.
+The standalone container uses host port 8080; the default Compose service uses
+43817. Keep separate data volumes for independent installations.
 
 ## Container and storage
 
 The container runs as non-root user `studio` (UID 10001), listens internally on
-8080, and has a health check. The default host binding is `127.0.0.1:8080`.
+8080, and has a health check. The default Compose host binding is
+`127.0.0.1:43817`. For an existing Compose installation, set
+`SYNKINEMA_BIND_PORT=43817` in `.env`
+and run `docker compose up -d --force-recreate synkinema` to move only the host
+port. Open `http://localhost:43817`; the same Compose volume remains mounted.
+Changing the port does not limit network access: `SYNKINEMA_BIND_HOST` controls
+whether the service listens only on this computer or also on the LAN.
 One application process and one worker must own a data directory. Do not use
 multiple Uvicorn workers or mount the same volume into simultaneous instances.
 
@@ -89,14 +94,15 @@ SYNKINEMA_ALLOWED_HOSTS=192.168.1.20
 ```
 
 Replace the example IP with the host's current LAN address. Run
-`docker compose up -d` and open `http://192.168.1.20:8080` from the same trusted
+`docker compose up -d` and open `http://192.168.1.20:43817` from the same trusted
 network. Additional hostnames/IPs can be comma-separated. Same-origin writes are
 validated against the configured host. Update the setting if DHCP changes the IP.
 
 For the standalone Docker setup, the equivalent requires recreating the container
 with a LAN-facing port mapping and `-e SYNKINEMA_ALLOWED_HOSTS=YOUR_LAN_IP`, keeping
-the original volume. `SYNKINEMA_BIND_HOST` is Compose interpolation, not a server
-environment variable that can change an existing Docker port mapping.
+the original volume. `SYNKINEMA_BIND_HOST` and `SYNKINEMA_BIND_PORT` are Compose
+interpolation, not server environment variables that can change an existing Docker
+port mapping.
 
 This setting applies to Studio/REST. MCP has its own loopback host/origin checks;
 it does not inherit this host list. Connect an agent on another computer through

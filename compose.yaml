@@ -3,7 +3,7 @@ services:
     build: .
     image: synkinema:local
     ports:
-      - "${SYNKINEMA_BIND_HOST:-127.0.0.1}:8080:8080"
+      - "${SYNKINEMA_BIND_HOST:-127.0.0.1}:${SYNKINEMA_BIND_PORT:-43817}:8080"
     volumes:
       - synkinema-data:/data
     environment:

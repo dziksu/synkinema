@@ -76,6 +76,8 @@ docker compose up --build -d
 
 If you already have a checkout, run only the last command there. Once an image is
 published, `docker compose -f compose.release.yaml up -d` uses it without building.
+The default Compose mapping is `127.0.0.1:43817:8080`; open
+`http://localhost:43817` after starting it.
 Compose normally uses **`synkinema_synkinema-data`**, a different volume from the
 standalone command's **`synkinema-data`**. Reuse the original volume when moving an
 existing installation; see [deployment and backups](docs/DEPLOYMENT.md).
