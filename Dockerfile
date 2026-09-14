@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS studio
+FROM node:26-bookworm-slim AS studio
 ARG APP_VERSION=0.1.0
 ENV VITE_APP_VERSION=$APP_VERSION
 WORKDIR /studio
