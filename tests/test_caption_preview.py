@@ -150,3 +150,39 @@ def test_measured_caption_bounds_cover_visible_pixels_without_contrast_gradient(
                 else:
                     # DejaVu's side bearing can leave 8 transparent pixels at this size.
                     assert max(abs(a - b) for a, b in zip(box, alpha.getbbox(), strict=True)) <= 10
+
+
+def test_boxed_headline_and_subtitle_share_the_same_center(tmp_path):
+    def ink_bounds(image, top, bottom, white):
+        columns = []
+        for y in range(top, bottom):
+            for x in range(image.width):
+                red, green, blue = image.getpixel((x, y))
+                is_ink = (
+                    red > 240 and green > 240 and blue > 240
+                    if white
+                    else red > 190 and green > 230 and blue < 160
+                )
+                if is_ink:
+                    columns.append(x)
+        assert columns
+        return min(columns), max(columns)
+
+    for style in ("boxed", "bold"):
+        for text_x in (0.05, 0.35):
+            clip = Clip(
+                text="WORK TOGETHER",
+                subtitle="Same project",
+                caption_style=style,
+                text_x=text_x,
+                text_y=0.3,
+                font_size=70,
+            )
+            path = text_layer(clip, 1000, 560, tmp_path / f"{style}-{text_x}.png")
+            with Image.open(path) as image:
+                pixels = image.convert("RGB")
+                title_left, title_right = ink_bounds(pixels, 165, 260, style == "boxed")
+                subtitle_left, subtitle_right = ink_bounds(pixels, 260, 350, False)
+                title_center = (title_left + title_right) / 2
+                subtitle_center = (subtitle_left + subtitle_right) / 2
+                assert abs(title_center - subtitle_center) <= 8

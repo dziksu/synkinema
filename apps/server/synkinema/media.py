@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, PngImagePlugin
 
+TEXT_CACHE_VERSION = "v6"
+
 
 def probe(path: Path):
     result = subprocess.run(
@@ -108,7 +110,7 @@ def wrapped(draw, text, font, width):
     return lines
 
 
-def text_cache_name(clip, width, height, version="v5"):
+def text_cache_name(clip, width, height, version=TEXT_CACHE_VERSION):
     key = hashlib.sha256((clip.model_dump_json() + f"{width}x{height}-text-{version}").encode()).hexdigest()
     return f"text-{key}.png"
 
@@ -184,10 +186,11 @@ def text_layer(clip, width, height, output):
     size = max(1, round(clip.font_size * scale))
     f = font(size, True)
     small = font(max(1, round(38 * scale)))
-    lines = wrapped(d, clip.text, f, width * min(0.82, 0.98 - clip.text_x))
+    block_width = width * min(0.82, 0.98 - clip.text_x)
+    lines = wrapped(d, clip.text, f, block_width)
     line_height = size * 1.14
     y = height * clip.text_y
-    subtitle_lines = wrapped(d, clip.subtitle, small, width * min(0.82, 0.98 - clip.text_x))
+    subtitle_lines = wrapped(d, clip.subtitle, small, block_width)
     block_height = len(lines) * line_height + (
         len(subtitle_lines) * 40 * scale + 32 * scale if clip.subtitle else 0
     )
@@ -195,10 +198,13 @@ def text_layer(clip, width, height, output):
     x = round(width * clip.text_x)
     if clip.caption_style != "editorial":
         pad = max(2, round(20 * scale))
+        centered = clip.caption_style in ("bold", "boxed")
+
+        def aligned_x(line, line_font):
+            return x + (block_width - d.textlength(line, font=line_font)) / 2 if centered else x
+
         for line in lines:
-            line_width = d.textlength(line, font=f)
-            centered = clip.caption_style in ("bold", "boxed")
-            xx = x + (width * min(0.82, 0.98 - clip.text_x) - line_width) / 2 if centered else x
+            xx = aligned_x(line, f)
             if clip.caption_style == "boxed":
                 bounds = d.textbbox((xx, y), line, font=f)
                 foreground.append(
@@ -222,7 +228,7 @@ def text_layer(clip, width, height, output):
             y += 22 * scale
             for line in subtitle_lines:
                 draw_text(
-                    (x, y),
+                    (aligned_x(line, small), y),
                     line,
                     font=small,
                     fill=clip.color,

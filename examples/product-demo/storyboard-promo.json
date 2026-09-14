@@ -1,0 +1,79 @@
+[
+  {
+    "id": "hook",
+    "title": "YOU + YOUR AGENT. SAME PROJECT.",
+    "subtitle": "Same editing work. Shared control.",
+    "narration": "In Synkinema, you and your AI agent can make the same edits to the same project. Automate the first cut, then change anything yourself.",
+    "hold_ms": 12000
+  },
+  {
+    "id": "channels",
+    "title": "START WITH A VISION",
+    "subtitle": "",
+    "narration": "Set your channel's voice, audience, and rules once. Every production starts with the right context.",
+    "hold_ms": 10500
+  },
+  {
+    "id": "library",
+    "title": "MEDIA, READY TO USE",
+    "subtitle": "",
+    "narration": "Find footage fast in a searchable library, or keep assets private to one project.",
+    "hold_ms": 9500
+  },
+  {
+    "id": "timeline",
+    "title": "CUT. LAYER. PREVIEW.",
+    "subtitle": "",
+    "narration": "Cut on a real timeline. Layer video, titles, voice, and music, then see the edit take shape.",
+    "hold_ms": 11000
+  },
+  {
+    "id": "design",
+    "title": "FINE-TUNE EVERY FRAME",
+    "subtitle": "",
+    "narration": "Dial in framing, color, motion, and captions. The whole edit stays flexible.",
+    "hold_ms": 9500
+  },
+  {
+    "id": "story",
+    "title": "STORY MEETS SOUND",
+    "subtitle": "",
+    "narration": "Keep the brief and script beside the cut. Record your voice, or generate it locally.",
+    "hold_ms": 10500
+  },
+  {
+    "id": "audio",
+    "title": "MIX WITH CONFIDENCE",
+    "subtitle": "",
+    "narration": "Duck music under speech and measure the loudness of your final mix.",
+    "hold_ms": 8500
+  },
+  {
+    "id": "export",
+    "title": "SHIP THE REAL THING",
+    "subtitle": "",
+    "narration": "Render landscape or vertical video, inspect the frames, and export a ready-to-share M P four.",
+    "hold_ms": 10000
+  },
+  {
+    "id": "history",
+    "title": "EXPERIMENT SAFELY",
+    "subtitle": "",
+    "narration": "Every revision is recoverable. Try ideas without losing your work.",
+    "hold_ms": 8000
+  },
+  {
+    "id": "agents",
+    "title": "HUMAN + AGENT",
+    "subtitle": "",
+    "narration": "Connect through M C P. Let an agent assemble the first cut, then take control in the same Studio.",
+    "hold_ms": 10500
+  },
+  {
+    "id": "outro",
+    "title": "OPEN SOURCE. LOCAL FIRST.",
+    "subtitle": "AI voice: Supertonic 3",
+    "narration": "Open source. Local first. Your story, your workflow. Synkinema.",
+    "hold_ms": 8500
+  }
+]

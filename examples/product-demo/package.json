@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "record": "node record.mjs"
+    "record": "node record.mjs",
+    "record:promo": "node record-promo.mjs"
   },
   "dependencies": {
     "playwright": "1.63.0"

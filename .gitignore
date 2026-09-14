@@ -32,3 +32,5 @@ examples/steam-breakout-en/out/
 examples/steam-breakout-en/*-steam.json
 examples/steam-breakout-en/*-hls.txt
 examples/product-demo/out/
+examples/product-demo/out-promo/
+examples/product-demo/out-promo-v3/

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy import text
 
-from .media import text_cache_name
+from .media import TEXT_CACHE_VERSION, text_cache_name
 from .models import Project
 from .renderer import prepare_visual, visual_cache_key
 from .service import Conflict
@@ -33,7 +33,7 @@ def reusable_files(documents, assets):
                 for clip in track.clips:
                     if track.kind == "text" or clip.shape:
                         # Preserve/delete old and current raster caches using the same reference rules.
-                        for version in ("v3", "v4", "v5"):
+                        for version in ("v3", "v4", "v5", TEXT_CACHE_VERSION):
                             files.add(
                                 f"cache/{text_cache_name(clip, profile.width, profile.height, version)}"
                             )

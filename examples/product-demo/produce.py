@@ -15,8 +15,20 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 HERE = Path(__file__).resolve().parent
-STORYBOARD = json.loads((HERE / "storyboard.json").read_text())
-OUT = Path(os.environ.get("SYNKINEMA_DEMO_OUT", HERE / "out")).resolve()
+VARIANT = os.environ.get("SYNKINEMA_DEMO_VARIANT", "tour")
+if VARIANT not in {"tour", "promo"}:
+    raise ValueError(f"Unknown demo variant: {VARIANT}")
+VERSION = os.environ.get("SYNKINEMA_DEMO_VERSION", "v3" if VARIANT == "promo" else "v1")
+STORYBOARD = json.loads(
+    (HERE / ("storyboard-promo.json" if VARIANT == "promo" else "storyboard.json")).read_text()
+)
+OUT = Path(
+    os.environ.get(
+        "SYNKINEMA_DEMO_OUT",
+        HERE
+        / (("out-promo" if VERSION == "v2" else f"out-promo-{VERSION}") if VARIANT == "promo" else "out"),
+    )
+).resolve()
 ORIGIN = os.environ.get("SYNKINEMA_ORIGIN", "http://127.0.0.1:43817").rstrip("/")
 STATE = OUT / "production.json"
 
@@ -47,18 +59,30 @@ async def prepare(session):
     if STATE.exists():
         raise RuntimeError(f"Project already started in {STATE}; do not duplicate it")
     script = "\n\n".join(part["narration"] for part in STORYBOARD)
-    brief = (
-        "Pierwsza, ogólna prezentacja produktu Synkinema. Lokalny film roboczy, "
-        "bez publikacji. Ekran nagrany Playwrightem z uruchomionego Studio. "
-        "Pokazuje istniejący projekt wyłącznie do odczytu. Montaż, polski lektor "
-        "Supertonic 3, napisy, muzyka i eksport powstają w Synkinema. "
-        "Przed publiczną publikacją należy sprawdzić prawa do treści widocznych "
-        "w przykładowym projekcie. Lektor AI wymaga oznaczenia przy publikacji."
-    )
+    if VARIANT == "promo":
+        brief = (
+            "Fast English promotional draft for Synkinema, the MIT-licensed local video studio. "
+            "Eleven tight chapters, cuts paced to the measured voice takes, and a pulse music bed. "
+            "Playwright records the running Studio and views an existing owner project read-only. "
+            "Editing, voice, music and export are created in Synkinema. "
+            "Review rights to footage visible in the example project before publishing. "
+            "Disclose the AI voice; the final card does so."
+        )
+        project_name = f"Synkinema • open-source product promo — {VERSION}"
+    else:
+        brief = (
+            "Pierwsza, ogólna prezentacja produktu Synkinema. Lokalny film roboczy, "
+            "bez publikacji. Ekran nagrany Playwrightem z uruchomionego Studio. "
+            "Pokazuje istniejący projekt wyłącznie do odczytu. Montaż, polski lektor "
+            "Supertonic 3, napisy, muzyka i eksport powstają w Synkinema. "
+            "Przed publiczną publikacją należy sprawdzić prawa do treści widocznych "
+            "w przykładowym projekcie. Lektor AI wymaga oznaczenia przy publikacji."
+        )
+        project_name = "Synkinema • prezentacja produktu — wersja 1"
     project = await call(
         session,
         "create_project",
-        {"name": "Synkinema • prezentacja produktu — wersja 1", "brief": brief},
+        {"name": project_name, "brief": brief},
     )
     project_id = project["id"]
     planned_start = 0
@@ -87,7 +111,9 @@ async def prepare(session):
                     "script": script,
                     "scenes": scenes,
                     "profile": {
-                        "name": "Prezentacja produktu · 16:9",
+                        "name": "Product promo · 16:9"
+                        if VARIANT == "promo"
+                        else "Prezentacja produktu · 16:9",
                         "kind": "video",
                         "width": 1600,
                         "height": 900,
@@ -101,7 +127,7 @@ async def prepare(session):
             },
         },
     )
-    request_key = f"{project_id}-product-tour-narration-v1"
+    request_key = f"{project_id}-product-{VARIANT}-narration"
     task = await call(
         session,
         "start_production_task",
@@ -111,10 +137,10 @@ async def prepare(session):
                 "request": {
                     "type": "prepare_narration",
                     "project_id": project_id,
-                    "language": "pl",
+                    "language": "en" if VARIANT == "promo" else "pl",
                     "voice_id": "M2",
-                    "model": "tiny",
-                    "speed": 1.03,
+                    "model": "tiny.en" if VARIANT == "promo" else "tiny",
+                    "speed": 1.14 if VARIANT == "promo" else 1.03,
                     "steps": 8,
                     "lines": [{"id": part["id"], "text": part["narration"]} for part in STORYBOARD],
                 },
@@ -149,26 +175,78 @@ async def status(session):
         print(key, json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
 
 
+async def promo_cuts(session, state):
+    if "promo_voice_cuts" in state:
+        return state["promo_voice_cuts"]
+    task = await call(session, "get_production_task", {"task_id": state["narration_task_id"]})
+    if task["status"] != "completed":
+        raise RuntimeError("Narration must finish before measuring the promo cut")
+    assets = {line["id"]: line["asset"] for line in task["result"]["narration"]}
+    cuts = {}
+    for part in STORYBOARD:
+        asset = assets[part["id"]]
+        plan = await call(
+            session,
+            "plan_narration_cut",
+            {
+                "request": {
+                    "project_id": state["project_id"],
+                    "expected_revision": state["revision"],
+                    "track_id": "voice",
+                    "asset_id": asset["id"],
+                    "leading_ms": 40,
+                    "trailing_ms": 120,
+                }
+            },
+        )
+        segments = plan["segments"]
+        if not segments:
+            raise RuntimeError(f"No audible narration found for {part['id']}")
+        source_in = segments[0]["source_in_ms"]
+        source_end = max(segment["source_in_ms"] + segment["duration_ms"] for segment in segments)
+        if source_end > asset["duration_ms"]:
+            raise RuntimeError(f"Invalid voice cut for {part['id']}")
+        cuts[part["id"]] = {
+            "asset_id": asset["id"],
+            "source_in_ms": source_in,
+            "duration_ms": source_end - source_in,
+            "asset_duration_ms": asset["duration_ms"],
+        }
+    state["promo_voice_cuts"] = cuts
+    save(state)
+    return cuts
+
+
 async def start_score(session):
     state = read_state()
     if "score_task_id" in state:
         raise RuntimeError("Score task already started")
-    take = json.loads((OUT / "take.json").read_text())
-    length = take["scenes"][-1]["end_ms"] - take["scenes"][0]["start_ms"]
-    accents = [s["start_ms"] - take["scenes"][0]["start_ms"] for s in take["scenes"][1:]]
+    if VARIANT == "promo":
+        cuts = await promo_cuts(session, state)
+        length = sum(cuts[part["id"]]["duration_ms"] + 180 for part in STORYBOARD)
+        accents = []
+        cursor = 0
+        for part in STORYBOARD[1:]:
+            previous = STORYBOARD[STORYBOARD.index(part) - 1]
+            cursor += cuts[previous["id"]]["duration_ms"] + 180
+            accents.append(cursor)
+    else:
+        take = json.loads((OUT / "take.json").read_text())
+        length = take["scenes"][-1]["end_ms"] - take["scenes"][0]["start_ms"]
+        accents = [s["start_ms"] - take["scenes"][0]["start_ms"] for s in take["scenes"][1:]]
     task = await call(
         session,
         "start_production_task",
         {
             "request": {
-                "request_key": f"{state['project_id']}-product-tour-score-v1",
+                "request_key": f"{state['project_id']}-product-{VARIANT}-score",
                 "request": {
                     "type": "generate_score",
                     "project_id": state["project_id"],
                     "duration_ms": length,
-                    "mood": "ambient",
-                    "bpm": 88,
-                    "seed": 14092026,
+                    "mood": "pulse" if VARIANT == "promo" else "ambient",
+                    "bpm": 116 if VARIANT == "promo" else 88,
+                    "seed": 14092027 if VARIANT == "promo" else 14092026,
                     "accents_ms": accents,
                 },
             }
@@ -205,6 +283,8 @@ def upload():
 
 
 async def compose(session):
+    if VARIANT == "promo":
+        return await compose_promo(session)
     state = read_state()
     if "composed_revision" in state:
         raise RuntimeError("Timeline already composed; inspect the project before editing")
@@ -365,10 +445,187 @@ async def compose(session):
     )
 
 
-async def render(session):
+async def compose_promo(session):
     state = read_state()
-    if "render_job_id" in state:
-        raise RuntimeError("A render has already been started; inspect its job first")
+    if "composed_revision" in state:
+        raise RuntimeError("Promo timeline already composed")
+    if "video_asset_id" not in state:
+        raise RuntimeError("Upload the Playwright recording first")
+    take = json.loads((OUT / "take.json").read_text())
+    if [part["id"] for part in take["scenes"]] != [part["id"] for part in STORYBOARD]:
+        raise RuntimeError("Recording chapters do not match the promo storyboard")
+    cuts = await promo_cuts(session, state)
+    score_task = await call(session, "get_production_task", {"task_id": state["score_task_id"]})
+    if score_task["status"] != "completed":
+        raise RuntimeError("Music generation is not complete")
+    score = score_task["result"]["assets"][0]
+    project = await call(session, "get_project", {"project_id": state["project_id"]})
+    if project["revision"] != state["revision"]:
+        raise RuntimeError("Project revision changed; review it before composing")
+    tracks = {track["id"]: track["kind"] for track in project["tracks"]}
+    if tracks != {"video": "video", "titles": "text", "voice": "voiceover", "music": "music"}:
+        raise RuntimeError(f"Unexpected tracks: {tracks}")
+
+    scenes = []
+    operations = []
+    cursor = 0
+    for part in take["scenes"]:
+        cut = cuts[part["id"]]
+        scene_duration = cut["duration_ms"] + 180
+        source_available = part["end_ms"] - part["start_ms"]
+        if scene_duration > source_available:
+            raise RuntimeError(f"Not enough recorded video for {part['id']}")
+        if part["start_ms"] + scene_duration > state["video_duration_ms"]:
+            raise RuntimeError(f"Video source bounds exceeded in {part['id']}")
+        scenes.append(
+            {
+                "id": part["id"],
+                "title": part["title"],
+                "narration": part["narration"],
+                "notes": part["subtitle"],
+                "start_ms": cursor,
+                "duration_ms": scene_duration,
+                "voice_asset_id": cut["asset_id"],
+            }
+        )
+        if part["id"] == "hook":
+            # The recorded hook changes pages. Cut around navigation loading so
+            # the opening moves directly from MCP setup to a ready editor.
+            source_shots = [
+                ("agent", part["start_ms"] + 500, cursor, 1000),
+                (
+                    "editor",
+                    part["start_ms"] + 3600,
+                    cursor + 1000,
+                    scene_duration - 1000,
+                ),
+            ]
+        else:
+            source_shots = [(part["id"], part["start_ms"], cursor, scene_duration)]
+        for shot_id, source_in, shot_start, shot_duration in source_shots:
+            if source_in + shot_duration > part["end_ms"]:
+                raise RuntimeError(f"Recorded shot is too short for {part['id']}: {shot_id}")
+            operations.append(
+                {
+                    "type": "add_clip",
+                    "payload": {
+                        "track_id": "video",
+                        "clip": {
+                            "id": f"promo-video-{shot_id}",
+                            "name": f"Playwright: {part['title']} · {shot_id}",
+                            "asset_id": state["video_asset_id"],
+                            "source_in_ms": source_in,
+                            "start_ms": shot_start,
+                            "duration_ms": shot_duration,
+                        },
+                    },
+                }
+            )
+        if part["id"] == "hook":
+            title_duration, font_size = min(scene_duration, 3700), 30
+        elif part["id"] == "outro":
+            title_duration, font_size = scene_duration, 30
+        else:
+            title_duration, font_size = min(scene_duration, 1800), 25
+        operations.append(
+            {
+                "type": "add_clip",
+                "payload": {
+                    "track_id": "titles",
+                    "clip": {
+                        "id": f"promo-title-{part['id']}",
+                        "name": part["title"],
+                        "text": part["title"],
+                        "subtitle": part["subtitle"],
+                        "start_ms": cursor,
+                        "duration_ms": title_duration,
+                        "caption_style": "boxed",
+                        "font_size": font_size,
+                        "text_x": 0.05,
+                        "text_y": 0.80,
+                        "color": "#d8fb76",
+                        "fade_in_ms": 140,
+                        "fade_out_ms": 180,
+                    },
+                },
+            }
+        )
+        operations.append(
+            {
+                "type": "add_clip",
+                "payload": {
+                    "track_id": "voice",
+                    "clip": {
+                        "id": f"promo-voice-{part['id']}",
+                        "name": f"Voice: {part['title']}",
+                        "asset_id": cut["asset_id"],
+                        "source_in_ms": cut["source_in_ms"],
+                        "start_ms": cursor,
+                        "duration_ms": cut["duration_ms"],
+                        "fade_in_ms": 30,
+                        "fade_out_ms": 90,
+                    },
+                },
+            }
+        )
+        cursor += scene_duration
+
+    if score["duration_ms"] < cursor:
+        raise RuntimeError("Generated music is shorter than the measured promo")
+    operations.insert(0, {"type": "update_project", "payload": {"scenes": scenes}})
+    operations.extend(
+        [
+            {
+                "type": "add_clip",
+                "payload": {
+                    "track_id": "music",
+                    "clip": {
+                        "id": "promo-music-bed",
+                        "name": "Pulse score · 116 BPM",
+                        "asset_id": score["id"],
+                        "start_ms": 0,
+                        "duration_ms": cursor,
+                        "gain_db": -17,
+                        "fade_in_ms": 450,
+                        "fade_out_ms": 800,
+                    },
+                },
+            },
+            {"type": "update_track", "payload": {"track_id": "music", "changes": {"ducking": True}}},
+        ]
+    )
+    request = {"expected_revision": project["revision"], "operations": operations}
+    dry_run = await call(
+        session,
+        "apply_operations",
+        {"project_id": state["project_id"], "request": {**request, "dry_run": True}, "compact": True},
+    )
+    if dry_run["committed"]:
+        raise RuntimeError("Dry run unexpectedly committed")
+    result = await call(
+        session,
+        "apply_operations",
+        {"project_id": state["project_id"], "request": {**request, "dry_run": False}, "compact": True},
+    )
+    revision = result["confirmed_revision"]
+    state["revision"] = revision
+    state["composed_revision"] = revision
+    state["duration_ms"] = cursor
+    save(state)
+    print(json.dumps({"revision": revision, "duration_ms": cursor, "operations": len(operations)}))
+
+
+async def render(session, *, replace_completed=False):
+    state = read_state()
+    previous_job_id = state.get("render_job_id")
+    if previous_job_id:
+        if not replace_completed:
+            raise RuntimeError("A render has already been started; inspect its job first")
+        previous_job = await call(session, "get_render_progress", {"job_id": previous_job_id})
+        if previous_job["status"] != "completed":
+            raise RuntimeError(f"Previous render is not complete: {previous_job['status']}")
+    elif replace_completed:
+        raise RuntimeError("No completed render to replace; use render")
     preflight = await call(
         session,
         "validate_project",
@@ -392,6 +649,11 @@ async def render(session):
             "quality": "final",
         },
     )
+    if previous_job_id:
+        state.setdefault("render_history", []).append(previous_job_id)
+        state.pop("verification_task_id", None)
+        state.pop("render_output_url", None)
+        state.pop("local_mp4", None)
     state["render_job_id"] = job["id"]
     save(state)
     print(json.dumps({"id": job["id"], "status": job["status"]}), flush=True)
@@ -415,13 +677,13 @@ async def verify(session):
         "start_production_task",
         {
             "request": {
-                "request_key": f"{state['project_id']}-product-tour-verification-v1",
+                "request_key": f"{state['project_id']}-product-{VARIANT}-verification-{job['id']}",
                 "request": {
                     "type": "verify_render",
                     "job_id": job["id"],
                     "transcribe": True,
-                    "language": "pl",
-                    "model": "tiny",
+                    "language": "en" if VARIANT == "promo" else "pl",
+                    "model": "tiny.en" if VARIANT == "promo" else "tiny",
                     "reference_text": " ".join(part["narration"] for part in STORYBOARD),
                 },
             }
@@ -461,7 +723,11 @@ async def download(session):
     job = await call(session, "get_render_progress", {"job_id": state["render_job_id"]})
     if job["status"] != "completed" or not job.get("output_url"):
         raise RuntimeError(f"Render is not downloadable: {job['status']}")
-    destination = OUT / "synkinema-product-demo-v1.mp4"
+    destination = OUT / (
+        f"synkinema-open-source-promo-{VERSION}.mp4"
+        if VARIANT == "promo"
+        else "synkinema-product-demo-v1.mp4"
+    )
     with httpx.stream("GET", f"{ORIGIN}{job['output_url']}", timeout=300) as response:
         response.raise_for_status()
         with destination.open("wb") as output:
@@ -492,6 +758,8 @@ async def main(command):
             await compose(session)
         elif command == "render":
             await render(session)
+        elif command == "rerender":
+            await render(session, replace_completed=True)
         elif command == "render-status":
             await render_status(session)
         elif command == "verify":
@@ -513,6 +781,7 @@ if __name__ == "__main__":
             "upload",
             "compose",
             "render",
+            "rerender",
             "render-status",
             "verify",
             "verification-status",
