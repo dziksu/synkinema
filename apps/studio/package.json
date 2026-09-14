@@ -23,7 +23,7 @@
     "lucide-react": "^0.468.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-dropzone": "^14.3.8",
+    "react-dropzone": "^20.1.1",
     "react-i18next": "17.0.13",
     "tailwind-merge": "^3.0.0",
     "zustand": "^5.0.0"
