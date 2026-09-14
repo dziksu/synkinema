@@ -7,7 +7,7 @@ RUN npm ci
 COPY apps/studio/ ./
 RUN npm run build
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 ARG APP_VERSION=0.1.0
 ARG VCS_REF=unknown
 ARG SOURCE_URL=https://github.com/dziksu/synkinema
