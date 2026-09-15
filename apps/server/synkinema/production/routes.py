@@ -3,6 +3,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from ..api_contract import CaptionPreview, RenderJob, TextLayerRequest
+from ..mcp_inputs import ProductionTaskId, ProjectId, RenderJobId
 from ..media import cached_text_layer, caption_bounds
 from ..models import Model
 from .composition import compose
@@ -243,15 +244,15 @@ def register_mcp(mcp, p):
         return p.list()
 
     @tool("get_production_task", D["production_get"], read)
-    def get(task_id: str) -> ProductionTask:
+    def get(task_id: ProductionTaskId) -> ProductionTask:
         return p.get(task_id)
 
     @tool("wait_production_task", D["production_wait"], read)
-    async def wait(task_id: str, request: WaitRequest) -> ProductionTask:
+    async def wait(task_id: ProductionTaskId, request: WaitRequest) -> ProductionTask:
         return await p.wait(task_id, request.timeout_seconds)
 
     @tool("cancel_production_task", D["production_cancel"], cache)
-    def cancel(task_id: str) -> ProductionTask:
+    def cancel(task_id: ProductionTaskId) -> ProductionTask:
         return p.cancel(task_id)
 
     @tool("inspect_source_frames", D["source_frames"], cache)
@@ -286,13 +287,13 @@ def register_mcp(mcp, p):
         D["showcase_compose"],
         ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False),
     )
-    def showcase(project_id: str, request: ComposeReel) -> CompositionResult:
+    def showcase(project_id: ProjectId, request: ComposeReel) -> CompositionResult:
         return compose_task(p, project_id, request)
 
     @tool("wait_for_render", D["render_wait"], read)
-    async def wait_render(job_id: str, request: WaitRequest) -> dict:
+    async def wait_render(job_id: RenderJobId, request: WaitRequest) -> dict:
         return await render_wait(p, job_id, request.timeout_seconds)
 
     @tool("compare_project_revisions", D["revision_compare"], read)
-    def compare(project_id: str, request: RevisionCompare) -> RevisionComparison:
+    def compare(project_id: ProjectId, request: RevisionCompare) -> RevisionComparison:
         return RevisionComparison.model_validate(revision_diff(p.service, project_id, request))

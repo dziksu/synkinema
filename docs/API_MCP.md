@@ -16,7 +16,7 @@ Pełna instrukcja jest dostarczana razem z serwerem — także w obrazie Docker 
 4. `get_operation_reference` — opis, samodzielny JSON Schema i przykład każdej z 16 operacji. Parametr `operation` wybiera jeden opis.
 5. `get_project` — aktualny stan i rewizja, następnie kolejne `apply_operation` z rewizją otrzymaną w poprzedniej odpowiedzi.
 
-Instrukcja jest również zasobem MCP `synkinema://agent-guide`; katalog operacji: `synkinema://operations`. Instrukcje inicjalizacji MCP wskazują tę ścieżkę. Wszystkie 60 narzędzi mają opisy wejść, rezultatów i skutków oraz adnotacje o odczycie, mutacji i usługach zewnętrznych.
+Instrukcja jest również zasobem MCP `synkinema://agent-guide`; katalog operacji: `synkinema://operations`. Instrukcje inicjalizacji MCP wskazują tę ścieżkę. Bieżący kontrakt udostępnia 72 narzędzia. Każde ma opis celu, rezultatu i skutków oraz adnotacje o odczycie, mutacji i usługach zewnętrznych. Schematy wejściowe opisują także skalarne parametry narzędzi — w szczególności pochodzenie identyfikatorów, jednostki czasu, semantykę rewizji i bezpieczne ponawianie operacji.
 
 Odpowiedniki HTTP:
 
@@ -47,7 +47,7 @@ Na uruchomionym serwerze; plik wejściowy musi mieć obraz, audio i minimum 4 se
 
 Każde wywołanie tworzy osobny projekt, importuje materiał, sprawdza próbny montaż, zapisuje jedną partię ośmiu zmian (dwa klipy, przejście, wydzielone audio, napis), wykonuje preflight, czeka na render, zapisuje MP4, rzeczywisty contact sheet i mapę audio. Nie korzysta z płatnych usług. Po uruchomieniu należy obejrzeć klatki; skrypt jawnie oznacza `visual_review_required=true`. Dla innego lokalnego portu użyj `--origin`.
 
-`tests/test_agent_contract.py` sprawdza kompletność opisów względem tras i listy operacji, poprawność JSON Schema, inicjalizację MCP, narzędzia, zasoby i konflikt zapisu. `tests/test_agent_helpers.py` pokrywa nowe polecenia, tryb próbny, rollback, współbieżne zapisy, kopiowanie, napisy, synchronizację audio, CLI i filtrowanie jobów. Łącznie wykonują wszystkie 16 operacji. Aktualizacja API wymaga odpowiedniej aktualizacji dokumentacji, inaczej testy wykryją rozbieżność.
+`tests/test_agent_contract.py` sprawdza kompletność opisów względem tras i listy operacji, opisy wszystkich skalarnych parametrów wejściowych MCP, poprawność JSON Schema, inicjalizację MCP, narzędzia, zasoby i konflikt zapisu. `tests/test_agent_helpers.py` pokrywa nowe polecenia, tryb próbny, rollback, współbieżne zapisy, kopiowanie, napisy, synchronizację audio, CLI i filtrowanie jobów. Łącznie wykonują wszystkie 16 operacji. Aktualizacja API wymaga odpowiedniej aktualizacji dokumentacji, inaczej testy wykryją rozbieżność.
 
 Pełna mapa REST ↔ MCP ↔ CLI, dodane funkcje, ograniczenia i wyniki testów: [AGENT_COMMAND_AUDIT.md](AGENT_COMMAND_AUDIT.md).
 

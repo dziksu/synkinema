@@ -12,19 +12,35 @@ from .source_analysis import SourceAnalysis, SourceAnalysisRequest, silence_cut_
 
 
 class ProjectBrowse(Model):
-    query: str = Field("", max_length=200)
-    offset: int = Field(0, ge=0)
-    limit: int = Field(20, ge=1, le=50)
+    query: str = Field(
+        "", max_length=200, description="Case-insensitive project-name substring; empty matches all."
+    )
+    offset: int = Field(0, ge=0, description="Zero-based live result offset; use returned next_offset.")
+    limit: int = Field(20, ge=1, le=50, description="Maximum compact project headers to return, 1–50.")
 
 
 class EditContext(Model):
-    project_id: str
-    revision: int | None = Field(None, ge=1)
-    track_ids: list[str] | None = Field(None, max_length=32)
-    from_ms: int = Field(0, ge=0)
-    to_ms: int | None = Field(None, gt=0)
-    offset: int = Field(0, ge=0)
-    limit: int = Field(40, ge=1, le=100)
+    project_id: str = Field(description="Exact project ID returned by Synkinema; never guess.")
+    revision: int | None = Field(
+        None,
+        ge=1,
+        description="Immutable revision to read; omit for current, then pin the returned revision across pages.",
+    )
+    track_ids: list[str] | None = Field(
+        None, max_length=32, description="Optional exact track IDs from this project; omit for all tracks."
+    )
+    from_ms: int = Field(
+        0, ge=0, description="Inclusive absolute project-timeline start in integer milliseconds."
+    )
+    to_ms: int | None = Field(
+        None,
+        gt=0,
+        description="Exclusive absolute project-timeline end in integer milliseconds; omit for project end.",
+    )
+    offset: int = Field(
+        0, ge=0, description="Zero-based offset within the filtered clip list; use returned next_offset."
+    )
+    limit: int = Field(40, ge=1, le=100, description="Maximum matching clips to return, 1–100.")
 
     @model_validator(mode="after")
     def interval(self):
@@ -34,8 +50,16 @@ class EditContext(Model):
 
 
 class WorkStatus(Model):
-    job_ids: list[str] = Field(default_factory=list, max_length=20)
-    task_ids: list[str] = Field(default_factory=list, max_length=20)
+    job_ids: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Exact render job IDs already returned by Synkinema; never enqueue work merely to poll it.",
+    )
+    task_ids: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Exact production task IDs already returned by Synkinema; never enqueue work merely to poll it.",
+    )
     wait_seconds: int = Field(
         0, ge=0, le=25, description="Wait until any selected work is terminal; never enqueue."
     )
@@ -50,33 +74,60 @@ class WorkStatus(Model):
 
 
 class NarrationCut(Model):
-    project_id: str
-    expected_revision: int = Field(ge=1)
-    track_id: str
-    asset_id: str
-    source_from_ms: int = Field(0, ge=0)
-    source_to_ms: int | None = Field(None, gt=0)
-    start_ms: int = Field(0, ge=0, le=86_400_000)
+    project_id: str = Field(description="Exact project ID containing the destination voiceover track.")
+    expected_revision: int = Field(
+        ge=1, description="Last confirmed current revision; stale plans reject and must be recomputed."
+    )
+    track_id: str = Field(description="Exact existing, unmuted voiceover track ID in this project.")
+    asset_id: str = Field(description="Exact timed audio asset ID to measure and cut.")
+    source_from_ms: int = Field(0, ge=0, description="Inclusive source-file offset in integer milliseconds.")
+    source_to_ms: int | None = Field(
+        None, gt=0, description="Exclusive source-file end in integer milliseconds; omit for asset end."
+    )
+    start_ms: int = Field(
+        0, ge=0, le=86_400_000, description="Absolute project-timeline start for the first retained segment."
+    )
     replace_clip_ids: list[str] = Field(
         default_factory=list,
         max_length=40,
         description="Only these exact clips on the voice track are removed by the proposed batch. Empty means append without deletion.",
     )
-    silence_db: float = Field(-38, ge=-60, le=-20)
-    silence_min_ms: int = Field(220, ge=100, le=2000)
-    leading_ms: int = Field(40, ge=0, le=1000)
-    trailing_ms: int = Field(200, ge=0, le=1000)
-    pause_ms: int = Field(120, ge=40, le=1000)
-    gain_db: float = Field(0, ge=-60, le=12)
+    silence_db: float = Field(-38, ge=-60, le=-20, description="FFmpeg silence threshold in dB.")
+    silence_min_ms: int = Field(
+        220, ge=100, le=2000, description="Minimum detected silence length in milliseconds."
+    )
+    leading_ms: int = Field(
+        40, ge=0, le=1000, description="Silence retained before detected speech, in milliseconds."
+    )
+    trailing_ms: int = Field(
+        200, ge=0, le=1000, description="Silence retained after detected speech, in milliseconds."
+    )
+    pause_ms: int = Field(
+        120, ge=40, le=1000, description="Timeline pause inserted between retained segments, in milliseconds."
+    )
+    gain_db: float = Field(
+        0, ge=-60, le=12, description="Gain applied to each proposed narration clip, in decibels."
+    )
 
 
 class EditAudit(Model):
-    project_id: str
-    revision: int | None = Field(None, ge=1)
-    max_shot_ms: int = Field(3000, ge=500, le=30_000)
-    max_gap_ms: int = Field(350, ge=100, le=5000)
-    min_gameplay_height: float = Field(0.6, ge=0.1, le=1)
-    max_issues: int = Field(40, ge=1, le=100)
+    project_id: str = Field(description="Exact project ID to audit.")
+    revision: int | None = Field(None, ge=1, description="Immutable revision to audit; omit for current.")
+    max_shot_ms: int = Field(
+        3000, ge=500, le=30_000, description="Visual clips longer than this heuristic threshold are flagged."
+    )
+    max_gap_ms: int = Field(
+        350, ge=100, le=5000, description="Voiceover gaps at least this long are flagged, in milliseconds."
+    )
+    min_gameplay_height: float = Field(
+        0.6, ge=0.1, le=1, description="Minimum expected gameplay-layer height as a fraction of canvas."
+    )
+    max_issues: int = Field(
+        40,
+        ge=1,
+        le=100,
+        description="Maximum ordered issue records to return; counts still report truncation.",
+    )
 
 
 def project_header(project):

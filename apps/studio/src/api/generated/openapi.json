@@ -1612,11 +1612,13 @@
             "type": "boolean"
           },
           "expected_revision": {
+            "description": "Last confirmed project revision. The entire batch rejects atomically when stale.",
             "minimum": 1.0,
             "title": "Expected Revision",
             "type": "integer"
           },
           "operations": {
+            "description": "Ordered editing operations committed as one revision; later steps see earlier steps in this list.",
             "items": {
               "$ref": "#/components/schemas/EditStep"
             },
