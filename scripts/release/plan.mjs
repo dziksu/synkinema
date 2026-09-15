@@ -20,7 +20,10 @@ function git(cwd, args) {
 function versionFromTag(tag) {
   const [prefix, suffix] = config.tagFormat.split("${version}");
   if (!tag.startsWith(prefix) || !tag.endsWith(suffix)) return null;
-  const version = tag.slice(prefix.length, tag.length - suffix.length || undefined);
+  const version = tag.slice(
+    prefix.length,
+    tag.length - suffix.length || undefined,
+  );
   return semver.valid(version) === version && !semver.prerelease(version)
     ? version
     : null;
