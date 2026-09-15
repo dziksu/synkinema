@@ -9,11 +9,27 @@ project. Synkinema combines a desktop video editor with a headless FFmpeg engine
 REST API, MCP server and CLI. Your projects, media, revisions and exports stay on
 your machine. No account is required.
 
+## One project. Your edit. Your agent.
+
+Start a project in Studio, shape the cut by hand, then bring in an AI client
+through MCP. You and your agent work on the same local project and editable
+timeline; revision history and undo keep every change under your control.
+
+<p align="center">
+  <a href="assets/screenshots/timeline.png"><img src="assets/screenshots/timeline.png" alt="Synkinema Studio showing project media, a portrait preview, and a populated multi-track timeline" width="100%"></a>
+</p>
+
+<p align="center"><em>Media, preview and a multi-track edit—together in one local workspace.</em></p>
+
+| Start with a real project | Bring an agent into the same workspace |
+| --- | --- |
+| <a href="assets/screenshots/projects.png"><img src="assets/screenshots/projects.png" alt="Synkinema Projects screen with a gallery of video projects"></a><br><strong>Keep every production in view.</strong><br>Create, browse and reopen projects without losing their context. | <a href="assets/screenshots/agent-workspace.png"><img src="assets/screenshots/agent-workspace.png" alt="Synkinema panel for connecting Codex and other AI agents through MCP"></a><br><strong>One project, two ways to edit.</strong><br>Connect Codex or another MCP client so it can create and refine the same projects you use in Studio. |
+
 [![CI](https://github.com/dziksu/synkinema/actions/workflows/ci.yml/badge.svg)](https://github.com/dziksu/synkinema/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-d8fb76)](LICENSE)
 [![Releases](https://img.shields.io/github/v/release/dziksu/synkinema)](https://github.com/dziksu/synkinema/releases)
 
-[Quick start](#quick-start) · [Features](#what-you-can-make) ·
+[In action](#one-project-your-edit-your-agent) · [Quick start](#quick-start) · [Features](#what-you-can-make) ·
 [Connect an agent](#mcp-and-agents) · [Documentation](docs/README.md) ·
 [Development](#development) · [Contributing](CONTRIBUTING.md)
 
