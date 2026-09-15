@@ -110,13 +110,125 @@ jobs:
         run: |
           docker logs synkinema-ci 2>/dev/null || true
           docker rm --force --volumes synkinema-ci 2>/dev/null || true
-  release:
-    name: Semantic release
+  release-plan:
+    name: Plan semantic release
     needs: [verify, studio, docker]
     if: >-
       github.ref == 'refs/heads/main' &&
       github.event_name != 'pull_request' &&
       github.event.repository.fork == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      ready: ${{ steps.ready.outputs.ready }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Plan the next semantic release
+        id: plan
+        run: npm run release:plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check whether the planned release metadata is ready to publish
+        id: ready
+        if: steps.plan.outputs.version != ''
+        run: SYNKINEMA_RELEASE_PLAN="${{ steps.plan.outputs.plan }}" npm run release:ready
+  release-pr:
+    name: Prepare release pull request
+    needs: release-plan
+    if: >-
+      needs.release-plan.outputs.version != '' &&
+      needs.release-plan.outputs.ready != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/studio/package-lock.json
+      - name: Install release metadata tooling
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-build-isolation --no-deps -e .
+          npm ci --ignore-scripts
+          npm --prefix apps/studio ci
+      - name: Plan the next semantic release
+        id: plan
+        run: npm run release:plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write release metadata and generated API contract
+        if: steps.plan.outputs.version != ''
+        run: |
+          SYNKINEMA_RELEASE_PLAN="${{ steps.plan.outputs.plan }}" npm run release:prepare-pr
+          npm --prefix apps/studio run api:generate
+      - name: Create or update the release pull request
+        if: steps.plan.outputs.version != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: chore/release
+          delete-branch: true
+          commit-message: "chore(release): v${{ steps.plan.outputs.version }}"
+          title: "chore(release): v${{ steps.plan.outputs.version }}"
+          body: |
+            Generated from the Conventional Commits currently on `main`.
+
+            This PR updates `CHANGELOG.md`, both application package manifests and
+            lockfiles, the Python server version, Docker defaults and generated API
+            metadata. Merge it to publish the already planned semantic release.
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          add-paths: |
+            CHANGELOG.md
+            Dockerfile
+            package.json
+            package-lock.json
+            apps/studio/package.json
+            apps/studio/package-lock.json
+            apps/server/synkinema/__init__.py
+            apps/studio/src/api/generated/client.ts
+            apps/studio/src/api/generated/openapi.json
+      - name: Run CI against the release pull request branch
+        if: steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run ci.yml --ref chore/release
+  release:
+    name: Semantic release
+    needs: release-plan
+    if: >-
+      needs.release-plan.outputs.version != '' &&
+      needs.release-plan.outputs.ready == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

@@ -1,6 +1,6 @@
 <p align="center"><img src="apps/studio/public/brand/logo-128.png" width="96" height="96" alt="Synkinema logo"></p>
 
-# Synkinema
+<h1 align="center">Synkinema</h1>
 
 **Local video editing for people and agents.**
 
@@ -308,10 +308,10 @@ collaboration. Cache size is not automatically capped. See [Roadmap](ROADMAP.md)
 ## Releases and license
 
 Conventional Commits on `main` drive semantic-release after the code checks and
-both container smoke tests pass. It publishes a version tag, generated GitHub
-release notes and a GHCR image. No npm or PyPI package is published. With no existing
-release tags, the first releasable push creates **1.0.0**; the source version
-`0.1.0` is a development fallback, not the release baseline.
+both container smoke tests pass. It opens or updates a reviewed release PR with the
+generated changelog and matching application versions. Merging that PR publishes the
+version tag, GitHub release notes and GHCR image. No npm or PyPI package is
+published.
 
 [Release and first-push guide](docs/RELEASING.md) · [Changelog](CHANGELOG.md) ·
 [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)

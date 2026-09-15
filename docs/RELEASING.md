@@ -6,11 +6,13 @@ Conventional Commits, verification before release, a reusable GHCR workflow,
 versioned multi-architecture images, retry handling and community documentation.
 It is adapted to Python/React/npm, not Bun.
 
-Synkinema uses only the built-in `GITHUB_TOKEN`. It does not open or auto-merge
-release-metadata PRs, commit onto protected `main`, publish to npm/PyPI, deploy a
-website, or copy another project's funding configuration. GitHub Releases are the
-automatically generated version-by-version changelog; the source `CHANGELOG.md`
-contains curated development notes and a link to those releases.
+Synkinema uses only the built-in `GITHUB_TOKEN`. After all checks pass, it uses
+semantic-release to calculate the next version and opens or updates a
+release-metadata PR. That PR contains the generated `CHANGELOG.md`, matching
+application/package versions and regenerated API metadata. It is never auto-merged
+or committed onto protected `main`. Merging the reviewed PR creates the version tag,
+GitHub Release and GHCR image. The source changelog is therefore the canonical,
+version-by-version release record.
 
 ## First push preparation
 
@@ -27,13 +29,17 @@ by `make check` or `npm run release:check`.
    and set its default branch to `main`. Documentation uses `dziksu/synkinema`;
    change those links and the default release Compose image if the final name
    differs. Workflows derive repository/image identity from `github.repository`.
-4. Allow GitHub Actions and the pinned official actions/Docker actions. Workflow
-   jobs request `contents: write` for tags/releases and `packages: write` for GHCR;
-   organization policy must permit them. No PAT or custom secret is required.
-   Tag rules must allow the workflow to create `v*` tags. No branch bypass is needed.
+4. Allow GitHub Actions and the pinned actions used by the workflow. In **Settings →
+   Actions → General**, enable **Allow GitHub Actions to create and approve pull
+   requests**. The release-PR job requests `contents: write`, `pull-requests: write`
+   and `actions: write`; the final release job needs `contents: write`, while GHCR
+   needs `packages: write`. Organization policy must permit those scopes. No PAT or
+   custom secret is required. Tag rules must allow the workflow to create `v*` tags.
+   No branch bypass is needed.
 5. Add the remote and push only when ready. A releasable push to `main` runs the
-   complete pipeline and can publish immediately. With no previous stable tag,
-   semantic-release selects **1.0.0**, even though source fallbacks say `0.1.0`.
+   complete verification pipeline, then opens a release PR. Merging that PR runs the
+   release pipeline and publishes the version. With no previous stable tag,
+   semantic-release selects **1.0.0**.
 6. After the first GHCR publication, check the package's visibility. New packages
    can default to private; make it public in GitHub Packages if anonymous pulls
    are intended. Public examples work only after this setting and publication.
@@ -41,7 +47,12 @@ by `make check` or `npm run release:check`.
 Repository settings cannot be applied by files in this checkout. After the first
 run, protect `main`, require pull requests and successful checks, disable force
 pushes, and prefer squash merging with the PR title as the default commit message.
-Use these check names: **Verify code and API contract**, **Studio tests and build**,
+The generated `chore/release` title should be retained for traceability. After
+merge, the workflow verifies the committed version metadata before publication;
+it does not rely on the merge strategy or title alone. Its CI is dispatched
+explicitly, so it does not depend on the approval state of a `GITHUB_TOKEN`-
+created pull-request event. Use these check names:
+**Verify code and API contract**, **Studio tests and build**,
 **Container (linux/amd64)**, **Container (linux/arm64)** and
 **Conventional PR title**. Require the last one for PRs only. CodeQL runs separately
 for public repositories; private repositories need
@@ -56,8 +67,10 @@ link in `SECURITY.md`. Dependabot uses the checked-in configuration automaticall
 | Verify | Formatting, Ruff, release-tool tests, dependency consistency, API codegen drift and Python tests |
 | Studio | Independent React tests, TypeScript check and production Vite build, even if Python tests fail |
 | Containers | Native Linux amd64/arm64 builds; real FFmpeg render, MCP handshake, non-root/version checks, live HTTP/UI smoke test |
-| Semantic release | Runs only after Verify, Studio and both container builds succeed on `main` in a non-fork repository; creates `vX.Y.Z` and GitHub release notes/assets |
-| Publish image | Called directly with the tested SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
+| Release PR | Runs only after Verify, Studio and both container builds succeed on `main` in a non-fork repository; semantic-release calculates the next version and creates or updates `chore/release` |
+| Release metadata | The PR updates `CHANGELOG.md`, root and Studio manifests/lockfiles, Python and Docker defaults, then regenerates and commits the OpenAPI schema/client; it receives an explicitly dispatched CI run |
+| Semantic release | Runs only after that reviewed PR is merged; verifies the committed metadata, creates `vX.Y.Z` and GitHub release notes/assets |
+| Publish image | Called directly with the tested release-PR merge SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
 | CodeQL | Separate Python/JavaScript security analysis on PRs, main and weekly |
 | PR title | Validates Conventional Commit syntax without evaluating the title as code |
 
@@ -80,12 +93,13 @@ current latest release also receives `vX.Y` and `latest`. Re-running an old rele
 does not move the latter aliases backward. No prereleases or maintenance branches
 are currently configured.
 
-The published image is built from the verified commit, with `APP_VERSION` set to
-the semantic-release version. The frontend receives that value at build time.
-The Python image stamps `synkinema.__version__`; setuptools package metadata,
-health, OpenAPI and the MCP initialize response all use that same value. Source
-files are not committed or tagged again during stamping. The source `0.1.0` value
-is only a local development fallback. CI deliberately stamps `0.0.0` to prove the
+The release PR is the single source update for the selected version: root and
+Studio `package.json`/lockfiles, `synkinema.__version__`, Docker defaults,
+`CHANGELOG.md`, the OpenAPI schema and generated Studio client all agree. The
+published image is then built from that verified commit with `APP_VERSION` set to
+the same version. The frontend receives it at build time; the Python image stamps
+its build output and setuptools metadata. Health, OpenAPI and the MCP initialize
+response all use the selected version. CI deliberately stamps `0.0.0` to prove the
 image override works. Source API drift checks run before image-only stamping.
 
 The build records OCI source/version/revision labels, SBOM and provenance. The
@@ -96,8 +110,12 @@ lockfiles; base-image and OS security updates are intentional rebuild inputs.
 
 ## Recovery
 
-- **Verification/build failure:** fix it and push the change. Release publication
-  does not run when a required verification job fails.
+- **Verification/build failure:** fix it and push the change. The release PR is not
+  opened when a required verification job fails, and its separately dispatched CI
+  must be green before merge.
+- **Release PR cannot be created or updated:** enable GitHub Actions permission to
+  create pull requests and confirm the workflow token scopes in repository or
+  organization settings. The workflow never falls back to committing on `main`.
 - **Image publication fails after the release exists:** rerun the failed image
   job, or rerun the workflow for the same commit. The release runner reuses only
   a single stable tag pointing at that exact SHA. It never chooses an unrelated
@@ -107,8 +125,8 @@ lockfiles; base-image and OS security updates are intentional rebuild inputs.
   (use generated release notes), then rerun the workflow for the same commit.
   The runner intentionally stops rather than treating an unverified tag as a
   completed release. Check the release assets too if their upload was interrupted.
-- **No releasable commits:** no version or image is published. `docs:`, `ci:` and
-  development-tool-only updates do not release by themselves.
+- **No releasable commits:** no release PR, version or image is published. `docs:`,
+  `ci:` and development-tool-only updates do not release by themselves.
 - **403 from GitHub/GHCR:** check organization Actions policy, tag restrictions,
   workflow token permissions and package Actions access. An old package created
   outside this repository may need its repository access connected explicitly.
@@ -120,9 +138,10 @@ container publication completes.
 ## Local evidence
 
 `npm test` exercises real commit analysis and release-note generation, major/minor/
-patch selection, publication guards, tag retries and alias protection. A complete
-semantic-release dry run in a disposable local Git repository verifies the first
-release is 1.0.0 without creating a tag. It has no GitHub plugin or network remote.
+patch selection, release-metadata updates, publication guards, tag retries and
+alias protection. A complete semantic-release dry run in a disposable local Git
+repository verifies the first release is 1.0.0 without creating a tag. It has no
+GitHub plugin or network remote.
 
 `npm run release:check` analyzes the real checkout's committed history without
 invoking the publishing engine. Docker smoke tests use an isolated container and
