@@ -38,8 +38,8 @@ and exposed by `get_agent_guide`; it does not require access to GitHub.
 - [Web API architecture](WEB_API_ARCHITECTURE.md) — TanStack Query, the generated
   HTTP client, optimistic updates, revision serialization and codegen checks.
 - [Localization](LOCALIZATION.md) — English defaults and adding UI languages.
-- [Release workflow](RELEASING.md) — CI gates, Conventional Commits, semantic-release,
-  GHCR publication and first-push preparation.
+- [Release workflow](RELEASING.md) — CI gates, Conventional Commits, semantic-release
+  PRs, GHCR publication and first-push preparation.
 - [Roadmap](../ROADMAP.md), [changelog](../CHANGELOG.md),
   [license](../LICENSE) and [third-party notices](../THIRD_PARTY_NOTICES.md).
 

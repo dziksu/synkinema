@@ -1,22 +1,22 @@
 # Changelog
 
-Versioned release notes are generated automatically from Conventional Commits in
-[GitHub Releases](https://github.com/dziksu/synkinema/releases). That is the canonical
-automated changelog. This file records curated development highlights; CI does not
-commit generated metadata back to `main`.
+All notable changes to this project are documented in this file.
 
-## Unreleased
+Release notes are generated from Conventional Commits by semantic-release and
+committed in a reviewed release pull request.
 
-- Desktop timeline editor with private project media, a shared library, caption
-  styles, canvas layers, drag and drop, keyframes, effects and audio editing.
-- REST, MCP and CLI over shared revision-guarded editing services.
-- TanStack Query and a generated typed client for every Studio API request,
-  including optimistic edits and rollback.
-- Persistent render queue, MP4 exports, actual frame/audio inspection and physical
-  file cleanup for removed exports/media.
-- Optional local Supertonic narration and English-first UI localization.
-- CI verification, native amd64/arm64 container smoke tests, semantic-release,
-  versioned GHCR publication, contributor documentation and dependency automation.
+## [1.0.1](https://github.com/dziksu/synkinema/compare/v1.0.0...v1.0.1) (2026-09-14)
 
-The first releasable push with no existing `v*` release tags produces `1.0.0`.
-Nothing in this file asserts that a release or public container already exists.
+### Build and Dependencies
+
+* **deps:** update Studio stack and align Node runtime ([515027a](https://github.com/dziksu/synkinema/commit/515027ab2b803133c4d78aaf291c507517e68ebe))
+
+## 1.0.0 (2026-09-14)
+
+### Features
+
+* agent instruction dialog ([a5eabc1](https://github.com/dziksu/synkinema/commit/a5eabc1642f054a8a6f53e735cd5d7ee9e7830e8))
+
+### Bug Fixes
+
+* **compose:** move default host port to 43817 ([f125bd8](https://github.com/dziksu/synkinema/commit/f125bd844a204a67fec0e929a3d5ef8b30597981))

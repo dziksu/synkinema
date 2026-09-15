@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertReleaseMetadata } from "./release-pr.mjs";
 import { isCommit, isRepository, isStableVersion } from "./rules.mjs";
 
 export async function prepare(_options, { cwd, env, nextRelease }) {
@@ -12,6 +13,7 @@ export async function prepare(_options, { cwd, env, nextRelease }) {
   ) {
     throw new Error("Invalid release artifact identity.");
   }
+  assertReleaseMetadata(cwd, version);
   const image = `ghcr.io/${repository.toLowerCase()}:v${version}`;
   const original = readFileSync(join(cwd, "compose.release.yaml"), "utf8");
   const placeholder = /\$\{SYNKINEMA_IMAGE:-ghcr\.io\/[^}]+\}/g;

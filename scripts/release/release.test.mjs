@@ -16,6 +16,10 @@ import { generateNotes } from "@semantic-release/release-notes-generator";
 import config from "../../.releaserc.json" with { type: "json" };
 import { prepare } from "./prepare.mjs";
 import {
+  assertReleaseMetadata,
+  writeReleasePullRequest,
+} from "./release-pr.mjs";
+import {
   assertReleaseEnvironment,
   imageTags,
   isConventionalTitle,
@@ -25,18 +29,44 @@ import {
 
 const logger = { log() {} };
 
+function writeReleaseMetadataFixture(cwd, version) {
+  const packageValue = { name: "synkinema", version };
+  const lockValue = { version, packages: { "": { version } } };
+  const writeJson = (path, value) =>
+    writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+  mkdirSync(join(cwd, "apps/studio/src/api/generated"), { recursive: true });
+  mkdirSync(join(cwd, "apps/server/synkinema"), { recursive: true });
+  writeJson(join(cwd, "package.json"), packageValue);
+  writeJson(join(cwd, "package-lock.json"), lockValue);
+  writeJson(join(cwd, "apps/studio/package.json"), packageValue);
+  writeJson(join(cwd, "apps/studio/package-lock.json"), lockValue);
+  writeFileSync(
+    join(cwd, "apps/server/synkinema/__init__.py"),
+    `__version__ = "${version}"\n`,
+  );
+  writeFileSync(
+    join(cwd, "Dockerfile"),
+    `ARG APP_VERSION=${version}\nFROM node\nARG APP_VERSION=${version}\n`,
+  );
+  writeFileSync(join(cwd, "CHANGELOG.md"), `# Changelog\n\n## ${version}\n`);
+  writeJson(join(cwd, "apps/studio/src/api/generated/openapi.json"), {
+    info: { version },
+    paths: {},
+  });
+  writeFileSync(
+    join(cwd, "apps/studio/src/api/generated/client.ts"),
+    `/** @version ${version} */\n`,
+  );
+}
+
 test("release assets pin the chosen version without changing source files", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "synkinema-release-assets-"));
   const original =
     "services:\n  synkinema:\n    image: ${SYNKINEMA_IMAGE:-ghcr.io/dziksu/synkinema:latest}\n";
   try {
     writeFileSync(join(cwd, "compose.release.yaml"), original);
-    mkdirSync(join(cwd, "apps/studio/src/api/generated"), { recursive: true });
+    writeReleaseMetadataFixture(cwd, "1.2.3");
     const schemaPath = join(cwd, "apps/studio/src/api/generated/openapi.json");
-    writeFileSync(
-      schemaPath,
-      JSON.stringify({ info: { version: "0.1.0" }, paths: {} }),
-    );
     const context = {
       cwd,
       env: { GITHUB_REPOSITORY: "Owner/Studio" },
@@ -63,7 +93,7 @@ test("release assets pin the chosen version without changing source files", asyn
     );
     assert.equal(
       JSON.parse(readFileSync(schemaPath, "utf8")).info.version,
-      "0.1.0",
+      "1.2.3",
     );
     await assert.rejects(
       prepare(
@@ -74,6 +104,40 @@ test("release assets pin the chosen version without changing source files", asyn
         },
       ),
     );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("release PR metadata updates every source version and requires regenerated API output", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "synkinema-release-pr-"));
+  try {
+    writeReleaseMetadataFixture(cwd, "1.0.1");
+    writeReleasePullRequest({
+      cwd,
+      version: "1.1.0",
+      notes:
+        "## [1.1.0](https://example.invalid/compare) (2026-09-15)\n\n### Features\n\n* add release PRs",
+    });
+    assert.equal(
+      JSON.parse(readFileSync(join(cwd, "package.json"))).version,
+      "1.1.0",
+    );
+    assert.equal(
+      JSON.parse(readFileSync(join(cwd, "apps/studio/package-lock.json")))
+        .packages[""].version,
+      "1.1.0",
+    );
+    assert.match(
+      readFileSync(join(cwd, "CHANGELOG.md"), "utf8"),
+      /^## \[1\.1\.0\]/m,
+    );
+    assert.throws(
+      () => assertReleaseMetadata(cwd, "1.1.0"),
+      /generated OpenAPI/,
+    );
+    writeReleaseMetadataFixture(cwd, "1.1.0");
+    assert.doesNotThrow(() => assertReleaseMetadata(cwd, "1.1.0"));
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
