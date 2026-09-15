@@ -927,11 +927,13 @@ export interface BatchRequest {
   dry_run?: boolean;
   /**
    * Expected Revision
+   * Last confirmed project revision. The entire batch rejects atomically when stale.
    * @min 1
    */
   expected_revision: number;
   /**
    * Operations
+   * Ordered editing operations committed as one revision; later steps see earlier steps in this list.
    * @maxItems 100
    * @minItems 1
    */

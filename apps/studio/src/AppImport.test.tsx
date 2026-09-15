@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { useStudio } from "./store";
@@ -37,6 +43,15 @@ it("imports a dropped media file through the generated upload mutation", async (
       <App />
     </QueryClientProvider>,
   );
+  expect(
+    screen.getByRole("navigation", { name: "Workspace navigation" }),
+  ).toBeTruthy();
+  expect(
+    screen
+      .getByRole("link", { name: "Skip to main content" })
+      .getAttribute("href"),
+  ).toBe("#main-content");
+  expect(document.querySelector("main#main-content")).toBeTruthy();
   const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
   fireEvent.drop(container.querySelector(".app")!, {
     dataTransfer: {
