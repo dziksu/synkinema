@@ -34,3 +34,8 @@ examples/steam-breakout-en/*-hls.txt
 examples/product-demo/out/
 examples/product-demo/out-promo/
 examples/product-demo/out-promo-v3/
+
+# Private production work. Keep only the editorial rules available to agents.
+examples/spawnbrief/**
+!examples/spawnbrief/EDITORIAL_RULES.md
+examples/turnwise/**
