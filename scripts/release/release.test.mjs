@@ -15,6 +15,7 @@ import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
 import config from "../../.releaserc.json" with { type: "json" };
 import { prepare } from "./prepare.mjs";
+import { planRelease } from "./plan.mjs";
 import {
   assertReleaseMetadata,
   writeReleasePullRequest,
@@ -180,6 +181,38 @@ test("notes generator is compatible with the pinned preset and includes dependen
   });
   assert.match(notes, /Build and Dependencies/);
   assert.match(notes, /update FFmpeg/);
+});
+
+test("release planner derives notes without contacting or pushing to its repository URL", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "synkinema-release-plan-"));
+  try {
+    const git = (...args) =>
+      execFileSync("git", args, {
+        cwd: directory,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim();
+    git("init", "--initial-branch=main");
+    git("config", "user.email", "test@example.invalid");
+    git("config", "user.name", "Release test");
+    writeFileSync(join(directory, "package.json"), '{"name":"fixture"}\n');
+    git("add", "package.json");
+    git("commit", "-m", "chore: initial repository");
+    git("tag", "v1.0.0");
+    writeFileSync(join(directory, "README.md"), "Release planner fixture\n");
+    git("add", "README.md");
+    git("commit", "-m", "feat: add release planner");
+
+    const plan = await planRelease({
+      cwd: directory,
+      env: process.env,
+      repositoryUrl: "https://example.invalid/owner/repository.git",
+    });
+    assert.equal(plan.version, "1.1.0");
+    assert.match(plan.notes, /add release planner/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("only one stable tag on the same commit can resume publication", () => {
