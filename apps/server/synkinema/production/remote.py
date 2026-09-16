@@ -338,17 +338,24 @@ class SearchParser(HTMLParser):
 
 
 async def search_steam(request):
-    query = httpx.QueryParams(
-        {
-            "term": request.query,
-            "sort_by": "Released_DESC",
-            "category1": 998,
-            "infinite": 1,
-            "count": request.count,
-            "start": request.start,
-            "ignore_preferences": 1,
-        }
-    )
+    params = {
+        "term": request.query,
+        "sort_by": "Released_DESC" if request.sort == "release_date" else "",
+        "category1": 998,
+        "infinite": 1,
+        "count": request.count,
+        "start": request.start,
+        "ignore_preferences": 1,
+        "l": "english",
+    }
+    if request.sort in ("most_wishlisted", "popular"):
+        params["filter"] = "popularwishlist" if request.sort == "most_wishlisted" else "topsellers"
+    if request.coming_soon and "filter" not in params:
+        params["filter"] = "comingsoon"
+    if request.tag_ids:
+        params["tags"] = ",".join(map(str, request.tag_ids))
+    query = httpx.QueryParams(params)
+    source = f"https://store.steampowered.com/search/?{query}"
     raw = await download(f"https://store.steampowered.com/search/results/?{query}", limit=3 * 1024**2)
     data = json.loads(raw)
     if not data.get("success") or "results_html" not in data:
@@ -357,12 +364,53 @@ async def search_steam(request):
     p.feed(data.get("results_html", ""))
     return {
         "fetched_at": now(),
-        "source": "https://store.steampowered.com/search/",
+        "source": source,
         "candidates": p.rows[: request.count],
         "total_count": data.get("total_count"),
         "next_start": request.start + request.count,
-        "note": "Candidates sorted by Steam release order. Verify coming_soon and descriptions with get_steam_games before making release or mode claims.",
+        "sort": request.sort,
+        "coming_soon": request.coming_soon or request.sort == "most_wishlisted",
+        "note": "Steam storefront order within these filters, not worldwide anticipation or numeric wishlist/follower counts. popular uses Steam Top Sellers, a sales signal. Verify release state and descriptions with get_steam_games; games absent from Steam require other official sources.",
     }
+
+
+def movie_url(value):
+    """Steam has returned both direct strings and quality-keyed media objects."""
+    if isinstance(value, dict):
+        return next(
+            (movie_url(value.get(k)) for k in ("max", "1080", "720", "480") if movie_url(value.get(k))), None
+        )
+    if isinstance(value, str) and value.startswith(("https://", "http://")):
+        return value
+    return None
+
+
+def trailer_sources(game, selection):
+    movie = next((m for m in game.movies if m.id == selection.movie_id), None)
+    if movie is None:
+        raise ValueError(
+            f"Steam app {game.app_id}: movie {selection.movie_id} is absent from fresh metadata ({game.fetched_at}); available movie IDs: {[m.id for m in game.movies]}. Refresh get_steam_games and select an available trailer."
+        )
+    urls = list(dict.fromkeys(u for u in (movie.mp4_url, movie.webm_url, movie.hls_url) if u))
+    if not urls:
+        raise ValueError(
+            f"Steam app {game.app_id}, movie {movie.id}: fresh metadata ({game.fetched_at}) contains no MP4, WebM or HLS URL. Metadata may have changed since discovery; refresh get_steam_games or select another trailer."
+        )
+    return [
+        MediaSource(
+            url=url,
+            filename=f"{game.name} - {movie.name}.mp4",
+            source=f"{game.url} | movie {movie.id}: {movie.name}",
+            license="Official promotional footage; copyright remains with "
+            + ", ".join(game.developers + game.publishers)
+            + ". No open license or endorsement is implied.",
+            tags=["steam", "official-trailer", str(game.app_id)],
+            from_ms=selection.from_ms,
+            to_ms=selection.to_ms,
+            max_height=selection.max_height,
+        )
+        for url in urls
+    ]
 
 
 async def steam_game(app_id):
@@ -377,8 +425,9 @@ async def steam_game(app_id):
             id=x["id"],
             name=x["name"],
             thumbnail=x.get("thumbnail"),
-            hls_url=x.get("hls_h264"),
-            mp4_url=x.get("mp4", {}).get("max"),
+            hls_url=movie_url(x.get("hls_h264")) or movie_url(x.get("hls")),
+            mp4_url=movie_url(x.get("mp4")),
+            webm_url=movie_url(x.get("webm")),
         )
         for x in data.get("movies", [])
     ]

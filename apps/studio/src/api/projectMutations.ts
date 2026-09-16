@@ -9,6 +9,7 @@ import { reconcileDeletion } from "@/api/mutations";
 import {
   identifySteps,
   projectAfter,
+  replacedAudioIds,
   type EditPlan,
 } from "@/api/projectReducer";
 import { keys, reads } from "@/api/queries";
@@ -90,7 +91,21 @@ export const projectWrites = (client: QueryClient) =>
           state.confirmed,
         );
         const resolved = await edit.resolve(current);
-        const plan = { ...resolved, steps: identifySteps(resolved.steps) };
+        const plan: EditPlan = {
+          ...resolved,
+          steps: identifySteps(resolved.steps),
+        };
+        const audioIds = replacedAudioIds(current, plan.steps);
+        if (audioIds.length) {
+          const assets = await client.fetchQuery(
+            reads.assets(client, current.id),
+          );
+          plan.audioAssets = Object.fromEntries(
+            assets
+              .filter((asset) => audioIds.includes(asset.id))
+              .map((asset) => [asset.id, asset]),
+          );
+        }
         const restore = plan.steps.find((s) => s.type === "restore_revision");
         if (restore?.type === "restore_revision")
           plan.restored = await client.fetchQuery(

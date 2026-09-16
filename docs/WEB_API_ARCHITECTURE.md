@@ -158,8 +158,12 @@ invented to change output settings. See [export formats](EXPORT_FORMATS.md).
 `audio_asset_id` / `audio_source` / `audio_text` snapshot. The existing
 `update_project` operation replaces the list, validates real audio assets, and
 synchronizes the legacy `script` string. A changed script-only write clears line
-associations; old projects with only plain text stay readable. Scenes and timeline
-clips remain independent. Line audio participates in inventory, usage, history,
+associations; old projects with only plain text stay readable. Initial attachment does not create timeline clips. Replacing a line take updates
+its unambiguous whole-take voiceover clips and scene audio references atomically,
+preserving starts/speed/gain and measuring the new duration. Split/trimmed or
+shared-line takes require explicit clip edits; overlaps reject without ripple.
+Caption timings are not inferred. Studio projects replacement durations only
+from validated assets read through Query, then reconciles the server response. Line audio participates in inventory, usage, history,
 and deletion protection.
 
 Studio edits use `projectWrites` with confirmed revisions and undo. Dirty drafts

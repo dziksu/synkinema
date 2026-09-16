@@ -1984,6 +1984,13 @@ export interface ComposeReel {
    */
   caption_style?: "boxed" | "bold" | "minimal" | "editorial";
   /**
+   * Disclosure Text
+   * Optional explicitly authored footer. No automatic AI footer; required publication disclosures are handled separately.
+   * @maxLength 150
+   * @default ""
+   */
+  disclosure_text?: string;
+  /**
    * Dry Run
    * @default true
    */
@@ -1993,6 +2000,11 @@ export interface ComposeReel {
    * @min 1
    */
   expected_revision: number;
+  /**
+   * Hook Max Ms
+   * Optional editorial speech limit. Null fits real narration without a hard three-second cap.
+   */
+  hook_max_ms?: number | null;
   /** Music Asset Id */
   music_asset_id?: string | null;
   /** Narration Task Id */
@@ -2010,6 +2022,16 @@ export interface ComposeReel {
    * @default "NEXT UP / AFTER DARK"
    */
   series_title?: string;
+  /**
+   * Show Titles
+   * @default true
+   */
+  show_titles?: boolean;
+  /**
+   * Template
+   * @default "showcase-v1"
+   */
+  template?: "showcase-v1" | "gameplay-v1";
 }
 
 /** CompositionResult */
@@ -2964,6 +2986,38 @@ export interface FolderRequest {
   project_id?: string | null;
 }
 
+/** FootageUse */
+export interface FootageUse {
+  /** App Id */
+  app_id: number | null;
+  /** Asset Id */
+  asset_id: string;
+  /** Checksum */
+  checksum: string;
+  /** Clip Ids */
+  clip_ids: string[];
+  /** From Ms */
+  from_ms: number;
+  /** Movie Id */
+  movie_id: number | null;
+  /** Project Id */
+  project_id: string;
+  /** Project Name */
+  project_name: string;
+  /** Publication Id */
+  publication_id: string | null;
+  /** Revision */
+  revision: number;
+  /** Source Key */
+  source_key: string;
+  /** Timeline From Ms */
+  timeline_from_ms: number;
+  /** Timeline To Ms */
+  timeline_to_ms: number;
+  /** To Ms */
+  to_ms: number;
+}
+
 /** FrameRequest */
 export interface FrameRequest {
   /** Job Id */
@@ -3113,6 +3167,44 @@ export interface ImportMediaOutput {
    * @default "import_media"
    */
   type: "import_media";
+}
+
+/** ImportSteamBatch */
+export interface ImportSteamBatchInput {
+  /** Folder Id */
+  folder_id?: string | null;
+  /** Project Id */
+  project_id: string;
+  /**
+   * Trailers
+   * @maxItems 8
+   * @minItems 1
+   */
+  trailers: SteamTrailerSelectionInput[];
+  /**
+   * Type
+   * @default "import_steam_trailers"
+   */
+  type?: "import_steam_trailers";
+}
+
+/** ImportSteamBatch */
+export interface ImportSteamBatchOutput {
+  /** Folder Id */
+  folder_id: string | null;
+  /** Project Id */
+  project_id: string;
+  /**
+   * Trailers
+   * @maxItems 8
+   * @minItems 1
+   */
+  trailers: SteamTrailerSelectionOutput[];
+  /**
+   * Type
+   * @default "import_steam_trailers"
+   */
+  type: "import_steam_trailers";
 }
 
 /** ImportSteam */
@@ -4081,6 +4173,8 @@ export interface ProductionResult {
   /** Assets */
   assets: Asset[];
   delivery: Delivery | null;
+  /** Import Errors */
+  import_errors: TrailerImportError[];
   model_status: TranscriberStatus | null;
   /** Narration */
   narration: NarrationTake[];
@@ -4122,6 +4216,9 @@ export interface ProductionTask {
     | ({
         type: "import_steam_trailer";
       } & ImportSteamOutput)
+    | ({
+        type: "import_steam_trailers";
+      } & ImportSteamBatchOutput)
     | ({
         type: "install_transcriber";
       } & InstallTranscriberOutput)
@@ -4192,7 +4289,7 @@ export interface Project {
   script?: string;
   /**
    * Script Lines
-   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.
    * @maxItems 500
    */
   script_lines?: ScriptLineInput[];
@@ -4260,7 +4357,7 @@ export interface ProjectSnapshot {
   script: string;
   /**
    * Script Lines
-   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.
    * @maxItems 500
    */
   script_lines: ScriptLineOutput[];
@@ -4316,10 +4413,20 @@ export interface Publication {
    * Optional currently linked project; historical publication remains if later unlinked or deleted.
    */
   project_id: string | null;
+  /**
+   * Project Revision
+   * Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.
+   */
+  project_revision: number | null;
   /** Published At */
   published_at: string | null;
   /** Recorded At */
   recorded_at: string;
+  /**
+   * Source Usage
+   * Frozen source intervals captured from the published project revision, retained after project deletion.
+   */
+  source_usage: FootageUse[];
   /**
    * Status
    * @default "published"
@@ -4381,6 +4488,11 @@ export interface PublicationWrite {
    */
   project_id?: string | null;
   /**
+   * Project Revision
+   * Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.
+   */
+  project_revision?: number | null;
+  /**
    * Publication Id
    * Omit to append; existing ID to replace this record, e.g. refresh manually observed metrics.
    */
@@ -4432,7 +4544,7 @@ export interface ReelBeat {
    * Role
    * @default "feature"
    */
-  role?: "hook" | "feature" | "outro";
+  role?: "hook" | "feature" | "outro" | "scene";
   /**
    * Shots
    * @maxItems 8
@@ -4470,6 +4582,11 @@ export interface ReelShot {
    * @default 0
    */
   brightness?: number;
+  /**
+   * Duration Ms
+   * Set for every shot in the beat or omit for all. Explicit durations must sum to the beat duration within one frame.
+   */
+  duration_ms?: number | null;
   /**
    * Source In Ms
    * @min 0
@@ -5030,6 +5147,59 @@ export interface SourceInspection {
   to_ms?: number | null;
 }
 
+/** SourcePreview */
+export interface SourcePreview {
+  /** Asset Id */
+  asset_id: string;
+  /** Checksum */
+  checksum: string;
+  /** Duration Ms */
+  duration_ms: number;
+  /** From Ms */
+  from_ms: number;
+  /** Has Audio */
+  has_audio: boolean;
+  /** Mime Type */
+  mime_type: string;
+  /**
+   * Note
+   * @default "Real source excerpt. Client playback/audio support varies; generating a preview does not prove it was watched or heard."
+   */
+  note: string;
+  /** To Ms */
+  to_ms: number;
+  /** Url */
+  url: string;
+}
+
+/** SourcePreviewRequest */
+export interface SourcePreviewRequest {
+  /** Asset Id */
+  asset_id: string;
+  /**
+   * Format
+   * @default "mp4"
+   */
+  format?: "mp4" | "gif" | "wav";
+  /**
+   * From Ms
+   * @min 0
+   * @default 0
+   */
+  from_ms?: number;
+  /**
+   * Include Audio
+   * @default true
+   */
+  include_audio?: boolean;
+  /**
+   * To Ms
+   * Exclusive source end, at most 15 seconds after from_ms.
+   * @exclusiveMin 0
+   */
+  to_ms: number;
+}
+
 /** SourceSheet */
 export interface SourceSheet {
   /** Asset Id */
@@ -5044,6 +5214,53 @@ export interface SourceSheet {
   url: string;
   /** Width */
   width: number;
+}
+
+/** SourceUsageRequest */
+export interface SourceUsageRequest {
+  /** App Id */
+  app_id?: number | null;
+  /** Asset Id */
+  asset_id?: string | null;
+  /** Channel Id */
+  channel_id?: string | null;
+  /**
+   * Count
+   * @min 1
+   * @max 200
+   * @default 50
+   */
+  count?: number;
+  /** Exclude Project Id */
+  exclude_project_id?: string | null;
+  /**
+   * From Ms
+   * Optional proposed asset-local interval; requires asset_id and to_ms.
+   */
+  from_ms?: number | null;
+  /**
+   * Start
+   * @min 0
+   * @default 0
+   */
+  start?: number;
+  /** To Ms */
+  to_ms?: number | null;
+}
+
+/** SourceUsageResult */
+export interface SourceUsageResult {
+  /** Next Start */
+  next_start: number | null;
+  /**
+   * Note
+   * @default "Current unmuted video timelines plus frozen published source ranges. Crops/speed do not create fresh footage; simultaneous identical layers are grouped. Unknown provenance matches by checksum only. Multiple provenance records are conservative aliases. This does not detect visually similar re-encodes without shared provenance or prove playback/publication. Older publications without snapshots are not reconstructed."
+   */
+  note: string;
+  /** Total Count */
+  total_count: number;
+  /** Uses */
+  uses: FootageUse[];
 }
 
 /** time_ms is an ABSOLUTE timeline timestamp. Both pieces must be >=100 ms. Animated clips reject. Original ID remains on left; optional new_clip_id sets a stable right ID, otherwise generated; right source_in advances by (time_ms-start_ms)*speed; right incoming transition becomes cut. Boundary fades are removed and remaining fades clamped. Find new right ID by comparing returned project. Text/image source offsets also advance though unused by rendering. */
@@ -5100,6 +5317,9 @@ export interface StartProduction {
     | ({
         type: "import_steam_trailer";
       } & ImportSteamInput)
+    | ({
+        type: "import_steam_trailers";
+      } & ImportSteamBatchInput)
     | ({
         type: "install_transcriber";
       } & InstallTranscriberInput)
@@ -5197,10 +5417,17 @@ export interface SteamMovie {
   name: string;
   /** Thumbnail */
   thumbnail: string | null;
+  /** Webm Url */
+  webm_url: string | null;
 }
 
 /** SteamSearch */
 export interface SteamSearch {
+  /**
+   * Coming Soon
+   * @default false
+   */
+  coming_soon?: boolean;
   /**
    * Count
    * @min 1
@@ -5210,10 +5437,16 @@ export interface SteamSearch {
   count?: number;
   /**
    * Query
+   * Steam text search, not a genre filter. Use tag_ids for genres (Open World=1695). Empty searches the whole catalog.
    * @maxLength 150
-   * @default "horror"
+   * @default ""
    */
   query?: string;
+  /**
+   * Sort
+   * @default "relevance"
+   */
+  sort?: "relevance" | "release_date" | "most_wishlisted" | "popular";
   /**
    * Start
    * @min 0
@@ -5221,22 +5454,97 @@ export interface SteamSearch {
    * @default 0
    */
   start?: number;
+  /**
+   * Tag Ids
+   * @maxItems 10
+   */
+  tag_ids?: number[];
 }
 
 /** SteamSearchResult */
 export interface SteamSearchResult {
   /** Candidates */
   candidates: SteamCandidate[];
+  /** Coming Soon */
+  coming_soon: boolean;
   /** Fetched At */
   fetched_at: string;
   /** Next Start */
   next_start: number;
   /** Note */
   note: string;
+  /** Sort */
+  sort: string;
   /** Source */
   source: string;
   /** Total Count */
   total_count: number | null;
+}
+
+/** SteamTrailerSelection */
+export interface SteamTrailerSelectionInput {
+  /**
+   * App Id
+   * @exclusiveMin 0
+   */
+  app_id: number;
+  /**
+   * From Ms
+   * @min 0
+   * @default 0
+   */
+  from_ms?: number;
+  /**
+   * Max Height
+   * @min 240
+   * @max 2160
+   * @default 1080
+   */
+  max_height?: number;
+  /**
+   * Movie Id
+   * @exclusiveMin 0
+   */
+  movie_id: number;
+  /**
+   * To Ms
+   * @exclusiveMin 0
+   * @default 120000
+   */
+  to_ms?: number;
+}
+
+/** SteamTrailerSelection */
+export interface SteamTrailerSelectionOutput {
+  /**
+   * App Id
+   * @exclusiveMin 0
+   */
+  app_id: number;
+  /**
+   * From Ms
+   * @min 0
+   * @default 0
+   */
+  from_ms: number;
+  /**
+   * Max Height
+   * @min 240
+   * @max 2160
+   * @default 1080
+   */
+  max_height: number;
+  /**
+   * Movie Id
+   * @exclusiveMin 0
+   */
+  movie_id: number;
+  /**
+   * To Ms
+   * @exclusiveMin 0
+   * @default 120000
+   */
+  to_ms: number;
 }
 
 /** TextLayerRequest */
@@ -5323,6 +5631,22 @@ export interface TrackOutput {
   muted: boolean;
   /** Name */
   name: string;
+}
+
+/** TrailerImportError */
+export interface TrailerImportError {
+  /** App Id */
+  app_id: number;
+  /** Error */
+  error: string;
+  /**
+   * Index
+   * Zero-based index in trailers.
+   * @min 0
+   */
+  index: number;
+  /** Movie Id */
+  movie_id: number;
 }
 
 /** Transcribe */
@@ -6179,7 +6503,7 @@ export interface UpdateClipStep {
   type: "update_clip";
 }
 
-/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips. */
+/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Initial line attachment does not insert clips. Replacing an attached take updates its unambiguous whole-take voiceover clips and scene voice references atomically, preserves start/speed/gain, and uses the replacement audio duration. Overlaps reject; no ripple or speech truncation. Trimmed/split/shared-line takes need explicit clip edits before the script update in the same batch. Captions require separate realignment. */
 export interface UpdateProjectOperation {
   /**
    * Last confirmed server revision. Serialize writes; conflicts reject atomically.
@@ -6221,7 +6545,7 @@ export interface UpdateProjectOperation {
     script?: string;
     /**
      * Script Lines
-     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.
      * @maxItems 500
      */
     script_lines?: EditScriptLine[];
@@ -6229,7 +6553,7 @@ export interface UpdateProjectOperation {
   type: "update_project";
 }
 
-/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips. */
+/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Initial line attachment does not insert clips. Replacing an attached take updates its unambiguous whole-take voiceover clips and scene voice references atomically, preserves start/speed/gain, and uses the replacement audio duration. Overlaps reject; no ripple or speech truncation. Trimmed/split/shared-line takes need explicit clip edits before the script update in the same batch. Captions require separate realignment. */
 export interface UpdateProjectStep {
   payload: {
     /** Asset Ids */
@@ -6266,7 +6590,7 @@ export interface UpdateProjectStep {
     script?: string;
     /**
      * Script Lines
-     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.
      * @maxItems 500
      */
     script_lines?: EditScriptLine[];
@@ -6691,7 +7015,7 @@ export interface WaitRequest {
    * Timeout Seconds
    * Bounded server-side wait for terminal state; returns current status on timeout, never claims completion.
    * @min 0
-   * @max 25
+   * @max 60
    * @default 20
    */
   timeout_seconds?: number;
@@ -7597,7 +7921,7 @@ export class Api<
       }),
 
     /**
-     * @description Read channel rules, linked projects, manually recorded publications/metrics and subjective editorial reviews. No analytics synchronization.
+     * @description Read current channel rules. MCP include_records=true also returns projects, manual publications/metrics and reviews; known_version skips unchanged rules. No analytics synchronization.
      *
      * @tags Composition
      * @name GetChannel
@@ -7694,7 +8018,7 @@ export class Api<
       }),
 
     /**
-     * @description List local editorial channels, including archived ones. No external platform calls.
+     * @description List local editorial channels, including archived ones. MCP defaults to compact paginated IDs/names/versions; get_channel reads full rules on demand. No external platform calls.
      *
      * @tags Composition
      * @name ListChannels
@@ -7919,7 +8243,7 @@ export class Api<
       }),
 
     /**
-     * @description Discover production task types, local transcription runtime/model status, pinned downloadable models, portrait showcase template, input limits and workflow. No downloads or inference. Installed files do not guarantee successful recognition.
+     * @description Discover production task types, local transcription runtime/model status, pinned downloadable models, showcase and gameplay templates, input limits and workflow. No downloads or inference. Installed files do not guarantee successful recognition.
      *
      * @tags Composition
      * @name ProductionCapabilities
@@ -7973,7 +8297,7 @@ export class Api<
       }),
 
     /**
-     * @description Queue one typed production operation. request_key is required for idempotency: same key/payload returns the original task even after failure; changed payload under that key returns409. Returns queued state immediately. Partial validated assets survive cancellation/failure and are listed in result. Never updates the timeline. Discover supported types and wait for terminal state before consuming results.
+     * @description Queue one typed production operation. request_key is required for idempotency: same key/payload returns the original task even after failure; changed payload under that key returns409. Returns queued state immediately. Use import_steam_trailers for 1–8 selections in one durable task. Each failed trailer is reported in result.import_errors while other selections continue; any failures make the final task failed. Partial validated assets survive cancellation/failure and are listed in result. Never updates the timeline. Discover supported types and wait for terminal state before consuming results.
      *
      * @tags Composition
      * @name ProductionStart
@@ -7993,7 +8317,7 @@ export class Api<
       }),
 
     /**
-     * @description Wait server-side up to25 seconds for a task to reach a terminal state; returns its current task on timeout. No busy client polling or fabricated completion. The task continues after a timeout/disconnect. Reuse the returned ID rather than enqueueing a duplicate.
+     * @description Wait server-side up to60 seconds for a task to reach a terminal state; returns its current task on timeout. No busy client polling or fabricated completion. The task continues after a timeout/disconnect. Reuse the returned ID rather than enqueueing a duplicate.
      *
      * @tags Composition
      * @name ProductionWait
@@ -8096,7 +8420,7 @@ export class Api<
       }),
 
     /**
-     * @description Append or update one manual publication record, guarded by expected_version. URL is metadata only; never fetched. Null metrics mean unknown. Does not publish, schedule or upload anything.
+     * @description Append or update one manual publication record, guarded by expected_version. URL is metadata only; never fetched. Null metrics mean unknown. Published records capture source usage at project_revision (current if omitted) for future reuse checks; metric updates retain that snapshot. Does not publish, schedule or upload anything.
      *
      * @tags Composition
      * @name RecordChannelPublication
@@ -8241,7 +8565,7 @@ export class Api<
       }),
 
     /**
-     * @description Wait server-side up to25 seconds for a render to complete/fail/cancel. Returns current Job on timeout; timeout is not failure or completion. Does not enqueue or cancel. Prefer this to repeated get_render_progress calls and retain job_id for pinned final inspection.
+     * @description Wait server-side up to60 seconds for a render to complete/fail/cancel. Returns current Job on timeout; timeout is not failure or completion. Does not enqueue or cancel. Prefer this to repeated get_render_progress calls and retain job_id for pinned final inspection.
      *
      * @tags Composition
      * @name RenderWait
@@ -8353,7 +8677,7 @@ export class Api<
       }),
 
     /**
-     * @description Plan or commit an editable portrait showcase from completed measured narration and authored beats/source cuts. Defaults dry_run=true and empty-project-only. Explicit duration must fit actual voice; hooks longer than3seconds reject, never silently truncate. Auto groups phrase captions and lays out titles/gameplay/score. A commit is one revision-guarded atomic batch; conflicts require reconciliation. Returns full candidate/project, layout report and ASR timing warnings. Caller must visually inspect source cuts and final export.
+     * @description Plan or commit an editable portrait showcase from completed measured narration and authored beats/source cuts. Defaults dry_run=true and empty-project-only. Explicit duration must fit actual voice; optional hook_max_ms controls the editorial limit; no implicit speech truncation. template=gameplay-v1 shows unobscured full-frame footage on any canvas; showcase-v1 retains the portrait design. Set every shot duration_ms for uneven cuts; their sum must fit the beat. No automatic AI footer; disclosure_text is opt-in. Atomically saves ordered script_lines with stable beat IDs, audio_asset_id, audio_source=generated and the exact spoken audio_text; every composed take is editable in Script studio. Auto groups phrase captions and lays out titles/gameplay/score. A commit is one revision-guarded atomic batch; conflicts require reconciliation. Returns full candidate/project, layout report and ASR timing warnings. Caller must visually inspect source cuts and final export.
      *
      * @tags Composition
      * @name ShowcaseCompose
@@ -8388,6 +8712,46 @@ export class Api<
     sourceFrames: (data: SourceInspection, params: RequestParams = {}) =>
       this.request<SourceSheet, ApiError>({
         path: `/api/production/source-frames`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Generate a real 0–15 second source excerpt, using source from_ms/to_ms. format=gif returns inline animation, mp4 returns a playable media URL, wav returns inline measured source audio for narration review. Video audio can be included only if present on the imported asset. Writes a content-addressed cache; no project edit. Clients may flatten GIFs or lack audio/video support: never claim playback or pronunciation review based only on generation, stills or ASR.
+     *
+     * @tags Composition
+     * @name SourcePreview
+     * @summary Source Preview
+     * @request POST:/api/production/source-preview
+     * @secure
+     */
+    sourcePreview: (data: SourcePreviewRequest, params: RequestParams = {}) =>
+      this.request<SourcePreview, ApiError>({
+        path: `/api/production/source-preview`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Read paginated source-time usage from current unmuted video timelines and frozen manual publications. Filter by channel_id, Steam app_id or asset_id; supply an asset-local from_ms/to_ms to find overlaps across imports sharing source provenance. Speed and crop do not make a source new. Simultaneous duplicate layers are grouped. Published snapshots survive project deletion; historical records without snapshots and unrecognized re-encodes have explicit coverage limits. No project or channel changes.
+     *
+     * @tags Composition
+     * @name SourceUsageRead
+     * @summary Source Usage Read
+     * @request POST:/api/production/source-usage
+     * @secure
+     */
+    sourceUsageRead: (data: SourceUsageRequest, params: RequestParams = {}) =>
+      this.request<SourceUsageResult, ApiError>({
+        path: `/api/production/source-usage`,
         method: "POST",
         body: data,
         secure: true,
@@ -8435,7 +8799,7 @@ export class Api<
       }),
 
     /**
-     * @description Search the official Steam catalog, sorted by release date. Returns candidates with app IDs and source links, not verified release or popularity claims. Follow with steam_games for fresh coming_soon, modes and trailer metadata. Public network read; query max150 chars, count1–20, paginated start.
+     * @description Search the official Steam catalog, with sort=relevance/release_date/most_wishlisted/popular (Top Sellers), coming_soon and tag_ids (Open World=1695). Empty query searches all games; text is not a genre filter. Returns observed storefront order and the exact filtered source URL, never invented wishlist/follower counts. most_wishlisted is Steam Top Wishlists; it cannot rank games absent from Steam. Follow with steam_games for fresh coming_soon, modes and trailer metadata. Public network read; query max150 chars, count1–20, paginated start.
      *
      * @tags Composition
      * @name SteamSearch

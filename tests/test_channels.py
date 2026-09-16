@@ -252,4 +252,6 @@ def test_mcp_channels_and_creation_include_guidance(api):
         ]
         == "en"
     )
-    assert call("get_channel", {"channel_id": c["id"]})["projects"][0]["id"] == p["id"]
+    assert (
+        call("get_channel", {"channel_id": c["id"], "include_records": True})["projects"][0]["id"] == p["id"]
+    )

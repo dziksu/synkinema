@@ -9,6 +9,7 @@ from pydantic import Field, field_validator, model_validator
 from sqlalchemy import text
 
 from .models import Model, uid
+from .production.usage import FootageUse, project_footage
 from .storage import now
 
 Platform = Literal["youtube", "tiktok", "instagram", "facebook", "twitch", "x", "linkedin", "other"]
@@ -104,6 +105,11 @@ class PublicationInput(Model):
         None,
         description="Optional currently linked project; historical publication remains if later unlinked or deleted.",
     )
+    project_revision: int | None = Field(
+        None,
+        ge=1,
+        description="Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.",
+    )
     title: str = Field(min_length=1, max_length=200)
     platform: Platform
     url: str = Field(max_length=2000)
@@ -149,6 +155,10 @@ class PublicationInput(Model):
 class Publication(PublicationInput):
     id: str
     recorded_at: str
+    source_usage: list[FootageUse] = Field(
+        default_factory=list,
+        description="Frozen source intervals captured from the published project revision, retained after project deletion.",
+    )
 
 
 class PublicationWrite(PublicationInput):
@@ -342,8 +352,25 @@ class Channels:
             # must still belong to this channel at the time of this transaction.
             if request.project_id and (not existing or existing.get("project_id") != request.project_id):
                 self._linked_project(conn, channel_id, request.project_id)
+            captured = []
+            revision = request.project_revision
+            if (
+                existing
+                and existing.get("project_id") == request.project_id
+                and existing.get("status") == "published"
+                and revision in (None, existing.get("project_revision"))
+            ):
+                captured = existing.get("source_usage", [])
+                revision = existing.get("project_revision")
+            elif request.project_id and request.status == "published":
+                self._linked_project(conn, channel_id, request.project_id)
+                project = self.get(request.project_id, revision)
+                revision = project.revision
+                captured = project_footage(self, project)
             record = Publication(
-                **request.model_dump(exclude={"expected_version", "publication_id"}),
+                **request.model_dump(exclude={"expected_version", "publication_id", "project_revision"}),
+                project_revision=revision,
+                source_usage=captured,
                 id=record_id,
                 recorded_at=now(),
             )

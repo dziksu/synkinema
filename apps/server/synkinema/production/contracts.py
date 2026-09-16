@@ -77,6 +77,23 @@ class InstallTranscriber(Model):
     model: Literal["tiny.en", "tiny"] = "tiny.en"
 
 
+class SteamTrailerSelection(Model):
+    app_id: int = Field(gt=0)
+    movie_id: int = Field(gt=0)
+    from_ms: int = Field(0, ge=0)
+    to_ms: int = Field(120_000, gt=0)
+    max_height: int = Field(1080, ge=240, le=2160)
+
+    _interval = model_validator(mode="after")(ImportSteam.interval)
+
+
+class ImportSteamBatch(Model):
+    type: Literal["import_steam_trailers"] = "import_steam_trailers"
+    project_id: str
+    folder_id: str | None = None
+    trailers: list[SteamTrailerSelection] = Field(min_length=1, max_length=8)
+
+
 class InstallVoiceModel(Model):
     """Install the pinned local Supertonic 3 weights and license; no paid provider or timeline edit."""
 
@@ -167,6 +184,7 @@ class PackageDelivery(Model):
 ProductionRequest = Annotated[
     ImportMedia
     | ImportSteam
+    | ImportSteamBatch
     | InstallTranscriber
     | InstallVoiceModel
     | Transcribe
@@ -240,6 +258,14 @@ class ProductionResult(Model):
     delivery: Delivery | None = None
     model_status: "TranscriberStatus | None" = None
     voice_model: VoiceProvider | None = None
+    import_errors: list["TrailerImportError"] = Field(default_factory=list)
+
+
+class TrailerImportError(Model):
+    index: int = Field(ge=0, description="Zero-based index in trailers.")
+    app_id: int
+    movie_id: int
+    error: str
 
 
 class ProductionTask(Model):
@@ -278,6 +304,32 @@ class SourceSheet(Model):
     height: int
 
 
+class SourcePreviewRequest(Model):
+    asset_id: str
+    from_ms: int = Field(0, ge=0)
+    to_ms: int = Field(gt=0, description="Exclusive source end, at most 15 seconds after from_ms.")
+    format: Literal["mp4", "gif", "wav"] = "mp4"
+    include_audio: bool = True
+
+    @model_validator(mode="after")
+    def interval(self):
+        if not 0 < self.to_ms - self.from_ms <= 15_000:
+            raise ValueError("Preview requires a nonempty interval of at most 15 seconds")
+        return self
+
+
+class SourcePreview(Model):
+    asset_id: str
+    checksum: str
+    from_ms: int
+    to_ms: int
+    duration_ms: int
+    url: str
+    mime_type: str
+    has_audio: bool
+    note: str = "Real source excerpt. Client playback/audio support varies; generating a preview does not prove it was watched or heard."
+
+
 class LayoutRequest(Model):
     project_id: str
     revision: int | None = None
@@ -305,6 +357,12 @@ class ReelShot(Model):
     asset_id: str
     source_in_ms: int = Field(0, ge=0)
     brightness: float = Field(0, ge=-1, le=1)
+    duration_ms: int | None = Field(
+        None,
+        ge=100,
+        le=120_000,
+        description="Set for every shot in the beat or omit for all. Explicit durations must sum to the beat duration within one frame.",
+    )
 
 
 class ReelBeat(Model):
@@ -312,7 +370,7 @@ class ReelBeat(Model):
         pattern=r"^[a-zA-Z0-9_-]{1,60}$",
         description="ID of a completed narration line, or unique beat ID if using narration_asset_id.",
     )
-    role: Literal["hook", "feature", "outro"] = "feature"
+    role: Literal["hook", "feature", "outro", "scene"] = "feature"
     title: str = Field(min_length=1, max_length=150)
     subtitle: str = Field("", max_length=180)
     tagline: str = Field("", max_length=120)
@@ -335,6 +393,19 @@ class ComposeReel(Model):
     series_title: str = Field("NEXT UP / AFTER DARK", max_length=100)
     profile: OutputProfile = Field(default_factory=OutputProfile)
     caption_style: Literal["boxed", "bold", "minimal", "editorial"] = "boxed"
+    template: Literal["showcase-v1", "gameplay-v1"] = "showcase-v1"
+    hook_max_ms: int | None = Field(
+        None,
+        ge=1000,
+        le=30_000,
+        description="Optional editorial speech limit. Null fits real narration without a hard three-second cap.",
+    )
+    show_titles: bool = True
+    disclosure_text: str = Field(
+        "",
+        max_length=150,
+        description="Optional explicitly authored footer. No automatic AI footer; required publication disclosures are handled separately.",
+    )
     dry_run: bool = True
     replace_existing: bool = Field(
         False,
@@ -351,9 +422,24 @@ class CompositionResult(Model):
 
 
 class SteamSearch(Model):
-    query: str = Field("horror", max_length=150)
+    query: str = Field(
+        "",
+        max_length=150,
+        description="Steam text search, not a genre filter. Use tag_ids for genres (Open World=1695). Empty searches the whole catalog.",
+    )
+    sort: Literal["relevance", "release_date", "most_wishlisted", "popular"] = "relevance"
+    coming_soon: bool = False
+    tag_ids: list[Annotated[int, Field(gt=0)]] = Field(default_factory=list, max_length=10)
     count: int = Field(10, ge=1, le=20)
     start: int = Field(0, ge=0, le=1000)
+
+    @model_validator(mode="after")
+    def supported_filters(self):
+        if self.sort == "popular" and self.coming_soon:
+            raise ValueError(
+                "Use most_wishlisted for upcoming popularity; Steam Top Sellers and Coming Soon are separate storefront lists"
+            )
+        return self
 
 
 class SteamGames(Model):
@@ -366,6 +452,7 @@ class SteamMovie(Model):
     thumbnail: str | None = None
     hls_url: str | None = None
     mp4_url: str | None = None
+    webm_url: str | None = None
 
 
 class SteamGame(Model):
@@ -388,7 +475,7 @@ class WaitRequest(Model):
     timeout_seconds: int = Field(
         20,
         ge=0,
-        le=25,
+        le=60,
         description="Bounded server-side wait for terminal state; returns current status on timeout, never claims completion.",
     )
 
@@ -451,6 +538,8 @@ class SteamSearchResult(Model):
     total_count: int | None
     next_start: int
     note: str
+    sort: str
+    coming_soon: bool
 
 
 class ClipChange(Model):

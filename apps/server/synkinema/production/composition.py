@@ -14,7 +14,10 @@ def compose(service, request, project_id, narration):
     old = service.get(project_id)
     if not request.replace_existing and any(t.clips for t in old.tracks):
         raise ValueError("Project is not empty; clone it or explicitly set replace_existing=true")
-    if not 0.45 <= request.profile.width / request.profile.height <= 0.8:
+    if (
+        request.template == "showcase-v1"
+        and not 0.45 <= request.profile.width / request.profile.height <= 0.8
+    ):
         raise ValueError("showcase-v1 uses a portrait canvas; use ordinary operations for landscape layouts")
     if len({b.id for b in request.beats}) != len(request.beats):
         raise ValueError("Beat IDs must be unique")
@@ -137,8 +140,14 @@ def compose(service, request, project_id, narration):
             raise ValueError(
                 f"{beat.id}: duration shorter than actual voice; increase duration or regenerate speech"
             )
-        if beat.role == "hook" and take.transcript.speech_end_ms > 3000:
-            raise ValueError("Hook speech exceeds 3 seconds; shorten or regenerate it")
+        if (
+            beat.role == "hook"
+            and request.hook_max_ms is not None
+            and take.transcript.speech_end_ms > request.hook_max_ms
+        ):
+            raise ValueError(
+                f"Hook speech exceeds the requested {request.hook_max_ms} ms limit; shorten or regenerate it"
+            )
         start, end = cursor, cursor + length
         vstart = start + offset
         voice.append(
@@ -170,23 +179,42 @@ def compose(service, request, project_id, narration):
             if b <= a:
                 raise ValueError("Caption timestamps collapse to one frame; review the transcript")
             text(captions, " ".join(w.word for w in g).upper(), a, b, color=beat.color, size=60)
+        durations = [s.duration_ms for s in beat.shots]
+        explicit = any(d is not None for d in durations)
+        if explicit and (any(d is None for d in durations) or abs(sum(durations) - length) > 1000 / fps):
+            raise ValueError(f"{beat.id}: specify every shot duration and fit their sum to the beat duration")
+        cut = 0
         for i, s in enumerate(beat.shots):
-            a = start + frame(length * i / len(beat.shots))
-            b = start + frame(length * (i + 1) / len(beat.shots))
-            shot(bg, s, a, b, ambient=beat.role != "hook", full=beat.role == "hook")
-            if beat.role != "hook":
+            a = start + frame(cut if explicit else length * i / len(beat.shots))
+            cut += s.duration_ms or 0
+            b = (
+                end
+                if i == len(beat.shots) - 1
+                else start + frame(cut if explicit else length * (i + 1) / len(beat.shots))
+            )
+            if b <= a:
+                raise ValueError(f"{beat.id}: shot duration collapses to zero frames")
+            shot(
+                bg,
+                s,
+                a,
+                b,
+                ambient=request.template == "showcase-v1" and beat.role != "hook",
+                full=request.template == "showcase-v1" and beat.role == "hook",
+            )
+            if request.template == "showcase-v1" and beat.role != "hook":
                 shot(hero, s, a, b)
         text(
             titles,
-            beat.title.upper(),
+            beat.title.upper() if request.show_titles else "",
             start,
             end,
-            size=100 if beat.role == "hook" else 78,
-            y=0.31 if beat.role == "hook" else 0.145,
+            size=52 if request.template == "gameplay-v1" else 100 if beat.role == "hook" else 78,
+            y=0.145 if request.template == "gameplay-v1" else 0.31 if beat.role == "hook" else 0.145,
             style="bold" if beat.role in ("hook", "outro") else "editorial",
             subtitle=beat.subtitle,
             color=beat.color,
-            max_bottom=0.54 if beat.role == "hook" else 0.267,
+            max_bottom=0.267 if request.template == "gameplay-v1" else 0.54 if beat.role == "hook" else 0.267,
         )
         text(
             labels,
@@ -206,13 +234,13 @@ def compose(service, request, project_id, narration):
                 "duration_ms": length,
                 "narration": take.text,
                 "voice_asset_id": take.asset.id,
-                "notes": "showcase-v1; source cuts must be visually inspected before final export.",
+                "notes": f"{request.template}; source cuts must be visually inspected before final export.",
             }
         )
         warnings.extend(f"{beat.id}: {w}" for w in take.transcript.warnings)
         cursor = end
     text(identity, request.series_title, 0, cursor, size=27, y=0.105, style="minimal")
-    text(disclosure, "AI-GENERATED VOICE • EDITORIAL PICKS", 0, cursor, size=27, y=0.85, style="minimal")
+    text(disclosure, request.disclosure_text, 0, cursor, size=27, y=0.85, style="minimal")
     if request.music_asset_id:
         music.append(
             Clip(
@@ -240,7 +268,16 @@ def compose(service, request, project_id, narration):
                 "payload": {
                     "profile": request.profile.model_dump(),
                     "scenes": scenes,
-                    "script": "\n\n".join(takes[b.id].text for b in request.beats),
+                    "script_lines": [
+                        {
+                            "id": beat.id,
+                            "text": takes[beat.id].text,
+                            "audio_asset_id": takes[beat.id].asset.id,
+                            "audio_text": takes[beat.id].text,
+                            "audio_source": "generated",
+                        }
+                        for beat in request.beats
+                    ],
                 },
             }
         ]

@@ -34,6 +34,7 @@ export function PublicationForm({
     const {
       id: _id,
       recorded_at: _at,
+      source_usage: _sourceUsage,
       ...fields
     } = initial || ({} as Partial<Publication>);
     return {
@@ -114,7 +115,11 @@ export function PublicationForm({
             <NativeSelect
               value={request.project_id || ""}
               onChange={(e) =>
-                setRequest({ ...request, project_id: e.target.value || null })
+                setRequest({
+                  ...request,
+                  project_id: e.target.value || null,
+                  project_revision: null,
+                })
               }
             >
               <option value="">{tr("No project")}</option>

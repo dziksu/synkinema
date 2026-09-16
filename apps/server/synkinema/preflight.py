@@ -4,8 +4,30 @@ from .renderer import validate_timeline
 from .timeline import lane_overlaps
 
 
-def preflight(service, project):
+def narration_link_issues(project):
+    linked = {
+        line.audio_asset_id
+        for line in project.script_lines
+        if line.audio_asset_id and line.text.strip() and line.audio_text and line.audio_text.strip()
+    }
+    return [
+        {
+            "code": "unlinked_narration",
+            "message": "Narration must be attached to a script_lines entry with audio_asset_id, audio_source and the actual audio_text. Save these associations with update_project before exporting through MCP; plain script/scenes metadata is insufficient.",
+            "track_id": track.id,
+            "clip_id": clip.id,
+            "asset_id": clip.asset_id,
+        }
+        for track in project.tracks
+        if track.kind == "voiceover" and not track.muted
+        for clip in track.clips
+        if clip.asset_id and clip.asset_id not in linked
+    ]
+
+
+def preflight(service, project, *, require_script_audio=False):
     errors, warnings = [], []
+    (errors if require_script_audio else warnings).extend(narration_link_issues(project))
 
     def issue(items, code, message, **context):
         items.append({"code": code, "message": message, **context})

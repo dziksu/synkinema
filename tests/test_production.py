@@ -286,9 +286,15 @@ def test_showcase_plan_commit_conflict_and_no_implicit_overwrite(env, tmp_path):
     )
     planned = compose_task(p, project.id, r)
     assert not planned.committed and p.service.get(project.id).revision == 1
+    assert p.service.get(project.id).script_lines == []
+    line = planned.project.script_lines[0]
+    assert line.id == "one" and line.audio_source == "generated"
+    assert line.audio_asset_id == p.get(task.id).result.narration[0].asset.id
+    assert line.audio_text == line.text == "Three new games to play"
     assert planned.layout.passed
     actual = compose_task(p, project.id, r.model_copy(update={"dry_run": False}))
     assert actual.committed and actual.project.revision == 2
+    assert actual.project.script_lines == planned.project.script_lines
     assert len(actual.project.tracks) == 9 and actual.project.duration_ms == 3000
     with pytest.raises(ValueError, match="not empty"):
         compose_task(p, project.id, r)
@@ -409,6 +415,10 @@ def test_full_mcp_transport_workflow_real_render_verification_and_bundle(tmp_pat
             "compose_showcase", {"project_id": project["id"], "request": {**request, "dry_run": False}}
         )
         assert saved["project"]["revision"] == 2
+        assert (
+            saved["project"]["script_lines"][0]["audio_asset_id"]
+            == narration["result"]["narration"][0]["asset"]["id"]
+        )
         render = rpc("start_render", {"project_id": project["id"], "expected_revision": 2})
         render = rpc("wait_for_render", {"job_id": render["id"], "request": {"timeout_seconds": 25}})
         assert render["status"] == "completed", render
