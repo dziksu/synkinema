@@ -1,5 +1,7 @@
-import { Api } from "./generated/client";
-import { tr } from "../i18n";
+import { Api } from "@/api/generated/client";
+import { tr } from "@/lib/i18n";
+import { backendFetch } from "@/server/backend.server";
+import { createIsomorphicFn } from "@tanstack/react-start";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -14,10 +16,14 @@ export class ApiRequestError extends Error {
 
 // The generated client owns URLs, methods, bodies and response types. This adapter
 // only normalizes HTTP errors; components never import it or call fetch directly.
+const request = createIsomorphicFn()
+  .server(backendFetch)
+  .client((...args: Parameters<typeof fetch>) => fetch(...args));
+
 export const http = new Api({
   baseUrl: "",
   customFetch: async (...args: Parameters<typeof fetch>) => {
-    const response = await fetch(...args);
+    const response = await request(...args);
     if (!response.ok) {
       const body = await response
         .clone()

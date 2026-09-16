@@ -148,3 +148,11 @@ invoking the publishing engine. Docker smoke tests use an isolated container and
 never mount the working project's persistent volume. Local and hosted checks have
 different environments: remote permissions, GHCR publication and both hosted
 runner architectures can only be confirmed by the first real GitHub Actions run.
+
+### Studio runtime
+
+The release image runs TanStack Start on Node at port 8080 and a single private
+Python engine at `127.0.0.1:8081`. The supervisor forwards termination and stops
+the container if either process exits. The HTTP smoke check verifies SSR pages,
+assets, API/docs, MCP and origin protection through the public Node entry point.
+The persistent `/data` volume and release version checks remain unchanged.

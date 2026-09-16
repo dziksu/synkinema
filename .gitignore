@@ -39,3 +39,7 @@ examples/product-demo/out-promo-v3/
 examples/spawnbrief/**
 !examples/spawnbrief/EDITORIAL_RULES.md
 examples/turnwise/**
+
+# TanStack Start build output
+apps/studio/.output/
+apps/studio/.tanstack/

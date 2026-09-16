@@ -34,7 +34,7 @@ requirement. Preserve it in every feature, refactor and agent contribution.
   concurrency, revision conflicts and generated contract changes.
 
 Read [docs/WEB_API_ARCHITECTURE.md](docs/WEB_API_ARCHITECTURE.md) for implementation
-and maintenance details. `apiArchitecture.test.ts` enforces module boundaries.
+and maintenance details. `apps/studio/src/studio.test.ts` enforces module boundaries.
 
 ## Product and workspace
 

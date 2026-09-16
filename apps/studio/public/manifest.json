@@ -1,0 +1,20 @@
+{
+  "short_name": "Synkinema",
+  "name": "Synkinema Studio",
+  "icons": [
+    {
+      "src": "/brand/logo-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/brand/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#d0fe54",
+  "background_color": "#ffffff"
+}

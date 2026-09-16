@@ -552,9 +552,4 @@ def create_app(data_dir=None, start_worker=True):
     # Expose only media directories, never the database or its WAL files.
     for name in ("library", "renders", "cache", "channel-logos"):
         app.mount(f"/media/{name}", StaticFiles(directory=store.root / name), name=f"media-{name}")
-    studio = Path(
-        os.environ.get("SYNKINEMA_STUDIO", str(Path(__file__).resolve().parents[2] / "studio" / "dist"))
-    )
-    if studio.exists():
-        app.mount("/", StaticFiles(directory=studio, html=True), name="studio")
     return app
