@@ -15,13 +15,17 @@ ANALYSIS_VERSION = 1
 
 
 class SourceAnalysisRequest(Model):
-    asset_id: str
-    from_ms: int = Field(0, ge=0)
+    asset_id: str = Field(description="Exact imported video/audio asset ID returned by Synkinema.")
+    from_ms: int = Field(0, ge=0, description="Inclusive source-file start in integer milliseconds.")
     to_ms: int | None = Field(None, gt=0, description="Exclusive source end; maximum range 120 seconds.")
-    mode: Literal["audio", "video", "both"] = "both"
-    silence_db: float = Field(-38, ge=-60, le=-20)
-    silence_min_ms: int = Field(200, ge=100, le=2000)
-    visual_min_ms: int = Field(700, ge=250, le=5000)
+    mode: Literal["audio", "video", "both"] = Field(
+        "both", description="Streams to measure. The selected asset must contain each requested stream."
+    )
+    silence_db: float = Field(-38, ge=-60, le=-20, description="FFmpeg silence threshold in dB.")
+    silence_min_ms: int = Field(200, ge=100, le=2000, description="Minimum silence interval in milliseconds.")
+    visual_min_ms: int = Field(
+        700, ge=250, le=5000, description="Minimum black/frozen visual interval in milliseconds."
+    )
 
     @model_validator(mode="after")
     def interval(self):

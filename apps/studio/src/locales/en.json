@@ -933,5 +933,7 @@
   "Remove this take from the project and disk. Its audio cannot be restored from script history. Shared files are kept.": "Remove this take from the project and disk. Its audio cannot be restored from script history. Shared files are kept.",
   "Audio removed from this project. The shared file is kept for other projects or the library.": "Audio removed from this project. The shared file is kept for other projects or the library.",
   "Audio removed. Disk cleanup is pending and will retry automatically.": "Audio removed. Disk cleanup is pending and will retry automatically.",
-  "Audio and its local file were removed.": "Audio and its local file were removed."
+  "Audio and its local file were removed.": "Audio and its local file were removed.",
+  "Skip to main content": "Skip to main content",
+  "Workspace navigation": "Workspace navigation"
 }

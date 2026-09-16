@@ -84,7 +84,16 @@ def test_mcp_discovery_resources_errors_and_documented_mutation(tmp_path):
         for tool in tools.values():
             assert len(tool["description"]) > 70, tool["name"]
             assert "annotations" in tool
+            for parameter, schema in tool["inputSchema"].get("properties", {}).items():
+                assert "$ref" in schema or schema.get("description"), (
+                    tool["name"],
+                    parameter,
+                )
         assert tools["generate_voice_take"]["annotations"]["openWorldHint"] is True
+        assert set(tools["start_render"]["inputSchema"]["properties"]["quality"]["enum"]) == {
+            "preview",
+            "final",
+        }
         assert tools["render_frames"]["annotations"]["readOnlyHint"] is False  # May write preview/cache.
         assert tools["get_agent_guide"]["annotations"]["readOnlyHint"] is True
         resources = rpc("resources/list")["resources"]

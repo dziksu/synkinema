@@ -5245,3 +5245,120 @@ nav > button:hover,
   font-size: 12px;
   color: var(--muted);
 }
+
+/* UX baseline: visible keyboard navigation, readable dense controls and a truly
+   stacked small-screen editor without document-level horizontal scrolling. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  padding: 10px 14px;
+  border: 1px solid var(--lime);
+  border-radius: 7px;
+  color: #101313;
+  background: var(--lime);
+  font-size: 14px;
+  font-weight: 600;
+  transform: translateY(-160%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="slider"]:focus-visible,
+[role="separator"]:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.button,
+.text-button {
+  font-size: 13px;
+}
+.icon-button {
+  min-width: 32px;
+  min-height: 32px;
+}
+.field,
+.clip-type,
+.inspector-section,
+.timeline-label {
+  font-size: 12px;
+}
+.field input,
+.field select,
+.field textarea {
+  font-size: 13px;
+}
+.hint,
+.search input,
+.filter-row button,
+.asset-card strong,
+.viewer-toolbar {
+  font-size: 12px;
+}
+.timecode,
+.preview-label,
+.timeline-toolbar > div > span:not(.timeline-label),
+.track-label {
+  font-size: 11px;
+}
+
+@media (max-width: 740px) {
+  body {
+    overflow-x: hidden;
+  }
+  .main,
+  .studio-main,
+  .editor-top,
+  .timeline {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .editor-top,
+  .editor-top.source-open {
+    display: flex;
+    flex-flow: column nowrap;
+    width: 100%;
+    overflow: hidden;
+  }
+  .asset-panel,
+  .editor-top.source-open > .asset-panel {
+    width: 100%;
+    min-width: 0;
+    height: 320px;
+    flex: 0 0 320px;
+    border-right: 0;
+  }
+  .viewer,
+  .editor-top.source-open > .viewer {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: min(520px, 68vh);
+    flex: 0 0 min(520px, 68vh);
+  }
+  .inspector {
+    width: 100%;
+    min-width: 0;
+  }
+  .timeline-toolbar .icon-button,
+  .track-label .icon-button,
+  .viewer-toolbar .icon-button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .asset-panel .panel-heading h2,
+  .asset-panel .search input,
+  .asset-panel .filter-row button,
+  .import-area > span,
+  .viewer-toolbar,
+  .viewer-toolbar .text-button,
+  .timeline-toolbar .text-button,
+  .source-range-fields .button,
+  .manual-actions .button {
+    font-size: 12px;
+  }
+}

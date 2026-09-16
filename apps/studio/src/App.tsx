@@ -803,6 +803,9 @@ export default function App() {
       {...dropzone.getRootProps()}
       className={`app ${sidebar.collapsed ? "sidebar-collapsed" : ""}`}
     >
+      <a className="skip-link" href="#main-content">
+        {tr("Skip to main content")}
+      </a>
       <input
         {...dropzone.getInputProps()}
         aria-label={tr("Choose files to import")}
@@ -832,9 +835,10 @@ export default function App() {
           {" "}
           {tr("YOUR WORKSPACE")} <span>{tr("LOCAL")}</span>
         </div>
-        <nav>
+        <nav aria-label={tr("Workspace navigation")}>
           <button
             className={state.page === "channels" ? "active" : ""}
+            aria-current={state.page === "channels" ? "page" : undefined}
             aria-label={tr("Channels")}
             title={tr("Channels")}
             onClick={() =>
@@ -850,6 +854,7 @@ export default function App() {
           </button>
           <button
             className={state.page === "projects" ? "active" : ""}
+            aria-current={state.page === "projects" ? "page" : undefined}
             aria-label={tr("Projects")}
             title={tr("Projects")}
             onClick={() => state.set({ page: "projects" })}
@@ -859,6 +864,7 @@ export default function App() {
           </button>
           <button
             className={state.page === "library" ? "active" : ""}
+            aria-current={state.page === "library" ? "page" : undefined}
             aria-label={tr("Library")}
             title={tr("Library")}
             onClick={() => state.set({ page: "library" })}
@@ -867,6 +873,7 @@ export default function App() {
           </button>
           <button
             className={state.page === "renders" ? "active" : ""}
+            aria-current={state.page === "renders" ? "page" : undefined}
             aria-label={tr("Render queue")}
             title={tr("Render queue")}
             onClick={() => state.set({ page: "renders" })}
@@ -899,6 +906,11 @@ export default function App() {
               }
               disabled={p.id.startsWith("pending:")}
               aria-busy={p.id.startsWith("pending:")}
+              aria-current={
+                state.page === "studio" && state.projectId === p.id
+                  ? "page"
+                  : undefined
+              }
               onClick={() => openProject(p)}
             >
               <span className="mini-frame">
@@ -918,6 +930,7 @@ export default function App() {
           </div>
           <button
             className="settings-link"
+            aria-current={state.page === "settings" ? "page" : undefined}
             aria-label={tr("Settings and integrations")}
             title={tr("Settings and integrations")}
             onClick={() => state.set({ page: "settings" })}
@@ -939,7 +952,11 @@ export default function App() {
           }}
         />
       )}
-      <main className={state.page === "studio" ? "main studio-main" : "main"}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={state.page === "studio" ? "main studio-main" : "main"}
+      >
         {state.page === "studio" && !project ? (
           <div className="empty" role="status">
             {projectLoading ? (

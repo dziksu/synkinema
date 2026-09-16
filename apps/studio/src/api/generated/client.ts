@@ -927,11 +927,13 @@ export interface BatchRequest {
   dry_run?: boolean;
   /**
    * Expected Revision
+   * Last confirmed project revision. The entire batch rejects atomically when stale.
    * @min 1
    */
   expected_revision: number;
   /**
    * Operations
+   * Ordered editing operations committed as one revision; later steps see earlier steps in this list.
    * @maxItems 100
    * @minItems 1
    */
@@ -6969,7 +6971,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
 /**
  * @title Synkinema
- * @version 1.0.1
+ * @version 1.2.0
  *
  * Local FFmpeg editing API shared with MCP at /mcp/. Start with /api/agent/guide, /api/schema/project and /api/schema/operations. All timeline times are integer milliseconds. Serialize project writes using expected_revision; inspect actual renders before declaring completion.
  */

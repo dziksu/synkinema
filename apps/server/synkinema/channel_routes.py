@@ -13,6 +13,7 @@ from .channels import (
     ChannelUpdate,
     PublicationWrite,
 )
+from .mcp_inputs import ChannelId
 
 DESCRIPTIONS = {
     "upload_channel_logo": "Upload a still PNG/JPEG/WebP up to 5 MiB and 16 million pixels. Decode, strip metadata and resize to at most 512×512 pixels. Returns a reusable local logo ID/URL; does NOT change any channel until its ID is saved in a version-guarded brief. Identical output is deduplicated. Logos stay on disk after replacement/removal, including abandoned drafts; no external service, project asset or timeline mutation.",
@@ -79,7 +80,7 @@ def register_channel_mcp(mcp, service):
         return service.channels()
 
     @mcp.tool(description=DESCRIPTIONS["get_channel"], annotations=read)
-    def get_channel(channel_id: str) -> ChannelDetail:
+    def get_channel(channel_id: ChannelId) -> ChannelDetail:
         return service.channel_detail(channel_id)
 
     @mcp.tool(description=DESCRIPTIONS["create_channel"], annotations=write)
@@ -87,13 +88,13 @@ def register_channel_mcp(mcp, service):
         return service.create_channel(request)
 
     @mcp.tool(description=DESCRIPTIONS["update_channel"], annotations=write)
-    def update_channel(channel_id: str, request: ChannelUpdate) -> Channel:
+    def update_channel(channel_id: ChannelId, request: ChannelUpdate) -> Channel:
         return service.update_channel(channel_id, request)
 
     @mcp.tool(description=DESCRIPTIONS["record_channel_publication"], annotations=write)
-    def record_channel_publication(channel_id: str, request: PublicationWrite) -> ChannelDetail:
+    def record_channel_publication(channel_id: ChannelId, request: PublicationWrite) -> ChannelDetail:
         return service.record_publication(channel_id, request)
 
     @mcp.tool(description=DESCRIPTIONS["record_channel_review"], annotations=write)
-    def record_channel_review(channel_id: str, request: ChannelReviewWrite) -> ChannelDetail:
+    def record_channel_review(channel_id: ChannelId, request: ChannelReviewWrite) -> ChannelDetail:
         return service.record_channel_review(channel_id, request)

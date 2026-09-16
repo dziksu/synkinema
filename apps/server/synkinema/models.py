@@ -270,7 +270,9 @@ class EditStep(Model):
         "split_clip",
         "remove_clip",
         "restore_revision",
-    ]
+    ] = Field(
+        description="Exact supported operation name. Read get_operation_reference(operation=type) before constructing payload."
+    )
     payload: dict = Field(
         description="Operation-specific object. Call get_operation_reference(operation=type) or GET /api/schema/operations?operation=TYPE for exact schema, example and side effects; there is no generic changes schema for all operations."
     )
@@ -284,8 +286,15 @@ class Operation(EditStep):
 
 
 class BatchRequest(Model):
-    expected_revision: int = Field(ge=1)
-    operations: list[EditStep] = Field(min_length=1, max_length=100)
+    expected_revision: int = Field(
+        ge=1,
+        description="Last confirmed project revision. The entire batch rejects atomically when stale.",
+    )
+    operations: list[EditStep] = Field(
+        min_length=1,
+        max_length=100,
+        description="Ordered editing operations committed as one revision; later steps see earlier steps in this list.",
+    )
     dry_run: bool = Field(
         False,
         description="Validate and return a candidate without saving. Generated IDs are provisional; a later commit generates new IDs unless supplied explicitly.",
