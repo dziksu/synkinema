@@ -47,6 +47,19 @@
     min-width: 0;
     flex: 1;
   }
+  .workspace-main:not(.editor-main) {
+    background-image:
+      radial-gradient(
+        ellipse 48rem 32rem at 95% 0%,
+        rgb(208 254 84 / 7%),
+        transparent 75%
+      ),
+      radial-gradient(
+        ellipse 36rem 28rem at 0% 85%,
+        rgb(208 254 84 / 4%),
+        transparent 75%
+      );
+  }
   .editor-main {
     height: calc(100dvh - 3.5rem);
     overflow: hidden;

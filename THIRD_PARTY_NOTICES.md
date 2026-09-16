@@ -23,6 +23,8 @@ Synkinema source code is MIT. This does not relicense bundled dependencies or de
   Configuration and version: `docker run --rm --entrypoint ffmpeg synkinema:local -version`.
   Upstream sources: https://ffmpeg.org/download.html and https://sources.debian.org/src/ffmpeg/.
 - DejaVu fonts retain the Bitstream Vera / DejaVu font notices included by Debian.
+- Inter is bundled locally through Fontsource under the SIL Open Font License 1.1;
+  see `@fontsource-variable/inter/LICENSE` and https://rsms.me/inter/.
 - Demo photographs: see `examples/polish-wildlife/CREDITS.md`; they are not MIT.
 - The demo voice is generated locally with the installed macOS Zosia voice as a testing
   fixture. It is separate from the software license. Replace with an appropriately

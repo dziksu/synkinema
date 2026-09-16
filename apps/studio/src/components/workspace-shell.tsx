@@ -59,11 +59,15 @@ export function WorkspaceShell() {
         {tr("Skip to main content")}
       </a>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="p-4 group-data-[collapsible=icon]:px-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild size="lg">
-                <Link to="/projects">
+              <SidebarMenuButton
+                asChild
+                size="lg"
+                className="group-data-[collapsible=icon]:justify-center [&>span:last-child]:overflow-visible"
+              >
+                <Link to="/projects" aria-label="Synkinema">
                   <Logo />
                 </Link>
               </SidebarMenuButton>
