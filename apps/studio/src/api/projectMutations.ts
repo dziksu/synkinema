@@ -1,16 +1,21 @@
-import { mutationOptions, type QueryClient } from "@tanstack/react-query";
-import { http } from "./transport";
-import { keys, reads } from "./queries";
-import { optimistic, type OptimisticContext } from "./cache";
-import { EditQueue } from "../editQueue";
-import { identifySteps, projectAfter, type EditPlan } from "./projectReducer";
-import type { ProjectSnapshot as Project, Operation } from "./generated/client";
-import { tr } from "../i18n";
-import { reconcileDeletion } from "./mutations";
+import { optimistic, type OptimisticContext } from "@/api/cache";
 import type {
+  Operation,
+  ProjectSnapshot as Project,
   RemoveScriptAudioRequest,
   RemoveScriptAudioResult,
-} from "./generated/client";
+} from "@/api/generated/client";
+import { reconcileDeletion } from "@/api/mutations";
+import {
+  identifySteps,
+  projectAfter,
+  type EditPlan,
+} from "@/api/projectReducer";
+import { keys, reads } from "@/api/queries";
+import { http } from "@/api/transport";
+import { tr } from "@/lib/i18n";
+import { EditQueue } from "@/modules/editor/editQueue";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 
 type Session = {
   prepare: Promise<unknown>;

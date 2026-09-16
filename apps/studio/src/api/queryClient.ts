@@ -1,5 +1,5 @@
+import { ApiRequestError } from "@/api/transport";
 import { QueryClient } from "@tanstack/react-query";
-import { ApiRequestError } from "./transport";
 export function createQueryClient() {
   return new QueryClient({
     defaultOptions: {

@@ -2,8 +2,11 @@
 
 Synkinema source code is MIT. This does not relicense bundled dependencies or demo media.
 
-- React, Vite, TypeScript, Tailwind, Zustand, TanStack Query, Radix, react-dropzone and
+- React, Vite, TypeScript, Tailwind, Zustand, TanStack Start/Router/Query, shadcn,
+  React Hook Form, Zod, dnd-kit, react-resizable-panels, Nitro, Undici, Radix, react-dropzone and
   Lucide: see each installed package's LICENSE (MIT/ISC/Apache as applicable).
+- The image includes Node.js and its third-party notices at
+  `/usr/local/share/licenses/node/LICENSE` (MIT and bundled dependency licenses).
 - FastAPI, Pydantic, SQLAlchemy, MCP SDK and Uvicorn: see upstream license notices.
 - NumPy and Pillow retain their BSD-style / HPND licenses.
 - Supertonic SDK 1.3.1 is MIT; ONNX Runtime, SoundFile and Hugging Face Hub retain

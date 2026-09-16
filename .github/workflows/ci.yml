@@ -103,8 +103,8 @@ jobs:
           synkinema:ci /smoke/container_smoke.py
       - name: Test the actual HTTP server and bundled Studio
         run: |
-          docker run -d --name synkinema-ci -p 127.0.0.1:18080:8080 synkinema:ci
-          python3 scripts/http_smoke.py --url http://127.0.0.1:18080 --version 0.0.0
+          docker run -d --name synkinema-ci -p 127.0.0.1:18080:8080 -e SYNKINEMA_ALLOWED_HOSTS=studio.test synkinema:ci
+          python3 scripts/http_smoke.py --url http://127.0.0.1:18080 --version 0.0.0 --trusted-host studio.test
       - name: Container logs and cleanup
         if: always()
         run: |

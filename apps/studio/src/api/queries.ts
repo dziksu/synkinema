@@ -1,14 +1,14 @@
-import { queryOptions, type QueryClient } from "@tanstack/react-query";
-import { http } from "./transport";
-import { guardedRead, isOptimistic } from "./cache";
+import { guardedRead, isOptimistic } from "@/api/cache";
 import type {
   AudioRequest,
   FrameRequest,
-  SheetRequest,
-  TextLayerRequest,
-  StateSnapshot,
   RenderRequestInput,
-} from "./generated/client";
+  SheetRequest,
+  StateSnapshot,
+  TextLayerRequest,
+} from "@/api/generated/client";
+import { http } from "@/api/transport";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
 export const keys = {
   channels: ["channels"] as const,

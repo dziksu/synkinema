@@ -1,0 +1,310 @@
+@layer components {
+  .media-manager > .modal-title {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .media-manager-layout {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .media-manager-details {
+    max-height: none;
+    overflow: visible;
+  }
+  .media-file-info > strong {
+    overflow-wrap: anywhere;
+  }
+
+  .studio-search-field {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    min-width: 0;
+  }
+  .studio-search-field input {
+    min-height: 32px;
+  }
+  .render-preview video {
+    background: #090909;
+  }
+  [data-sidebar="menu-button"][data-active="true"] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  [data-sidebar="menu-button"][data-active="true"]:hover {
+    background: color-mix(in srgb, var(--primary), white 10%);
+  }
+  .settings-grid .agent-connect-card {
+    grid-column: auto;
+  }
+  .settings-grid .agent-client-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workspace-main {
+    min-width: 0;
+    flex: 1;
+  }
+  .editor-main {
+    height: calc(100dvh - 3.5rem);
+    overflow: hidden;
+  }
+  .editor-session {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .editor-panels-v2 {
+    flex: 1;
+    min-height: 0;
+  }
+  .editor-top-v2 {
+    min-height: 0;
+    background: var(--background);
+  }
+  .editor-top-v2 .asset-panel,
+  .editor-top-v2 .inspector,
+  .editor-top-v2 .preview-panel {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    min-width: 0;
+  }
+  .editor-top-v2 .preview-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--muted);
+  }
+  .editor-top-v2 .viewer {
+    height: 100%;
+    width: 100%;
+  }
+  .editor-top-v2 .viewer-toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 44px;
+    gap: 4px;
+    padding: 8px 12px;
+  }
+  .editor-top-v2 .viewer-toolbar > div {
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+  .editor-top-v2 .preview-stage {
+    min-height: 100px;
+    background: var(--muted);
+  }
+  .editor-top-v2 .preview-canvas {
+    background: #090909;
+  }
+  .editor-session .timeline {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 0;
+  }
+  .editor-session .timeline-selection-panel {
+    height: auto;
+    max-height: 96px;
+  }
+  .editor-session .timeline-selection-hint {
+    margin: 0;
+    padding: 8px 12px;
+  }
+  .editor-session .timeline-scroll {
+    flex: 1;
+    min-height: 0;
+  }
+  .editor-session .project-header {
+    padding: 12px 20px;
+    min-height: 58px;
+  }
+  .editor-session .project-tabs {
+    padding: 0 20px;
+  }
+  .project-cover-v2 > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.25s ease;
+  }
+  .project-cover-v2:hover > img {
+    transform: scale(1.025);
+  }
+  .project-cover-v2 > svg {
+    width: 40px;
+    height: 40px;
+    color: var(--muted-foreground);
+    stroke-width: 1.25;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 16px;
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .field [data-slot="native-select-wrapper"] {
+    width: 100%;
+  }
+  .field small,
+  .muted {
+    color: var(--muted-foreground);
+  }
+  .content-page {
+    padding: 0 36px 32px;
+  }
+  .channel-card,
+  .setting-card,
+  .channel-form-section,
+  .library-sidebar,
+  .media-card {
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .channel-empty {
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 56px 32px;
+  }
+  .channel-empty > svg {
+    margin: 0 auto 16px;
+    color: var(--primary);
+  }
+  .channel-empty h2 {
+    color: var(--foreground);
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .channel-empty p {
+    max-width: 540px;
+    margin-inline: auto;
+    line-height: 1.6;
+  }
+  .channel-card {
+    background: var(--card);
+  }
+  .channel-workspace,
+  .channel-list {
+    max-width: 1400px;
+    margin-inline: auto;
+  }
+  .channel-form {
+    max-width: 1100px;
+    margin-inline: auto;
+  }
+  .channel-form-section {
+    background: var(--card);
+  }
+  .channel-form-nav {
+    border-radius: 10px;
+    background: var(--muted);
+  }
+  .channel-help,
+  .channel-card p,
+  .channel-card small {
+    color: var(--muted-foreground);
+  }
+  .channel-grid,
+  .projects-grid {
+    gap: 20px;
+  }
+  .render-list {
+    padding-inline: 36px;
+  }
+  .error-banner {
+    border: 1px solid color-mix(in oklch, var(--destructive), transparent 70%);
+    background: color-mix(in oklch, var(--destructive), transparent 95%);
+    color: var(--foreground);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .modal-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .modal-title > button {
+    margin-left: auto;
+  }
+  .track-label {
+    background: var(--card);
+  }
+  .timeline .track-grip {
+    touch-action: none;
+    cursor: grab;
+  }
+  .timeline-row[data-dragging="true"] {
+    z-index: 20;
+    position: relative;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+  input[type="checkbox"],
+  input[type="range"] {
+    accent-color: var(--primary);
+  }
+  input[type="color"] {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+  }
+  .spin {
+    animation: studio-spin 1s linear infinite;
+  }
+  .wide {
+    width: 100%;
+  }
+  @keyframes studio-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (max-width: 767px) {
+    .content-page,
+    .render-list {
+      padding-inline: 20px;
+    }
+    .editor-main {
+      overflow: auto;
+    }
+    .editor-session {
+      min-width: 920px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .project-cover-v2 > img,
+    .spin {
+      animation: none;
+      transition: none;
+    }
+  }
+}
+
+@layer components {
+  .route-tabs {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .project-tabs > .route-tabs {
+    height: 100%;
+  }
+  .project-tabs > .route-tabs > a {
+    height: 100%;
+  }
+}

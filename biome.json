@@ -1,6 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "ignoreUnknown": true,
     "includes": [
@@ -9,7 +13,10 @@
       ".releaserc.json",
       "scripts/**/*.mjs",
       "apps/studio/**",
-      "!!**/package-lock.json"
+      "!!**/package-lock.json",
+      "!!apps/studio/.output/**",
+      "!!apps/studio/.tanstack/**",
+      "!!apps/studio/src/routeTree.gen.ts"
     ]
   },
   "formatter": {
@@ -27,7 +34,15 @@
       "trailingCommas": "all"
     }
   },
-  "css": { "parser": { "tailwindDirectives": true } },
-  "linter": { "enabled": false },
-  "assist": { "enabled": false }
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  }
 }

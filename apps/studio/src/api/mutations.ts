@@ -1,40 +1,44 @@
 import {
+  optimistic,
+  updateConfirmed,
+  type OptimisticContext,
+} from "@/api/cache";
+import type {
+  Asset,
+  AssetBatchUpdate,
+  AssetFolder,
+  AssetLocation,
+  AssetMetadataUpdate,
+  AssetUsage,
+  Channel,
+  ChannelDetail,
+  ChannelInput,
+  ChannelReviewWrite,
+  ChannelUpdate,
+  CommentRequest,
+  DeleteAssetsRequest,
+  DeleteJobsRequest,
+  DeletionResult,
+  Project,
+  ProjectSnapshot,
+  PublicationWrite,
+  RemoveAssetLocation,
+  RenderJob,
+  RenderRequestInput,
+  ReviewComment,
+  StateSnapshot,
+  VoiceRequest,
+} from "@/api/generated/client";
+import defaults from "@/api/generated/defaults.json";
+import { keys } from "@/api/queries";
+import { http } from "@/api/transport";
+import { createId } from "@/lib/createId";
+import { tr } from "@/lib/i18n";
+import {
   mutationOptions,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
-import { http } from "./transport";
-import { keys } from "./queries";
-import { optimistic, updateConfirmed, type OptimisticContext } from "./cache";
-import { tr } from "../i18n";
-import { createId } from "../createId";
-import defaults from "./generated/defaults.json";
-import type {
-  Channel,
-  ChannelDetail,
-  ChannelInput,
-  ChannelUpdate,
-  ChannelReviewWrite,
-  PublicationWrite,
-  DeleteJobsRequest,
-  DeletionResult,
-  StateSnapshot,
-  Asset,
-  AssetMetadataUpdate,
-  AssetBatchUpdate,
-  RemoveAssetLocation,
-  DeleteAssetsRequest,
-  AssetUsage,
-  AssetFolder,
-  AssetLocation,
-  CommentRequest,
-  Project,
-  ProjectSnapshot,
-  RenderJob,
-  RenderRequestInput,
-  ReviewComment,
-  VoiceRequest,
-} from "./generated/client";
 
 type Change<T> = (old: T[] | undefined) => T[];
 const replace = <T extends { id: string }>(items: T[] | undefined, value: T) =>

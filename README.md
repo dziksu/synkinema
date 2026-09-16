@@ -225,7 +225,13 @@ npm --prefix apps/studio run build
 
 For frontend hot reload, keep the backend running and start
 `npm --prefix apps/studio run dev` in another terminal. Vite runs at
-`http://localhost:5173` and proxies `/api`, `/media` and `/mcp` to port 8080.
+`http://127.0.0.1:5174`; TanStack Start streams SSR and proxies `/api`, `/media` and `/mcp` to port 8080.
+Set the server-only `SYNKINEMA_API_ORIGIN` to use another engine origin.
+
+The Python `serve` command runs the engine API. To serve a production Studio build
+locally, keep that engine running and start `npm --prefix apps/studio start` in
+another terminal (`HOST=127.0.0.1 PORT=5174`). Docker starts both processes behind
+its existing port 8080. See [Studio architecture and runtime](apps/studio/README.md).
 
 ```sh
 make format              # Biome for web/tooling; Ruff for Python

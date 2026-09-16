@@ -184,3 +184,15 @@ and timeline undo, but removed script audio cannot be restored. The response
 reports retention and incomplete physical cleanup. On success Studio evicts
 pinned project snapshots before undo, reconciles media caches, and invalidates
 history/usage/jobs. Failures roll back the projection and preserve the take.
+
+### Studio runtime (TanStack Start)
+
+`apps/studio` applies these generated-client/Query boundaries in TanStack Start. Its route loaders prefetch Query options, and each SSR request owns
+its QueryClient. Engine HTTP is restricted to the generated transport and the
+explicit server-only proxy in `src/server/backend.server.ts`. The editor route
+opts out of SSR while its document and workspace shell remain server-rendered.
+Local theme preferences use typed Start server functions through Query.
+
+After contract changes, run `npm --prefix apps/studio run api:generate`. The shared
+`make check` and CI gates validate the generated contract, tests and production
+build. See `apps/studio/README.md` for runtime and module boundaries.

@@ -66,7 +66,9 @@ The standalone container uses host port 18080; the default Compose service uses
 ## Container and storage
 
 The container runs as non-root user `studio` (UID 10001), listens internally on
-8080, and has a health check. The default Compose host binding is
+8080 through TanStack Start/Node, and has a health check. The Python engine listens
+only at `127.0.0.1:8081` inside the container. A supervisor stops both processes
+on shutdown or if either exits. The default Compose host binding is
 `127.0.0.1:43817`. For an existing Compose installation, set
 `SYNKINEMA_BIND_PORT=43817` in `.env`
 and run `docker compose up -d --force-recreate synkinema` to move only the host
@@ -117,7 +119,8 @@ the public internet. See [SECURITY.md](../SECURITY.md).
 | Variable | Default / behavior |
 |---|---|
 | `SYNKINEMA_DATA` | `.data` locally; `/data` in the container |
-| `SYNKINEMA_STUDIO` | Built Studio directory; `/app/studio` in the image |
+| `SYNKINEMA_API_ORIGIN` | Studio server-only engine origin: `http://127.0.0.1:8080` in development; `http://127.0.0.1:8081` for the bundled container engine |
+| `HOST`, `PORT` | Studio Node listener; `0.0.0.0:8080` in the image. Keep container defaults for existing Compose port mappings |
 | `SYNKINEMA_FFMPEG_THREADS` | 4; bounded to 1–16 |
 | `SYNKINEMA_FONT` | Optional TTF path; otherwise DejaVu/Arial fallback |
 | `SYNKINEMA_ALLOWED_HOSTS` | Additional trusted hostnames/IPs, comma-separated |

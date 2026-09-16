@@ -3,9 +3,9 @@ import type {
   EditStep,
   ProjectSnapshot as Project,
   TrackOutput as Track,
-} from "./generated/client";
-import defaults from "./generated/defaults.json";
-import { createId } from "../createId";
+} from "@/api/generated/client";
+import defaults from "@/api/generated/defaults.json";
+import { createId } from "@/lib/createId";
 
 export type EditPlan = {
   steps: EditStep[];
