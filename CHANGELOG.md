@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.3.1](https://github.com/dziksu/synkinema/compare/v1.3.0...v1.3.1) (2026-09-16)
+
+### Bug Fixes
+
+* **studio:** refine dashboard branding ([1e7a691](https://github.com/dziksu/synkinema/commit/1e7a691df375c8f7a3d76d09a5fdf09048b9d80a))
+
 ## [1.3.0](https://github.com/dziksu/synkinema/compare/v1.2.0...v1.3.0) (2026-09-16)
 
 ### Features
