@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.3.0](https://github.com/dziksu/synkinema/compare/v1.2.0...v1.3.0) (2026-09-16)
+
+### Features
+
+* **studio:** replace legacy dashboard with TanStack Start ([7205883](https://github.com/dziksu/synkinema/commit/720588327db33962e65fa3dc2f0717beefcb35f6))
+
+### Bug Fixes
+
+* **script:** resolve conflicts with main ([8aa60ee](https://github.com/dziksu/synkinema/commit/8aa60ee6d4e623aff1ee3856c0d8813a5ce7c603))
+
 ## [1.2.0](https://github.com/dziksu/synkinema/compare/v1.1.2...v1.2.0) (2026-09-15)
 
 ### Features
