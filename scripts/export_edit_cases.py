@@ -15,6 +15,12 @@ def export(destination):
     identity = {"track_id": "video", "clip_id": "one"}
     examples = [
         ("update_project", {"name": "Renamed", "profile": {"kind": "square", "width": 1080, "height": 1080}}),
+        (
+            "update_project",
+            {"script_lines": [{"id": "line-one", "text": "Hello"}, {"id": "line-two", "text": "World"}]},
+        ),
+        ("update_project", {"script_lines": []}),
+        ("update_project", {"script": "Legacy replacement"}),
         ("add_track", {"id": "extra", "name": "Extra", "kind": "overlay"}),
         ("reorder_tracks", {"track_ids": ["empty", "voice", "titles", "overlay", "video"]}),
         ("remove_track", {"track_id": "empty"}),

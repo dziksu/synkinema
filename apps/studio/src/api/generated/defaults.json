@@ -97,6 +97,7 @@
     "revision": 1,
     "scenes": [],
     "script": "",
+    "script_lines": [],
     "tracks": [
       {
         "clips": [],
@@ -135,6 +136,13 @@
         "name": "Music"
       }
     ]
+  },
+  "script_line": {
+    "audio_asset_id": null,
+    "audio_source": null,
+    "audio_text": null,
+    "id": "new",
+    "text": ""
   },
   "track": {
     "clips": [],

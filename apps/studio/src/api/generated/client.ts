@@ -2484,6 +2484,40 @@ export interface EditScene {
   voice_asset_id?: string | null;
 }
 
+/** ScriptLine */
+export interface EditScriptLine {
+  /**
+   * Audio Asset Id
+   * Server-validated audio asset; no automatic timeline insertion.
+   * @default null
+   */
+  audio_asset_id?: string | null;
+  /**
+   * Audio Source
+   * @default null
+   */
+  audio_source?: "recorded" | "uploaded" | "generated" | null;
+  /**
+   * Audio Text
+   * Text at recording/upload/generation time. A mismatch with text means the take may be outdated.
+   * @default null
+   */
+  audio_text?: string | null;
+  /**
+   * Id
+   * Stable line identity across edits and reordering.
+   * @minLength 1
+   * @maxLength 100
+   */
+  id: string;
+  /**
+   * Text
+   * @maxLength 100000
+   * @default ""
+   */
+  text?: string;
+}
+
 export type EditStep =
   | UpdateProjectStep
   | AddTrackStep
@@ -4157,6 +4191,12 @@ export interface Project {
    */
   script?: string;
   /**
+   * Script Lines
+   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+   * @maxItems 500
+   */
+  script_lines?: ScriptLineInput[];
+  /**
    * Tracks
    * @maxItems 32
    */
@@ -4218,6 +4258,12 @@ export interface ProjectSnapshot {
    * @default ""
    */
   script: string;
+  /**
+   * Script Lines
+   * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+   * @maxItems 500
+   */
+  script_lines: ScriptLineOutput[];
   /**
    * Tracks
    * @maxItems 32
@@ -4472,6 +4518,65 @@ export interface RemoveClipStep {
     track_id: string;
   };
   type: "remove_clip";
+}
+
+/** RemoveScriptAudioRequest */
+export interface RemoveScriptAudioRequest {
+  /**
+   * Audio Asset Id
+   * Exact take currently attached to the selected line; a different take returns 409.
+   * @minLength 1
+   */
+  audio_asset_id: string;
+  /**
+   * Expected Revision
+   * Last confirmed project revision; conflicts reject atomically.
+   * @min 1
+   */
+  expected_revision: number;
+  /**
+   * Expected Version
+   * Confirmed asset metadata version. Stale version returns 409; reload and reconcile.
+   * @min 1
+   */
+  expected_version: number;
+}
+
+/** RemoveScriptAudioResult */
+export interface RemoveScriptAudioResult {
+  /**
+   * Asset Ids
+   * Exclusive private sources deleted. Shared library and other projects' historical sources are preserved.
+   */
+  asset_ids: string[];
+  /**
+   * Deleted Files
+   * Existing nonempty files physically removed by this cleanup pass.
+   * @min 0
+   */
+  deleted_files: number;
+  /**
+   * Freed Bytes
+   * Bytes physically unlinked in this pass, not an estimate.
+   * @min 0
+   */
+  freed_bytes: number;
+  /** Job Ids */
+  job_ids: string[];
+  /**
+   * Pending Files
+   * Durable pending cleanup entries; nonzero means deletion committed but disk cleanup is incomplete. Retried every 10 seconds and after restart.
+   * @min 0
+   */
+  pending_files: number;
+  project: ProjectSnapshot;
+  /** Project Ids */
+  project_ids: string[];
+  /**
+   * Retained Asset Id
+   * Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.
+   */
+  retained_asset_id: string | null;
 }
 
 /** Remove a track. By default only EMPTY tracks can be removed; nonempty tracks reject. Set remove_clips=true explicitly to atomically remove the track and all its clips, including tracks with more than 100 clips. Source media is retained; restore_revision can undo the edit. Default tracks can also be removed. Confirm the intended track and contents before removing a populated track. */
@@ -4760,6 +4865,64 @@ export interface SceneOutput {
   title: string;
   /** Voice Asset Id */
   voice_asset_id: string | null;
+}
+
+/** ScriptLine */
+export interface ScriptLineInput {
+  /**
+   * Audio Asset Id
+   * Server-validated audio asset; no automatic timeline insertion.
+   */
+  audio_asset_id?: string | null;
+  /** Audio Source */
+  audio_source?: "recorded" | "uploaded" | "generated" | null;
+  /**
+   * Audio Text
+   * Text at recording/upload/generation time. A mismatch with text means the take may be outdated.
+   */
+  audio_text?: string | null;
+  /**
+   * Id
+   * Stable line identity across edits and reordering.
+   * @minLength 1
+   * @maxLength 100
+   */
+  id: string;
+  /**
+   * Text
+   * @maxLength 100000
+   * @default ""
+   */
+  text?: string;
+}
+
+/** ScriptLine */
+export interface ScriptLineOutput {
+  /**
+   * Audio Asset Id
+   * Server-validated audio asset; no automatic timeline insertion.
+   */
+  audio_asset_id: string | null;
+  /** Audio Source */
+  audio_source: "recorded" | "uploaded" | "generated" | null;
+  /**
+   * Audio Text
+   * Text at recording/upload/generation time. A mismatch with text means the take may be outdated.
+   */
+  audio_text: string | null;
+  /**
+   * Id
+   * Stable line identity across edits and reordering.
+   * @minLength 1
+   * @maxLength 100
+   */
+  id: string;
+  /**
+   * Text
+   * @maxLength 100000
+   * @default ""
+   */
+  text: string;
 }
 
 /** Primary video track only. Non-cut needs a preceding clip. Use a positive duration shorter than BOTH clips. Sets start to previous end minus overlap (cut: previous end). Shifts ALL clips on ALL tracks, including muted ones, and all scenes whose start >= this clip's OLD start by the same delta. Spanning earlier audio/text stays unchanged; review sync. First clip only accepts cut. Timeline validation is atomic. If ripple creates an audio/text/overlay collision, the entire write rejects (422); use separate tracks or a batch that resolves every collision. */
@@ -6016,7 +6179,7 @@ export interface UpdateClipStep {
   type: "update_clip";
 }
 
-/** Shallow replacement of supplied project fields. profiles/scenes/asset_ids replace their entire values; omitted nested model fields reset to defaults. IDs and revision cannot be changed. Scenes are planning metadata, not executable clips. */
+/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips. */
 export interface UpdateProjectOperation {
   /**
    * Last confirmed server revision. Serialize writes; conflicts reject atomically.
@@ -6056,11 +6219,17 @@ export interface UpdateProjectOperation {
      * @default ""
      */
     script?: string;
+    /**
+     * Script Lines
+     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+     * @maxItems 500
+     */
+    script_lines?: EditScriptLine[];
   };
   type: "update_project";
 }
 
-/** Shallow replacement of supplied project fields. profiles/scenes/asset_ids replace their entire values; omitted nested model fields reset to defaults. IDs and revision cannot be changed. Scenes are planning metadata, not executable clips. */
+/** Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips. */
 export interface UpdateProjectStep {
   payload: {
     /** Asset Ids */
@@ -6095,6 +6264,12 @@ export interface UpdateProjectStep {
      * @default ""
      */
     script?: string;
+    /**
+     * Script Lines
+     * Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.
+     * @maxItems 500
+     */
+    script_lines?: EditScriptLine[];
   };
   type: "update_project";
 }
@@ -7984,6 +8159,31 @@ export class Api<
     ) =>
       this.request<Asset, ApiError>({
         path: `/api/assets/${assetId}/location`,
+        method: "DELETE",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Remove a line's audio and its project media membership at {expected_revision,expected_version,audio_asset_id}. Atomically clears this line/take association from this project's current script, saved revisions and render snapshot script metadata; removes matching asset_ids inventory entries. Script text and timeline remain unchanged. The removed take cannot be restored through undo. Another line or any timeline in this project's current/history/render snapshots using this source blocks removal with 409. Other projects and shared library memberships retain the source; otherwise deletes original/sidecar files with durable cleanup. Returns the confirmed project, deleted asset_ids or retained_asset_id, and actual cleanup metrics. Stale project/asset versions or changed take reject without changes. pending_files means disk cleanup remains incomplete. Not a regular reversible edit operation or batch step.
+     *
+     * @tags Composition
+     * @name RemoveScriptAudio
+     * @summary Remove Script Audio
+     * @request DELETE:/api/projects/{project_id}/script-lines/{line_id}/audio
+     * @secure
+     */
+    removeScriptAudio: (
+      projectId: string,
+      lineId: string,
+      data: RemoveScriptAudioRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<RemoveScriptAudioResult, ApiError>({
+        path: `/api/projects/${projectId}/script-lines/${lineId}/audio`,
         method: "DELETE",
         body: data,
         secure: true,

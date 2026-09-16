@@ -53,6 +53,17 @@ export function projectAfter(project: Project, plan: EditPlan): Project {
     if (step.type === "update_project") {
       if ("channel_id" in p && p.channel_id !== doc.channel_id)
         doc.channel_context = null;
+      if ("script_lines" in p) {
+        p.script_lines = p.script_lines.map((line: object) => ({
+          ...defaults.script_line,
+          ...line,
+        }));
+        p.script = p.script_lines
+          .map((line: { text: string }) => line.text)
+          .join("\n");
+      } else if ("script" in p && p.script !== doc.script) {
+        p.script_lines = [];
+      }
       Object.assign(doc, p);
       if (p.profile) doc.profile = { ...defaults.profile, ...p.profile };
       continue;

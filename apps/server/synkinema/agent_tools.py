@@ -233,7 +233,7 @@ def edit_context(service, request):
         "matching_clips": len(clips),
         "offset": request.offset,
         "next_offset": request.offset + len(page) if request.offset + len(page) < len(clips) else None,
-        "omitted": "Clip model defaults; project brief/script/scenes. Not a full Project replacement. Use get_project for full nested edits; pin this revision for subsequent pages.",
+        "omitted": "Clip model defaults; project brief/script/script_lines/scenes. Not a full Project replacement. Use get_project for full nested edits; pin this revision for subsequent pages.",
     }
 
 
@@ -497,7 +497,7 @@ def register_agent_tools(mcp, service, inspection, production):
 
     @mcp.tool(annotations=read)
     def get_edit_context(request: EditContext) -> dict:
-        """Read a bounded page of clips with asset geometry, track inventory and confirmed revision. Defaults omitted, not a full replacement Project. Pin returned revision across pages; filter track_ids/time range before loading more. Full nested replacement edits still require get_project."""
+        """Read a bounded page of clips with asset geometry, track inventory and confirmed revision. Defaults omitted, not a full replacement Project. Pin returned revision across pages; filter track_ids/time range before loading more. Script text and script_lines/audio takes are omitted. Use get_project for Script studio and all full nested replacement edits."""
         return edit_context(service, request)
 
     @mcp.tool(annotations=read)

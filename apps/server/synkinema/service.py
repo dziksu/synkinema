@@ -123,6 +123,11 @@ class Service(Library, Channels):
                     raise ValueError(f"Clip '{clip.name}' extends beyond source duration")
         for aid in project.asset_ids:
             self.asset(aid)
+        for line in project.script_lines:
+            if line.audio_asset_id:
+                asset = self.asset(line.audio_asset_id)
+                if asset["kind"] != "audio" or not asset.get("has_audio") or not asset.get("duration_ms"):
+                    raise ValueError("Script lines require a probed audio asset with a duration")
 
     def apply(self, project_id, operation: Operation):
         return self._apply_edits(project_id, operation.expected_revision, [operation])
@@ -204,8 +209,24 @@ class Service(Library, Channels):
         if kind == "extract_audio" and "target_track_id" not in p:
             raise ValueError("extract_audio requires target_track_id")
         if kind == "update_project":
-            if set(p) - {"name", "brief", "script", "profile", "scenes", "asset_ids", "channel_id"}:
+            if set(p) - {
+                "name",
+                "brief",
+                "script",
+                "script_lines",
+                "profile",
+                "scenes",
+                "asset_ids",
+                "channel_id",
+            }:
                 raise ValueError("Unsupported project fields")
+            if "script_lines" in p:
+                from .models import ScriptLine
+
+                lines = [ScriptLine.model_validate(line) for line in p["script_lines"]]
+                p["script"] = "\n".join(line.text for line in lines)
+            elif "script" in p and p["script"] != doc.get("script", ""):
+                p["script_lines"] = []
             doc.update(p)
         elif kind == "add_track":
             doc["tracks"].append(Track.model_validate(p).model_dump())
@@ -385,9 +406,11 @@ class Service(Library, Channels):
         used = set()
         if project_id:
             project = self.get(project_id)
-            used = set(project.asset_ids) | {
-                c.asset_id for t in project.tracks for c in t.clips if c.asset_id
-            }
+            used = (
+                set(project.asset_ids)
+                | {c.asset_id for t in project.tracks for c in t.clips if c.asset_id}
+                | {line.audio_asset_id for line in project.script_lines if line.audio_asset_id}
+            )
         result = [
             {"version": 1, **json.loads(r["document"])}
             for r in self.store.rows("SELECT document FROM assets ORDER BY created_at DESC")

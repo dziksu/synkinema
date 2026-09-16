@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import os
 import re
+import unicodedata
 from typing import Literal
 
 import httpx
@@ -152,6 +153,15 @@ class Voices:
             if request.provider == "supertonic"
             else f"elevenlabs:{request.voice_id}:{digest}"
         )
+        # Readable, portable filenames with a stable suffix for different takes/settings.
+        excerpt = (
+            re.sub(r"[^\w]+", "-", unicodedata.normalize("NFKC", request.text), flags=re.UNICODE)
+            .strip("-_")[:60]
+            .rstrip("-_")
+            .lower()
+            or "narration"
+        )
+        label = f"voice-{request.language or 'auto'}-{request.voice_id.lower()}-{excerpt}-{digest[:8]}"
         async with self.lock:
             cached = next(
                 (a for a in self.service.assets(project_id=request.project_id) if a["source"] == source), None
@@ -165,7 +175,7 @@ class Voices:
                     self.local.generate(request, path)
                     return self.service.import_file(
                         path,
-                        request.text[:55] + ".wav",
+                        label + ".wav",
                         [
                             "voiceover",
                             "tts",
@@ -222,7 +232,7 @@ class Voices:
                 asset = await asyncio.to_thread(
                     self.service.import_file,
                     path,
-                    request.text[:55] + ".mp3",
+                    label + ".mp3",
                     ["voiceover", "tts", request.voice_id],
                     source,
                     "ElevenLabs account terms",

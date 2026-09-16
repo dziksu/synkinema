@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { reads, keys } from "./queries";
 import { writes } from "./mutations";
-import { projectWrites } from "./projectMutations";
+import { projectWrites, type ProjectEdit } from "./projectMutations";
 import { projectAfter } from "./projectReducer";
 import { canvasInsert } from "../layerInsert";
 import { deleteTimelineTrack } from "../timelineActions";
@@ -58,6 +58,105 @@ const edit = (steps: EditStep[], projectId = "p") =>
 const nameStep = (name: string): EditStep => ({
   type: "update_clip",
   payload: { track_id: "layer", clip_id: "clip", changes: { name } },
+});
+
+it("serializes destructive audio removal with ordinary edits using confirmed revisions", async () => {
+  const base = makeProject();
+  base.script_lines = [
+    {
+      ...defaults.script_line,
+      id: "line",
+      text: "Narration",
+      audio_asset_id: "audio",
+      audio_text: "Narration",
+      audio_source: "recorded",
+    },
+  ];
+  seed(base);
+  const first = deferred<Response>();
+  const removal = deferred<Response>();
+  const last = deferred<Response>();
+  request
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(removal.promise)
+    .mockReturnValueOnce(last.promise);
+  const a = edit([nameStep("Before removal")]);
+  const remove: ProjectEdit = {
+    projectId: "p",
+    removeAudio: {
+      lineId: "line",
+      request: { audio_asset_id: "audio", expected_version: 1 },
+    },
+    resolve: (current) => ({
+      steps: [
+        {
+          type: "update_project",
+          payload: {
+            script_lines: current.script_lines.map((line) => ({
+              ...line,
+              audio_asset_id: null,
+              audio_text: null,
+              audio_source: null,
+            })),
+          },
+        },
+      ],
+    }),
+  };
+  const b = client
+    .getMutationCache()
+    .build(client, projectWrites(client))
+    .execute(remove);
+  const c = edit([nameStep("After removal")]);
+  await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
+  const p2 = {
+    ...projectAfter(base, { steps: [nameStep("Before removal")] }),
+    revision: 2,
+  };
+  first.resolve(json(p2));
+  await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+  expect(request.mock.calls[1][0]).toBe(
+    "/api/projects/p/script-lines/line/audio",
+  );
+  expect(request.mock.calls[1][1]?.method).toBe("DELETE");
+  expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({
+    expected_revision: 2,
+    expected_version: 1,
+    audio_asset_id: "audio",
+  });
+  const p3 = {
+    ...p2,
+    revision: 3,
+    script_lines: p2.script_lines.map((line) => ({
+      ...line,
+      audio_asset_id: null,
+      audio_source: null,
+      audio_text: null,
+    })),
+  };
+  removal.resolve(
+    json({
+      project: p3,
+      asset_ids: ["audio"],
+      project_ids: [],
+      job_ids: [],
+      retained_asset_id: null,
+      pending_files: 0,
+      freed_bytes: 200,
+      deleted_files: 1,
+    }),
+  );
+  await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+  expect(
+    JSON.parse(String(request.mock.calls[2][1]?.body)).expected_revision,
+  ).toBe(3);
+  const p4 = {
+    ...projectAfter(p3, { steps: [nameStep("After removal")] }),
+    revision: 4,
+  };
+  last.resolve(json(p4));
+  await Promise.all([a, b, c]);
+  expect(client.getQueryData(keys.project("p"))).toEqual(p4);
 });
 beforeEach(() => {
   client = new QueryClient({

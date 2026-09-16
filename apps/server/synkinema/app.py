@@ -307,6 +307,13 @@ def create_app(data_dir=None, start_worker=True):
     async def delete_assets(request: contract.DeleteAssetsRequest):
         return await deletion.assets(request)
 
+    @app.delete(
+        "/api/projects/{project_id}/script-lines/{line_id}/audio",
+        response_model=contract.RemoveScriptAudioResult,
+    )
+    async def remove_script_audio(project_id: str, line_id: str, request: contract.RemoveScriptAudioRequest):
+        return await deletion.script_audio(project_id, line_id, request)
+
     @app.delete("/api/asset-folders/{folder_id}", response_model=contract.FolderDeletion)
     def delete_asset_folder(folder_id: str):
         return service.delete_folder(folder_id)

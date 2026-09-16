@@ -135,7 +135,7 @@ Use the live `get_operation_reference` for schemas, examples and exact side effe
 
 | Operation | Purpose |
 |---|---|
-| update_project | Replace name, brief, script, profile, scenes or asset_ids |
+| update_project | Replace name, brief, script, script_lines, profile, scenes or asset_ids |
 | add_track | Append a new typed track |
 | update_track | Rename, hide/mute, configure ducking |
 | reorder_tracks | Supply every track ID once, in desired compositing/UI order |
@@ -187,6 +187,129 @@ Optional TTS: call `get_voice_provider_status` first and inspect `providers[]`; 
 For **local Supertonic 3**, send `provider:"supertonic"`, `voice_id:"F1"` (F1–F5/M1–M5), `language:"pl"`, `text` (nonblank, maximum 1000 characters), optionally `model_id:"supertonic-3"`, `speed:1` (0.7–2), `steps:8` (4–16). Leave `stability` at its default; it is ElevenLabs-only. Explicit supported codes: `en ko ja ar bg cs da de el es et fi fr hi hr hu id it lt lv nl pl pt ro ru sk sl sv tr uk vi`. Missing language, `auto`, `na`, unsupported codes and embedded language tags are rejected before synthesis. The declared code is validated; the server does not detect/translate the text. Read available presets/languages from status and use the code matching the user's text. Install explicitly through the `install_voice_model` production task or the server CLI (`python -m synkinema.supertonic_tts --install`). Speech generation never implicitly downloads a model. An unavailable/corrupt model returns an error without fallback. Generation runs locally on CPU, produces 44.1 kHz WAV, and caches by text, pinned revision, language, voice, steps and speed within the requested collection. Cancellation may still complete a recording; retry finds its cache. Upstream is archived; weights are OpenRAIL-M, separately from the MIT SDK. Read the provider's license_url and clearly disclose machine-generated published audio; the `ai-generated` asset tag alone does not add a visible disclosure to an exported video.
 
 For **ElevenLabs**, `voice_id` must be an actual account voice ID; text is 1–5000 characters; defaults are `model_id:"eleven_multilingual_v2"`, `stability:0.5`, `speed:1` (0.7–1.2). Omit `language` and `steps`. This sends narration to ElevenLabs using the server's key and consumes credits on cache misses. Do not call paid external synthesis without the user's authorization. An unavailable provider can be replaced by importing a recorded voice file. No text-to-video, image generation or general stock search is implemented by this server. Steam discovery, public direct/HLS import and local transcription are available through the production tools below.
+
+## Script studio: lines and audio takes
+
+The Script panel, MCP, REST and CLI share `Project.script_lines`. Use
+`get_project(project_id)` to read the **complete** ordered list before every
+replacement; compact `get_edit_context` omits script text and line audio.
+`update_project` with `script_lines` replaces the whole list and synchronizes the
+plain `script` string. Keep stable line IDs and every untouched line/field.
+A changed `script`-only edit clears line associations: do not use it to edit
+an existing line-based script. Legacy projects have an empty list and plain
+`script`; convert their paragraphs explicitly when starting line-based editing.
+
+Each line has `id`, `text` and an optional take: `audio_asset_id`, `audio_text`,
+`audio_source` (`recorded`, `uploaded`, `generated`). All three audio fields must
+be supplied together or null. `audio_text` records the exact text when the take
+was created; preserve it when editing text so Studio can mark an outdated take.
+Setting all three fields to null detaches without deleting; removing/reordering
+lines likewise keeps source files. References in saved revisions protect media
+and undo unless the dedicated destructive removal below is requested. A project
+allows up to 500 lines and 100000 script characters; provider limits apply per line.
+
+MCP example: `apply_operation` arguments for a new two-line script. Replace
+`PROJECT_ID` and revisions with returned values. For an existing script, include
+its full list instead of copying this sample over it.
+
+```json
+{
+  "project_id": "PROJECT_ID",
+  "operation": {
+    "expected_revision": 1,
+    "type": "update_project",
+    "payload": {
+      "script_lines": [
+        {"id": "intro", "text": "One line, one audio take."},
+        {"id": "outro", "text": "Keep your own voice."}
+      ]
+    }
+  }
+}
+```
+
+To generate one line, discover `get_voice_provider_status`, then call
+`generate_voice_take` with `request` containing that line's exact `text`,
+`project_id`, and explicit supported provider/voice/language settings described
+above. To use an existing file, call `import_asset` with raw `data_base64` and
+`project_id` (or REST multipart for larger files). Neither call attaches the asset
+or increments project revision. Verify the returned asset is audio with a real
+positive `duration_ms`, then refetch `get_project` and reconcile any changes made
+while generation/upload was in progress. Never mark newer text as already spoken.
+
+MCP example: attach the returned generated asset to `intro`, preserving `outro`:
+
+```json
+{
+  "project_id": "PROJECT_ID",
+  "operation": {
+    "expected_revision": 2,
+    "type": "update_project",
+    "payload": {
+      "script_lines": [
+        {
+          "id": "intro", "text": "One line, one audio take.",
+          "audio_asset_id": "VOICE_ASSET_ID",
+          "audio_text": "One line, one audio take.",
+          "audio_source": "generated"
+        },
+        {"id": "outro", "text": "Keep your own voice."}
+      ]
+    }
+  }
+}
+```
+
+For imported audio use `audio_source:"uploaded"`; only identify actual microphone
+captures as `recorded`. MCP/CLI do not control browser microphones or grant
+permissions. The user records through Record → Stop recording → Use recording.
+
+**Generate all** is a caller loop over nonblank lines, not a batch TTS endpoint:
+by default select missing takes and generated takes with `audio_text != text`;
+explicit regeneration may also replace current generated takes. Preserve recorded
+and uploaded audio. Capture settings/text, generate one take, refetch the current
+project, attach with its confirmed revision, and save before continuing. Stop on
+provider/save/conflict errors; completed lines remain saved. `apply_operations`
+batches project edits only, never provider calls. For compact responses, use
+`confirmed_revision` after `committed:true`, then `get_project` for the full list.
+
+CLI equivalents (use the running Studio origin; Compose defaults to port 43817):
+
+```sh
+synkinema --url http://localhost:43817 guide
+synkinema --url http://localhost:43817 schema operations --operation update_project
+synkinema --url http://localhost:43817 project PROJECT_ID
+synkinema --url http://localhost:43817 request POST /api/voices/generate --json-file voice-request.json
+synkinema --url http://localhost:43817 edit PROJECT_ID script-edit.json
+```
+
+`voice-request.json` contains the inner voice `request` object, with `project_id`.
+`script-edit.json` contains the inner `operation` object from the MCP examples
+(`expected_revision`, `type`, `payload`), without the `project_id`/`operation`
+wrapper. These are the same revision-guarded REST operations as Studio. Successful
+writes appear after Studio's next poll; unsaved local drafts are preserved for
+explicit reconciliation. Audio takes do not add timeline clips or captions.
+Arrange them separately with `add_clip` using each asset's measured duration.
+
+**Remove audio** in Studio uses MCP `remove_script_audio(project_id, line_id,
+request={expected_revision,expected_version,audio_asset_id})`, also available as
+REST `DELETE /api/projects/{project_id}/script-lines/{line_id}/audio`. Use
+`synkinema --url http://localhost:43817 request DELETE /api/projects/PROJECT_ID/script-lines/LINE_ID/audio --json-file remove-take.json`
+with that inner request object. Read the current project and asset version first.
+This intentionally removes the take from that line's script history/render
+snapshot metadata and the project collection; undo cannot restore its audio.
+Text and timeline are preserved. Another line or any timeline in this project's
+history/current/render snapshots using the source blocks the whole operation
+with 409. Shared library/other projects keep their file; the response reports
+`retained_asset_id`. Otherwise the original and sidecars are physically deleted.
+Use returned `project.revision` for the next write. `pending_files > 0` means
+metadata removal committed but disk cleanup is still pending; never report the
+file as physically gone yet. This is not an `apply_operations` batch step.
+
+New generated takes have portable filenames containing language, voice, a text
+excerpt and a short synthesis fingerprint, e.g. `voice-en-f1-one-line-one-audio-take-1234abcd.wav`.
+Browser recordings include the line number, text excerpt and recording timestamp;
+uploaded files keep their supplied display name.
 
 ## Render, inspect, revise
 

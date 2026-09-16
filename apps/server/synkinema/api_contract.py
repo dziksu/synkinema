@@ -370,6 +370,31 @@ class AssetVersion(Model):
     )
 
 
+class RemoveScriptAudioRequest(AssetVersion):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"expected_revision": 3, "expected_version": 1, "audio_asset_id": "RETURNED_AUDIO_ASSET_ID"}
+            ]
+        }
+    )
+    expected_revision: int = Field(
+        ge=1, description="Last confirmed project revision; conflicts reject atomically."
+    )
+    audio_asset_id: str = Field(
+        min_length=1,
+        description="Exact take currently attached to the selected line; a different take returns 409.",
+    )
+
+
+class RemoveScriptAudioResult(DeletionResult):
+    project: ProjectSnapshot
+    retained_asset_id: str | None = Field(
+        None,
+        description="Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.",
+    )
+
+
 class AssetMetadataUpdate(AssetVersion):
     name: str = Field(min_length=1, max_length=300)
     tags: list[str] = Field(max_length=50)

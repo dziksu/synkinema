@@ -6,6 +6,11 @@ import { EditQueue } from "../editQueue";
 import { identifySteps, projectAfter, type EditPlan } from "./projectReducer";
 import type { ProjectSnapshot as Project, Operation } from "./generated/client";
 import { tr } from "../i18n";
+import { reconcileDeletion } from "./mutations";
+import type {
+  RemoveScriptAudioRequest,
+  RemoveScriptAudioResult,
+} from "./generated/client";
 
 type Session = {
   prepare: Promise<unknown>;
@@ -38,6 +43,11 @@ export type ProjectEdit = {
   resolve: (current: Project) => EditPlan | Promise<EditPlan>;
   plan?: EditPlan;
   generation?: number;
+  removeAudio?: {
+    lineId: string;
+    request: Omit<RemoveScriptAudioRequest, "expected_revision">;
+  };
+  removalResult?: RemoveScriptAudioResult;
 };
 type Context = {
   transaction: OptimisticContext;
@@ -123,8 +133,17 @@ export const projectWrites = (client: QueryClient) =>
         const revision = state.confirmed!.revision;
         const plan = edit.plan!;
         try {
+          const removal = edit.removeAudio
+            ? await http.api.removeScriptAudio(
+                edit.projectId,
+                edit.removeAudio.lineId,
+                { ...edit.removeAudio.request, expected_revision: revision },
+              )
+            : undefined;
+          edit.removalResult = removal;
           const project =
-            plan.batch || plan.steps.length !== 1
+            removal?.project ??
+            (plan.batch || plan.steps.length !== 1
               ? (
                   await http.api.batch(edit.projectId, {
                     expected_revision: revision,
@@ -134,7 +153,7 @@ export const projectWrites = (client: QueryClient) =>
               : await http.api.operation(edit.projectId, {
                   ...plan.steps[0],
                   expected_revision: revision,
-                } as Operation);
+                } as Operation));
           state.confirmed = project;
           return project;
         } catch (error) {
@@ -145,6 +164,21 @@ export const projectWrites = (client: QueryClient) =>
     },
     onSettled: async (project, _error, edit, context) => {
       const state = session(client, edit.projectId);
+      if (project && edit.removalResult) {
+        // Removed takes are intentionally absent from historical script reads.
+        // Discard pinned snapshots before undo can restore a cached association.
+        const historical = {
+          predicate: (q: { queryKey: readonly unknown[] }) =>
+            q.queryKey[0] === "project" &&
+            q.queryKey[1] === edit.projectId &&
+            q.queryKey.length > 2,
+        };
+        await client.cancelQueries(historical);
+        client.removeQueries(historical);
+        await client.cancelQueries({ queryKey: ["assets"] });
+        await reconcileDeletion(client, edit.removalResult);
+        await client.invalidateQueries({ queryKey: ["jobs"] });
+      }
       if (context) {
         if (!project) context.transaction.rollbackGroup();
         context.transaction.settle(
@@ -173,6 +207,7 @@ export const projectWrites = (client: QueryClient) =>
           client.invalidateQueries({ queryKey: ["channel"] }),
           client.invalidateQueries({ queryKey: ["history", edit.projectId] }),
           client.invalidateQueries({ queryKey: keys.assets(edit.projectId) }),
+          client.invalidateQueries({ queryKey: ["asset-usage"] }),
         ]);
       }
     },

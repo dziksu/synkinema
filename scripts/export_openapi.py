@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from synkinema.api_contract import ProjectSnapshot
 from synkinema.app import create_app
 from synkinema.channels import Channel
-from synkinema.models import Clip, OutputProfile, Project, Track
+from synkinema.models import Clip, OutputProfile, Project, ScriptLine, Track
 
 
 def export(destination):
@@ -26,6 +26,7 @@ def export(destination):
     # Defaults for optimistic drafts come from backend models, never a second manual contract.
     defaults = {
         "channel": Channel(id="", name="New channel", version=1, created_at="", updated_at="").model_dump(),
+        "script_line": ScriptLine(id="new").model_dump(),
         "clip": Clip(id="").model_dump(),
         "track": Track(id="", name="", kind="overlay").model_dump(),
         "profile": OutputProfile().model_dump(),

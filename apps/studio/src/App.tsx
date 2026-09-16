@@ -62,7 +62,7 @@ import {
 import Timeline from "./Timeline";
 import NumberField from "./NumberField";
 import SourceMonitor from "./SourceMonitor";
-import VoiceGenerator from "./VoiceGenerator";
+import ScriptEditor from "./ScriptEditor";
 import { usePreviewSize } from "./usePreviewSize";
 import { previewLayers } from "./previewLayers";
 import { sourceInsert, type SourceInsert } from "./sourceInsert";
@@ -106,7 +106,6 @@ import { reads, keys } from "./api/queries";
 import { writes } from "./api/mutations";
 import { isOptimistic } from "./api/cache";
 import { projectWrites } from "./api/projectMutations";
-import { downloadText } from "./api/download";
 import type { EditStep } from "./api/generated/client";
 import { useStudio } from "./store";
 import { useShallow } from "zustand/react/shallow";
@@ -1514,9 +1513,17 @@ export default function App() {
               </>
             ) : tab === "script" ? (
               <ScriptEditor
-                key={`${project.id}-${project.revision}`}
+                key={project.id}
                 project={project}
-                save={(p) => edit("update_project", p)}
+                onSaved={(saved) => {
+                  const stacks = (undoStacks.current[saved.id] ||= {
+                    undo: [],
+                    redo: [],
+                  });
+                  stacks.undo.push(saved.revision - 1);
+                  stacks.redo = [];
+                  setShowRender(false);
+                }}
               />
             ) : tab === "audio" ? (
               <div className="content-page">
@@ -2249,85 +2256,6 @@ function AudioView({ report }: { report: AudioReport }) {
           {tr("The mix is within the loudness profile tolerance.")}{" "}
         </p>
       )}
-    </div>
-  );
-}
-function ScriptEditor({
-  project,
-  save,
-}: {
-  project: Project;
-  save: (p: unknown) => void;
-}) {
-  useLocale();
-  const query = useQueryClient();
-  const [downloadError, setDownloadError] = useState("");
-
-  const [script, setScript] = useState(project.script);
-  const [brief, setBrief] = useState(project.brief);
-  return (
-    <div className="content-page script-page">
-      <div className="section-title">
-        <div>
-          <span className="eyebrow">{tr("STORY FIRST")}</span>
-          <h1>{tr("Script and scenes")}</h1>
-        </div>
-        <button
-          className="button primary"
-          onClick={() => save({ script, brief })}
-        >
-          <Check size={16} /> {tr("Save script")}{" "}
-        </button>
-      </div>
-      <label className="field">
-        {" "}
-        {tr("Brief")}{" "}
-        <textarea
-          value={brief}
-          onChange={(e) => setBrief(e.target.value)}
-          rows={3}
-          placeholder={tr("Goal, audience, emotion, direction…")}
-        />
-      </label>
-      <label className="field">
-        {" "}
-        {tr("Script")}{" "}
-        <textarea
-          value={script}
-          onChange={(e) => setScript(e.target.value)}
-          rows={10}
-          placeholder={tr("Write your narration and shot ideas…")}
-        />
-      </label>
-      <VoiceGenerator text={script} projectId={project.id} />
-      <div className="scene-list">
-        {project.scenes.map((s, i) => (
-          <div key={s.id}>
-            <span>{(i + 1).toString().padStart(2, "0")}</span>
-            <div>
-              <h3>{s.title}</h3>
-              <p>{s.narration}</p>
-              <small>{s.notes}</small>
-            </div>
-            <small>
-              {timecode(s.start_ms)} · {seconds(s.duration_ms)}
-            </small>
-          </div>
-        ))}
-      </div>
-      <button
-        className="button"
-        onClick={() => {
-          setDownloadError("");
-          void query
-            .fetchQuery(reads.captions(project.id, project.revision))
-            .then((text) => downloadText(text, "captions.srt"))
-            .catch((e) => setDownloadError(e.message));
-        }}
-      >
-        <ArrowDownToLine size={16} /> {tr("Download SRT subtitles")}
-      </button>
-      {downloadError && <p role="alert">{downloadError}</p>}
     </div>
   );
 }

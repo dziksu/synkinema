@@ -176,6 +176,32 @@ class Scene(Model):
     voice_asset_id: str | None = None
 
 
+class ScriptLine(Model):
+    id: str = Field(
+        min_length=1, max_length=100, description="Stable line identity across edits and reordering."
+    )
+    text: str = Field("", max_length=100000)
+    audio_asset_id: str | None = Field(
+        None, min_length=1, description="Server-validated audio asset; no automatic timeline insertion."
+    )
+    audio_text: str | None = Field(
+        None,
+        max_length=100000,
+        description="Text at recording/upload/generation time. A mismatch with text means the take may be outdated.",
+    )
+    audio_source: Literal["recorded", "uploaded", "generated"] | None = None
+
+    @model_validator(mode="after")
+    def audio_reference(self):
+        if (self.audio_asset_id is not None) != (
+            self.audio_text is not None and self.audio_source is not None
+        ):
+            raise ValueError("Line audio requires an asset, source and text snapshot together")
+        if self.audio_asset_id is None and (self.audio_text is not None or self.audio_source is not None):
+            raise ValueError("Audio metadata requires an asset")
+        return self
+
+
 class Project(Model):
     id: str = Field(default_factory=uid)
     channel_id: str | None = Field(
@@ -185,6 +211,11 @@ class Project(Model):
     name: str = Field(min_length=1, max_length=200)
     brief: str = Field("", max_length=20000)
     script: str = Field("", max_length=100000)
+    script_lines: list[ScriptLine] = Field(
+        default_factory=list,
+        max_length=500,
+        description="Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+    )
     revision: int = Field(1, ge=1)
     profile: OutputProfile = Field(default_factory=OutputProfile)
     scenes: list[Scene] = Field(default_factory=list, max_length=500)
@@ -205,6 +236,12 @@ class Project(Model):
 
     @model_validator(mode="after")
     def identities(self):
+        if len({line.id for line in self.script_lines}) != len(self.script_lines):
+            raise ValueError("Script line IDs must be unique")
+        if self.script_lines:
+            self.script = "\n".join(line.text for line in self.script_lines)
+            if len(self.script) > 100000:
+                raise ValueError("Maximum script length is 100000 characters")
         ids = [t.id for t in self.tracks] + [c.id for t in self.tracks for c in t.clips]
         if len(ids) != len(set(ids)):
             raise ValueError("Track and clip IDs must be unique")

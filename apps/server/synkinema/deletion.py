@@ -9,12 +9,15 @@ from .media import TEXT_CACHE_VERSION, text_cache_name
 from .models import Project
 from .renderer import prepare_visual, visual_cache_key
 from .service import Conflict
+from .storage import now
 
 
 def asset_ids(document):
-    return set(document.get("asset_ids", [])) | {
-        c["asset_id"] for t in document.get("tracks", []) for c in t["clips"] if c.get("asset_id")
-    }
+    return (
+        set(document.get("asset_ids", []))
+        | {c["asset_id"] for t in document.get("tracks", []) for c in t["clips"] if c.get("asset_id")}
+        | {line["audio_asset_id"] for line in document.get("script_lines", []) if line.get("audio_asset_id")}
+    )
 
 
 def reusable_files(documents, assets):
@@ -116,6 +119,112 @@ class Deletion:
                 "asset_ids": [d["id"] for d in docs],
                 "job_ids": [],
                 "project_ids": [],
+                **self.store.cleanup_files(),
+            }
+
+    async def script_audio(self, project_id, line_id, request):
+        """Explicit source removal; scrub only this take's script/inventory history."""
+        aid = request.audio_asset_id
+
+        def clear_take(document):
+            if any(c.get("asset_id") == aid for t in document["tracks"] for c in t["clips"]):
+                raise Conflict(
+                    "This audio is used on this project's timeline or its history. Remove audio cannot delete a timeline source."
+                )
+            for line in document.get("script_lines", []):
+                if line.get("audio_asset_id") != aid:
+                    continue
+                if line["id"] != line_id:
+                    raise Conflict(
+                        "This audio is also used by another script line or its history. Its source was kept; nothing was removed."
+                    )
+                line.update(audio_asset_id=None, audio_text=None, audio_source=None)
+            document["asset_ids"] = [value for value in document.get("asset_ids", []) if value != aid]
+
+        async with self.guard():
+            with self.store.transaction() as conn:
+                row = conn.execute(
+                    text("SELECT document,revision FROM projects WHERE id=:id"), {"id": project_id}
+                ).first()
+                if not row:
+                    raise KeyError("Project not found")
+                if row[1] != request.expected_revision:
+                    raise Conflict(
+                        f"Expected revision {request.expected_revision}; current revision is {row[1]}. Reload before removing audio."
+                    )
+                document = json.loads(row[0])
+                line = next(
+                    (line for line in document.get("script_lines", []) if line["id"] == line_id), None
+                )
+                if line is None:
+                    raise KeyError("Script line not found")
+                if line.get("audio_asset_id") != aid:
+                    raise Conflict("This line's audio changed. Reload before removing it.")
+                asset = self.service.read_asset(conn, aid, request.expected_version)
+                clear_take(document)
+                # Validate every historical dependency before writing. Timeline
+                # undo remains intact; only explicit Script take removal is irreversible.
+                revisions = [
+                    (r[0], json.loads(r[1]))
+                    for r in conn.execute(
+                        text("SELECT revision,document FROM revisions WHERE project_id=:id"),
+                        {"id": project_id},
+                    )
+                ]
+                jobs = [
+                    (r[0], json.loads(r[1]))
+                    for r in conn.execute(
+                        text("SELECT id,document FROM jobs WHERE project_id=:id"), {"id": project_id}
+                    )
+                ]
+                for _, historical in revisions:
+                    clear_take(historical)
+                for _, job in jobs:
+                    clear_take(job["snapshot"])
+                for rev, historical in revisions:
+                    conn.execute(
+                        text("UPDATE revisions SET document=:doc WHERE project_id=:id AND revision=:rev"),
+                        {"id": project_id, "rev": rev, "doc": json.dumps(historical)},
+                    )
+                for jid, job in jobs:
+                    conn.execute(
+                        text("UPDATE jobs SET document=:doc WHERE id=:id"),
+                        {"id": jid, "doc": json.dumps(job)},
+                    )
+                document["revision"] = row[1] + 1
+                project = Project.model_validate(document)
+                params = {
+                    "id": project_id,
+                    "rev": project.revision,
+                    "doc": project.model_dump_json(),
+                    "time": now(),
+                }
+                conn.execute(
+                    text("UPDATE projects SET revision=:rev,document=:doc,updated_at=:time WHERE id=:id"),
+                    params,
+                )
+                conn.execute(
+                    text("INSERT INTO revisions VALUES(:id,:rev,:doc,'remove_script_audio',:time)"), params
+                )
+                asset.setdefault("locations", {}).pop(project_id, None)
+                uses = self.service.usage_in(conn, aid)
+                retained = bool(asset["locations"] or uses)
+                if retained:
+                    for use in uses:
+                        asset["locations"].setdefault(use["project_id"], "")
+                    self.service.save_asset(conn, asset)
+                else:
+                    files = {asset["path"], f"cache/{aid}.jpg"} | {
+                        str(p.relative_to(self.store.root)) for p in self.store.path("cache").glob(f"{aid}-*")
+                    }
+                    self.schedule(conn, files)
+                    conn.execute(text("DELETE FROM assets WHERE id=:id"), {"id": aid})
+            return {
+                "project": self.service.summary(project),
+                "asset_ids": [] if retained else [aid],
+                "retained_asset_id": aid if retained else None,
+                "project_ids": [],
+                "job_ids": [],
                 **self.store.cleanup_files(),
             }
 
