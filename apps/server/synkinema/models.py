@@ -214,7 +214,7 @@ class Project(Model):
     script_lines: list[ScriptLine] = Field(
         default_factory=list,
         max_length=500,
-        description="Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+        description="Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.",
     )
     revision: int = Field(1, ge=1)
     profile: OutputProfile = Field(default_factory=OutputProfile)

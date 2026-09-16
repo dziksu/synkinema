@@ -3152,6 +3152,13 @@
             "title": "Caption Style",
             "type": "string"
           },
+          "disclosure_text": {
+            "default": "",
+            "description": "Optional explicitly authored footer. No automatic AI footer; required publication disclosures are handled separately.",
+            "maxLength": 150,
+            "title": "Disclosure Text",
+            "type": "string"
+          },
           "dry_run": {
             "default": true,
             "title": "Dry Run",
@@ -3161,6 +3168,20 @@
             "minimum": 1.0,
             "title": "Expected Revision",
             "type": "integer"
+          },
+          "hook_max_ms": {
+            "anyOf": [
+              {
+                "maximum": 30000.0,
+                "minimum": 1000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional editorial speech limit. Null fits real narration without a hard three-second cap.",
+            "title": "Hook Max Ms"
           },
           "music_asset_id": {
             "anyOf": [
@@ -3190,6 +3211,17 @@
             "default": "NEXT UP / AFTER DARK",
             "maxLength": 100,
             "title": "Series Title",
+            "type": "string"
+          },
+          "show_titles": {
+            "default": true,
+            "title": "Show Titles",
+            "type": "boolean"
+          },
+          "template": {
+            "default": "showcase-v1",
+            "enum": ["showcase-v1", "gameplay-v1"],
+            "title": "Template",
             "type": "string"
           }
         },
@@ -4738,6 +4770,109 @@
         "title": "FolderRequest",
         "type": "object"
       },
+      "FootageUse": {
+        "additionalProperties": false,
+        "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "checksum": {
+            "title": "Checksum",
+            "type": "string"
+          },
+          "clip_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Clip Ids",
+            "type": "array"
+          },
+          "from_ms": {
+            "title": "From Ms",
+            "type": "integer"
+          },
+          "movie_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Movie Id"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "publication_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Id"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "source_key": {
+            "title": "Source Key",
+            "type": "string"
+          },
+          "timeline_from_ms": {
+            "title": "Timeline From Ms",
+            "type": "integer"
+          },
+          "timeline_to_ms": {
+            "title": "Timeline To Ms",
+            "type": "integer"
+          },
+          "to_ms": {
+            "title": "To Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id",
+          "project_name",
+          "revision",
+          "asset_id",
+          "checksum",
+          "source_key",
+          "app_id",
+          "movie_id",
+          "from_ms",
+          "to_ms",
+          "timeline_from_ms",
+          "timeline_to_ms",
+          "clip_ids",
+          "publication_id"
+        ],
+        "title": "FootageUse",
+        "type": "object"
+      },
       "FrameRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5135,6 +5270,82 @@
           "max_height"
         ],
         "title": "ImportSteam",
+        "type": "object"
+      },
+      "ImportSteamBatch-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "folder_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "trailers": {
+            "items": {
+              "$ref": "#/components/schemas/SteamTrailerSelection-Input"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Trailers",
+            "type": "array"
+          },
+          "type": {
+            "const": "import_steam_trailers",
+            "default": "import_steam_trailers",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": ["project_id", "trailers"],
+        "title": "ImportSteamBatch",
+        "type": "object"
+      },
+      "ImportSteamBatch-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "folder_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "trailers": {
+            "items": {
+              "$ref": "#/components/schemas/SteamTrailerSelection-Output"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Trailers",
+            "type": "array"
+          },
+          "type": {
+            "const": "import_steam_trailers",
+            "default": "import_steam_trailers",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "project_id", "folder_id", "trailers"],
+        "title": "ImportSteamBatch",
         "type": "object"
       },
       "InspectionFrame": {
@@ -6735,6 +6946,13 @@
               }
             ]
           },
+          "import_errors": {
+            "items": {
+              "$ref": "#/components/schemas/TrailerImportError"
+            },
+            "title": "Import Errors",
+            "type": "array"
+          },
           "model_status": {
             "anyOf": [
               {
@@ -6791,7 +7009,8 @@
           "verification",
           "delivery",
           "model_status",
-          "voice_model"
+          "voice_model",
+          "import_errors"
         ],
         "title": "ProductionResult",
         "type": "object"
@@ -6839,6 +7058,7 @@
                 "generate_score": "#/components/schemas/GenerateScore-Output",
                 "import_media": "#/components/schemas/ImportMedia-Output",
                 "import_steam_trailer": "#/components/schemas/ImportSteam-Output",
+                "import_steam_trailers": "#/components/schemas/ImportSteamBatch-Output",
                 "install_transcriber": "#/components/schemas/InstallTranscriber-Output",
                 "install_voice_model": "#/components/schemas/InstallVoiceModel-Output",
                 "package_delivery": "#/components/schemas/PackageDelivery-Output",
@@ -6854,6 +7074,9 @@
               },
               {
                 "$ref": "#/components/schemas/ImportSteam-Output"
+              },
+              {
+                "$ref": "#/components/schemas/ImportSteamBatch-Output"
               },
               {
                 "$ref": "#/components/schemas/InstallTranscriber-Output"
@@ -6974,7 +7197,7 @@
             "type": "string"
           },
           "script_lines": {
-            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.",
             "items": {
               "$ref": "#/components/schemas/ScriptLine-Input"
             },
@@ -7080,7 +7303,7 @@
             "type": "string"
           },
           "script_lines": {
-            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.",
             "items": {
               "$ref": "#/components/schemas/ScriptLine-Output"
             },
@@ -7222,6 +7445,19 @@
             "description": "Optional currently linked project; historical publication remains if later unlinked or deleted.",
             "title": "Project Id"
           },
+          "project_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.",
+            "title": "Project Revision"
+          },
           "published_at": {
             "anyOf": [
               {
@@ -7237,6 +7473,14 @@
           "recorded_at": {
             "title": "Recorded At",
             "type": "string"
+          },
+          "source_usage": {
+            "description": "Frozen source intervals captured from the published project revision, retained after project deletion.",
+            "items": {
+              "$ref": "#/components/schemas/FootageUse"
+            },
+            "title": "Source Usage",
+            "type": "array"
           },
           "status": {
             "default": "published",
@@ -7270,6 +7514,7 @@
         },
         "required": [
           "project_id",
+          "project_revision",
           "title",
           "platform",
           "url",
@@ -7282,7 +7527,8 @@
           "metrics_as_of",
           "evidence",
           "id",
-          "recorded_at"
+          "recorded_at",
+          "source_usage"
         ],
         "title": "Publication",
         "type": "object"
@@ -7377,6 +7623,19 @@
             ],
             "description": "Optional currently linked project; historical publication remains if later unlinked or deleted.",
             "title": "Project Id"
+          },
+          "project_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.",
+            "title": "Project Revision"
           },
           "publication_id": {
             "anyOf": [
@@ -7478,7 +7737,7 @@
           },
           "role": {
             "default": "feature",
-            "enum": ["hook", "feature", "outro"],
+            "enum": ["hook", "feature", "outro", "scene"],
             "title": "Role",
             "type": "string"
           },
@@ -7527,6 +7786,20 @@
             "minimum": -1.0,
             "title": "Brightness",
             "type": "number"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 120000.0,
+                "minimum": 100.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set for every shot in the beat or omit for all. Explicit durations must sum to the beat duration within one frame.",
+            "title": "Duration Ms"
           },
           "source_in_ms": {
             "default": 0,
@@ -8840,6 +9113,96 @@
         "title": "SourceInspection",
         "type": "object"
       },
+      "SourcePreview": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "checksum": {
+            "title": "Checksum",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "from_ms": {
+            "title": "From Ms",
+            "type": "integer"
+          },
+          "has_audio": {
+            "title": "Has Audio",
+            "type": "boolean"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "note": {
+            "default": "Real source excerpt. Client playback/audio support varies; generating a preview does not prove it was watched or heard.",
+            "title": "Note",
+            "type": "string"
+          },
+          "to_ms": {
+            "title": "To Ms",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "checksum",
+          "from_ms",
+          "to_ms",
+          "duration_ms",
+          "url",
+          "mime_type",
+          "has_audio",
+          "note"
+        ],
+        "title": "SourcePreview",
+        "type": "object"
+      },
+      "SourcePreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "format": {
+            "default": "mp4",
+            "enum": ["mp4", "gif", "wav"],
+            "title": "Format",
+            "type": "string"
+          },
+          "from_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "From Ms",
+            "type": "integer"
+          },
+          "include_audio": {
+            "default": true,
+            "title": "Include Audio",
+            "type": "boolean"
+          },
+          "to_ms": {
+            "description": "Exclusive source end, at most 15 seconds after from_ms.",
+            "exclusiveMinimum": 0.0,
+            "title": "To Ms",
+            "type": "integer"
+          }
+        },
+        "required": ["asset_id", "to_ms"],
+        "title": "SourcePreviewRequest",
+        "type": "object"
+      },
       "SourceSheet": {
         "additionalProperties": false,
         "properties": {
@@ -8880,6 +9243,131 @@
           "height"
         ],
         "title": "SourceSheet",
+        "type": "object"
+      },
+      "SourceUsageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
+          "asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Id"
+          },
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          },
+          "count": {
+            "default": 50,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "exclude_project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclude Project Id"
+          },
+          "from_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional proposed asset-local interval; requires asset_id and to_ms.",
+            "title": "From Ms"
+          },
+          "start": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "to_ms": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Ms"
+          }
+        },
+        "title": "SourceUsageRequest",
+        "type": "object"
+      },
+      "SourceUsageResult": {
+        "additionalProperties": false,
+        "properties": {
+          "next_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Start"
+          },
+          "note": {
+            "default": "Current unmuted video timelines plus frozen published source ranges. Crops/speed do not create fresh footage; simultaneous identical layers are grouped. Unknown provenance matches by checksum only. Multiple provenance records are conservative aliases. This does not detect visually similar re-encodes without shared provenance or prove playback/publication. Older publications without snapshots are not reconstructed.",
+            "title": "Note",
+            "type": "string"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/FootageUse"
+            },
+            "title": "Uses",
+            "type": "array"
+          }
+        },
+        "required": ["uses", "total_count", "next_start", "note"],
+        "title": "SourceUsageResult",
         "type": "object"
       },
       "SplitClipOperation": {
@@ -8989,6 +9477,7 @@
                 "generate_score": "#/components/schemas/GenerateScore-Input",
                 "import_media": "#/components/schemas/ImportMedia-Input",
                 "import_steam_trailer": "#/components/schemas/ImportSteam-Input",
+                "import_steam_trailers": "#/components/schemas/ImportSteamBatch-Input",
                 "install_transcriber": "#/components/schemas/InstallTranscriber-Input",
                 "install_voice_model": "#/components/schemas/InstallVoiceModel-Input",
                 "package_delivery": "#/components/schemas/PackageDelivery-Input",
@@ -9004,6 +9493,9 @@
               },
               {
                 "$ref": "#/components/schemas/ImportSteam-Input"
+              },
+              {
+                "$ref": "#/components/schemas/ImportSteamBatch-Input"
               },
               {
                 "$ref": "#/components/schemas/InstallTranscriber-Input"
@@ -9232,15 +9724,38 @@
               }
             ],
             "title": "Thumbnail"
+          },
+          "webm_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webm Url"
           }
         },
-        "required": ["id", "name", "thumbnail", "hls_url", "mp4_url"],
+        "required": [
+          "id",
+          "name",
+          "thumbnail",
+          "hls_url",
+          "mp4_url",
+          "webm_url"
+        ],
         "title": "SteamMovie",
         "type": "object"
       },
       "SteamSearch": {
         "additionalProperties": false,
         "properties": {
+          "coming_soon": {
+            "default": false,
+            "title": "Coming Soon",
+            "type": "boolean"
+          },
           "count": {
             "default": 10,
             "maximum": 20.0,
@@ -9249,9 +9764,16 @@
             "type": "integer"
           },
           "query": {
-            "default": "horror",
+            "default": "",
+            "description": "Steam text search, not a genre filter. Use tag_ids for genres (Open World=1695). Empty searches the whole catalog.",
             "maxLength": 150,
             "title": "Query",
+            "type": "string"
+          },
+          "sort": {
+            "default": "relevance",
+            "enum": ["relevance", "release_date", "most_wishlisted", "popular"],
+            "title": "Sort",
             "type": "string"
           },
           "start": {
@@ -9260,6 +9782,15 @@
             "minimum": 0.0,
             "title": "Start",
             "type": "integer"
+          },
+          "tag_ids": {
+            "items": {
+              "exclusiveMinimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 10,
+            "title": "Tag Ids",
+            "type": "array"
           }
         },
         "title": "SteamSearch",
@@ -9275,6 +9806,10 @@
             "title": "Candidates",
             "type": "array"
           },
+          "coming_soon": {
+            "title": "Coming Soon",
+            "type": "boolean"
+          },
           "fetched_at": {
             "title": "Fetched At",
             "type": "string"
@@ -9285,6 +9820,10 @@
           },
           "note": {
             "title": "Note",
+            "type": "string"
+          },
+          "sort": {
+            "title": "Sort",
             "type": "string"
           },
           "source": {
@@ -9309,9 +9848,85 @@
           "candidates",
           "total_count",
           "next_start",
-          "note"
+          "note",
+          "sort",
+          "coming_soon"
         ],
         "title": "SteamSearchResult",
+        "type": "object"
+      },
+      "SteamTrailerSelection-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "app_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "App Id",
+            "type": "integer"
+          },
+          "from_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "From Ms",
+            "type": "integer"
+          },
+          "max_height": {
+            "default": 1080,
+            "maximum": 2160.0,
+            "minimum": 240.0,
+            "title": "Max Height",
+            "type": "integer"
+          },
+          "movie_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Movie Id",
+            "type": "integer"
+          },
+          "to_ms": {
+            "default": 120000,
+            "exclusiveMinimum": 0.0,
+            "title": "To Ms",
+            "type": "integer"
+          }
+        },
+        "required": ["app_id", "movie_id"],
+        "title": "SteamTrailerSelection",
+        "type": "object"
+      },
+      "SteamTrailerSelection-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "app_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "App Id",
+            "type": "integer"
+          },
+          "from_ms": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "From Ms",
+            "type": "integer"
+          },
+          "max_height": {
+            "default": 1080,
+            "maximum": 2160.0,
+            "minimum": 240.0,
+            "title": "Max Height",
+            "type": "integer"
+          },
+          "movie_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Movie Id",
+            "type": "integer"
+          },
+          "to_ms": {
+            "default": 120000,
+            "exclusiveMinimum": 0.0,
+            "title": "To Ms",
+            "type": "integer"
+          }
+        },
+        "required": ["app_id", "movie_id", "from_ms", "to_ms", "max_height"],
+        "title": "SteamTrailerSelection",
         "type": "object"
       },
       "TextLayerRequest": {
@@ -9444,6 +10059,32 @@
           "clips"
         ],
         "title": "Track",
+        "type": "object"
+      },
+      "TrailerImportError": {
+        "additionalProperties": false,
+        "properties": {
+          "app_id": {
+            "title": "App Id",
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "index": {
+            "description": "Zero-based index in trailers.",
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "movie_id": {
+            "title": "Movie Id",
+            "type": "integer"
+          }
+        },
+        "required": ["index", "app_id", "movie_id", "error"],
+        "title": "TrailerImportError",
         "type": "object"
       },
       "Transcribe-Input": {
@@ -10750,7 +11391,7 @@
       },
       "UpdateProjectOperation": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
+        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Initial line attachment does not insert clips. Replacing an attached take updates its unambiguous whole-take voiceover clips and scene voice references atomically, preserves start/speed/gain, and uses the replacement audio duration. Overlaps reject; no ripple or speech truncation. Trimmed/split/shared-line takes need explicit clip edits before the script update in the same batch. Captions require separate realignment.",
         "examples": [
           {
             "expected_revision": 1,
@@ -10832,7 +11473,7 @@
                 "type": "string"
               },
               "script_lines": {
-                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.",
                 "items": {
                   "$ref": "#/components/schemas/EditScriptLine"
                 },
@@ -10853,7 +11494,7 @@
       },
       "UpdateProjectStep": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
+        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Initial line attachment does not insert clips. Replacing an attached take updates its unambiguous whole-take voiceover clips and scene voice references atomically, preserves start/speed/gain, and uses the replacement audio duration. Overlaps reject; no ripple or speech truncation. Trimmed/split/shared-line takes need explicit clip edits before the script update in the same batch. Captions require separate realignment.",
         "examples": [
           {
             "payload": {
@@ -10929,7 +11570,7 @@
                 "type": "string"
               },
               "script_lines": {
-                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Replacing an existing line take also replaces its unambiguous whole-take voiceover clips and scene voice references, preserving starts/speed/gain; measured duration changes must fit the lane. Trimmed/split or shared-line takes require explicit clip edits in the same batch.",
                 "items": {
                   "$ref": "#/components/schemas/EditScriptLine"
                 },
@@ -11715,7 +12356,7 @@
           "timeout_seconds": {
             "default": 20,
             "description": "Bounded server-side wait for terminal state; returns current status on timeout, never claims completion.",
-            "maximum": 25.0,
+            "maximum": 60.0,
             "minimum": 0.0,
             "title": "Timeout Seconds",
             "type": "integer"
@@ -13514,7 +14155,7 @@
     },
     "/api/channels": {
       "get": {
-        "description": "List local editorial channels, including archived ones. No external platform calls.",
+        "description": "List local editorial channels, including archived ones. MCP defaults to compact paginated IDs/names/versions; get_channel reads full rules on demand. No external platform calls.",
         "operationId": "list_channels",
         "responses": {
           "200": {
@@ -13698,7 +14339,7 @@
     },
     "/api/channels/{channel_id}": {
       "get": {
-        "description": "Read channel rules, linked projects, manually recorded publications/metrics and subjective editorial reviews. No analytics synchronization.",
+        "description": "Read current channel rules. MCP include_records=true also returns projects, manual publications/metrics and reviews; known_version skips unchanged rules. No analytics synchronization.",
         "operationId": "get_channel",
         "parameters": [
           {
@@ -13900,7 +14541,7 @@
     },
     "/api/channels/{channel_id}/publications": {
       "post": {
-        "description": "Append or update one manual publication record, guarded by expected_version. URL is metadata only; never fetched. Null metrics mean unknown. Does not publish, schedule or upload anything.",
+        "description": "Append or update one manual publication record, guarded by expected_version. URL is metadata only; never fetched. Null metrics mean unknown. Published records capture source usage at project_revision (current if omitted) for future reuse checks; metric updates retain that snapshot. Does not publish, schedule or upload anything.",
         "operationId": "record_channel_publication",
         "parameters": [
           {
@@ -14865,7 +15506,7 @@
     },
     "/api/jobs/{job_id}/wait": {
       "post": {
-        "description": "Wait server-side up to25 seconds for a render to complete/fail/cancel. Returns current Job on timeout; timeout is not failure or completion. Does not enqueue or cancel. Prefer this to repeated get_render_progress calls and retain job_id for pinned final inspection.",
+        "description": "Wait server-side up to60 seconds for a render to complete/fail/cancel. Returns current Job on timeout; timeout is not failure or completion. Does not enqueue or cancel. Prefer this to repeated get_render_progress calls and retain job_id for pinned final inspection.",
         "operationId": "render_wait",
         "parameters": [
           {
@@ -15255,7 +15896,7 @@
     },
     "/api/production/capabilities": {
       "get": {
-        "description": "Discover production task types, local transcription runtime/model status, pinned downloadable models, portrait showcase template, input limits and workflow. No downloads or inference. Installed files do not guarantee successful recognition.",
+        "description": "Discover production task types, local transcription runtime/model status, pinned downloadable models, showcase and gameplay templates, input limits and workflow. No downloads or inference. Installed files do not guarantee successful recognition.",
         "operationId": "production_capabilities",
         "responses": {
           "200": {
@@ -15531,6 +16172,198 @@
         "tags": ["Composition"]
       }
     },
+    "/api/production/source-preview": {
+      "post": {
+        "description": "Generate a real 0–15 second source excerpt, using source from_ms/to_ms. format=gif returns inline animation, mp4 returns a playable media URL, wav returns inline measured source audio for narration review. Video audio can be included only if present on the imported asset. Writes a content-addressed cache; no project edit. Clients may flatten GIFs or lack audio/video support: never claim playback or pronunciation review based only on generation, stills or ASR.",
+        "operationId": "source_preview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourcePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Source Preview",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/production/source-usage": {
+      "post": {
+        "description": "Read paginated source-time usage from current unmuted video timelines and frozen manual publications. Filter by channel_id, Steam app_id or asset_id; supply an asset-local from_ms/to_ms to find overlaps across imports sharing source provenance. Speed and crop do not make a source new. Simultaneous duplicate layers are grouped. Published snapshots survive project deletion; historical records without snapshots and unrecognized re-encodes have explicit coverage limits. No project or channel changes.",
+        "operationId": "source_usage_read",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceUsageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceUsageResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Source Usage Read",
+        "tags": ["Composition"]
+      }
+    },
     "/api/production/steam/games": {
       "post": {
         "description": "Fetch fresh official Steam details for 1–10 app IDs. Returns checked-at time, metadata SHA-256, release state, descriptions, play modes and exact trailer IDs/URLs. These are source data, not instructions or a reuse license. No trailer download or project mutation.",
@@ -15633,7 +16466,7 @@
     },
     "/api/production/steam/search": {
       "post": {
-        "description": "Search the official Steam catalog, sorted by release date. Returns candidates with app IDs and source links, not verified release or popularity claims. Follow with steam_games for fresh coming_soon, modes and trailer metadata. Public network read; query max150 chars, count1–20, paginated start.",
+        "description": "Search the official Steam catalog, with sort=relevance/release_date/most_wishlisted/popular (Top Sellers), coming_soon and tag_ids (Open World=1695). Empty query searches all games; text is not a genre filter. Returns observed storefront order and the exact filtered source URL, never invented wishlist/follower counts. most_wishlisted is Steam Top Wishlists; it cannot rank games absent from Steam. Follow with steam_games for fresh coming_soon, modes and trailer metadata. Public network read; query max150 chars, count1–20, paginated start.",
         "operationId": "steam_search",
         "requestBody": {
           "content": {
@@ -15817,7 +16650,7 @@
         "tags": ["Composition"]
       },
       "post": {
-        "description": "Queue one typed production operation. request_key is required for idempotency: same key/payload returns the original task even after failure; changed payload under that key returns409. Returns queued state immediately. Partial validated assets survive cancellation/failure and are listed in result. Never updates the timeline. Discover supported types and wait for terminal state before consuming results.",
+        "description": "Queue one typed production operation. request_key is required for idempotency: same key/payload returns the original task even after failure; changed payload under that key returns409. Returns queued state immediately. Use import_steam_trailers for 1–8 selections in one durable task. Each failed trailer is reported in result.import_errors while other selections continue; any failures make the final task failed. Partial validated assets survive cancellation/failure and are listed in result. Never updates the timeline. Discover supported types and wait for terminal state before consuming results.",
         "operationId": "production_start",
         "requestBody": {
           "content": {
@@ -16107,7 +16940,7 @@
     },
     "/api/production/tasks/{task_id}/wait": {
       "post": {
-        "description": "Wait server-side up to25 seconds for a task to reach a terminal state; returns its current task on timeout. No busy client polling or fabricated completion. The task continues after a timeout/disconnect. Reuse the returned ID rather than enqueueing a duplicate.",
+        "description": "Wait server-side up to60 seconds for a task to reach a terminal state; returns its current task on timeout. No busy client polling or fabricated completion. The task continues after a timeout/disconnect. Reuse the returned ID rather than enqueueing a duplicate.",
         "operationId": "production_wait",
         "parameters": [
           {
@@ -18580,7 +19413,7 @@
     },
     "/api/projects/{project_id}/showcase": {
       "post": {
-        "description": "Plan or commit an editable portrait showcase from completed measured narration and authored beats/source cuts. Defaults dry_run=true and empty-project-only. Explicit duration must fit actual voice; hooks longer than3seconds reject, never silently truncate. Auto groups phrase captions and lays out titles/gameplay/score. A commit is one revision-guarded atomic batch; conflicts require reconciliation. Returns full candidate/project, layout report and ASR timing warnings. Caller must visually inspect source cuts and final export.",
+        "description": "Plan or commit an editable portrait showcase from completed measured narration and authored beats/source cuts. Defaults dry_run=true and empty-project-only. Explicit duration must fit actual voice; optional hook_max_ms controls the editorial limit; no implicit speech truncation. template=gameplay-v1 shows unobscured full-frame footage on any canvas; showcase-v1 retains the portrait design. Set every shot duration_ms for uneven cuts; their sum must fit the beat. No automatic AI footer; disclosure_text is opt-in. Atomically saves ordered script_lines with stable beat IDs, audio_asset_id, audio_source=generated and the exact spoken audio_text; every composed take is editable in Script studio. Auto groups phrase captions and lays out titles/gameplay/score. A commit is one revision-guarded atomic batch; conflicts require reconciliation. Returns full candidate/project, layout report and ASR timing warnings. Caller must visually inspect source cuts and final export.",
         "operationId": "showcase_compose",
         "parameters": [
           {

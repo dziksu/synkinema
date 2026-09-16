@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from synkinema.models import Clip, Operation, Project, Scene, Track
+from synkinema.models import Clip, Operation, Project, Scene, ScriptLine, Track
 from synkinema.service import Service
 from synkinema.storage import Store
 
@@ -129,9 +129,90 @@ def export(destination):
                 )
             finally:
                 store.engine.dispose()
+    cases.append(script_audio_case())
     Path(destination, "edit-cases.json").write_text(
         json.dumps(cases, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
+
+
+def script_audio_case():
+    with (
+        TemporaryDirectory(prefix="synkinema-script-contract-") as directory,
+        patch("synkinema.service.uid", return_value="project"),
+        patch("synkinema.service.now", return_value="2026-01-01T00:00:00+00:00"),
+    ):
+        store = Store(directory)
+        try:
+            assets = {
+                name: {"id": name, "kind": "audio", "duration_ms": duration, "has_audio": True}
+                for name, duration in [("old", 1000), ("new", 700)]
+            }
+            for name, asset in assets.items():
+                store.execute(
+                    "INSERT INTO assets VALUES(:id,:doc,:hash,:time)",
+                    id=name,
+                    doc=json.dumps(asset),
+                    hash=name,
+                    time="0",
+                )
+            service = Service(store)
+            project = service.create(
+                Project(
+                    name="Script audio replacement",
+                    script_lines=[
+                        ScriptLine(
+                            id="line",
+                            text="Hello",
+                            audio_text="Hello",
+                            audio_source="generated",
+                            audio_asset_id="old",
+                        )
+                    ],
+                    tracks=[
+                        Track(
+                            id="voice",
+                            name="Voice",
+                            kind="voiceover",
+                            clips=[
+                                Clip(
+                                    id="take",
+                                    name="Hello",
+                                    asset_id="old",
+                                    duration_ms=1000,
+                                    start_ms=100,
+                                    gain_db=-4,
+                                    fade_out_ms=800,
+                                )
+                            ],
+                        )
+                    ],
+                    scenes=[Scene(id="line", title="Line", narration="Hello", voice_asset_id="old")],
+                )
+            )
+            step = {
+                "type": "update_project",
+                "payload": {
+                    "script_lines": [
+                        {
+                            "id": "line",
+                            "text": "New words",
+                            "audio_text": "New words",
+                            "audio_source": "generated",
+                            "audio_asset_id": "new",
+                        }
+                    ]
+                },
+            }
+            before = service.summary(project)
+            after = service.summary(service.apply(project.id, Operation(expected_revision=1, **step)))
+            return {
+                "name": "replace_script_audio",
+                "before": before,
+                "plan": {"steps": [step], "audioAssets": assets},
+                "after": after,
+            }
+        finally:
+            store.engine.dispose()
 
 
 if __name__ == "__main__":

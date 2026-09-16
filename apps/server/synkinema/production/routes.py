@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import Image
+from mcp.server.fastmcp import Audio, Image
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
@@ -16,6 +16,8 @@ from .contracts import (
     ProductionTask,
     RevisionComparison,
     SourceInspection,
+    SourcePreview,
+    SourcePreviewRequest,
     SourceSheet,
     StartProduction,
     SteamGame,
@@ -25,9 +27,11 @@ from .contracts import (
     WaitRequest,
 )
 from .layout import caption_layout, inspect_source
+from .preview import preview_source
 from .reference import REST_DESCRIPTIONS as D
 from .remote import search_steam, steam_game
 from .transcription import status
+from .usage import SourceUsageRequest, SourceUsageResult, source_usage
 
 
 class RevisionCompare(Model):
@@ -42,6 +46,7 @@ def capabilities(production):
         "task_types": [
             "import_media",
             "import_steam_trailer",
+            "import_steam_trailers",
             "install_transcriber",
             "install_voice_model",
             "transcribe",
@@ -57,20 +62,30 @@ def capabilities(production):
                 "editable_tracks": 9,
                 "voice_timing": "measured",
                 "default_dry_run": True,
-            }
+            },
+            {
+                "id": "gameplay-v1",
+                "portrait": True,
+                "landscape": True,
+                "editable_tracks": 9,
+                "voice_timing": "measured",
+                "default_dry_run": True,
+            },
         ],
         "limits": {
             "download_bytes": 512 * 1024**2,
             "media_interval_ms": 600_000,
             "narration_lines": 20,
             "source_frames": 24,
-            "wait_seconds": 25,
+            "wait_seconds": 60,
+            "steam_trailers_per_task": 8,
+            "source_preview_ms": 15_000,
             "concurrent_production_tasks": 1,
         },
         "workflow": [
             "search_steam_games / get_steam_games",
-            "start_production_task(import_steam_trailer) → wait_production_task",
-            "inspect_source_frames(count=3 for each selected cut)",
+            "start_production_task(import_steam_trailers) → wait_production_task",
+            "inspect_source_frames(count=3), preview_source_media, get_source_usage for each selected cut",
             "install_transcriber if missing; prepare_narration batch → wait",
             "generate_score → wait",
             "compose_showcase(dry_run=true), review, then dry_run=false using same confirmed revision",
@@ -83,6 +98,8 @@ def capabilities(production):
             "No external shell, arbitrary Python, authentication bypass, DRM or live HLS.",
             "Browser playback cannot be asserted by a server-side MCP tool; verification reports browser_playback_tested=false.",
             "MCP images and media URLs let an agent review without downloading files through Python.",
+            "Import batches share one durable task and preserve per-trailer errors; heavy processing remains serialized to bound CPU/RAM and protect source lifetime.",
+            "Source previews return real GIF/MP4 or inline WAV audio; clients may not play motion/audio. ASR is not listening.",
         ],
     }
 
@@ -194,6 +211,15 @@ def register_http(app, p):
     def caption_layout_read(request: LayoutRequest):
         return caption_layout(p.service, p.service.get(request.project_id, request.revision))
 
+    @app.post("/api/production/source-preview", response_model=SourcePreview)
+    async def source_preview(request: SourcePreviewRequest):
+        async with p.inspection.lifecycle:
+            return await preview_source(p.service, request, p.run)
+
+    @app.post("/api/production/source-usage", response_model=SourceUsageResult)
+    def source_usage_read(request: SourceUsageRequest):
+        return source_usage(p.service, request)
+
     @app.post("/api/projects/{project_id}/showcase", response_model=CompositionResult)
     def showcase_compose(project_id: str, request: ComposeReel):
         return compose_task(p, project_id, request)
@@ -264,6 +290,22 @@ def register_mcp(mcp, p):
     @tool("inspect_caption_layout", D["caption_layout"], cache)
     def layout(request: LayoutRequest) -> LayoutReport:
         return caption_layout(p.service, p.service.get(request.project_id, request.revision))
+
+    @tool("preview_source_media", D["source_preview"], cache)
+    async def source_preview(request: SourcePreviewRequest) -> list:
+        async with p.inspection.lifecycle:
+            result = await preview_source(p.service, request, p.run)
+            path = str(p.store.path(result.url.removeprefix("/media/")))
+            content = [result.model_dump()]
+            if request.format == "wav":
+                content.append(Audio(path=path))
+            elif request.format == "gif":
+                content.append(Image(path=path))
+            return content
+
+    @tool("get_source_usage", D["source_usage_read"], read)
+    def usage(request: SourceUsageRequest) -> SourceUsageResult:
+        return source_usage(p.service, request)
 
     @tool(
         "preview_caption",

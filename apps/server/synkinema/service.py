@@ -73,10 +73,10 @@ class Service(Library, Channels):
         doc["name"] = name
         return self.create(Project.model_validate(doc), legacy_source=source)
 
-    def preflight(self, project_id, revision=None):
+    def preflight(self, project_id, revision=None, *, require_script_audio=False):
         from .preflight import preflight
 
-        return preflight(self, self.get(project_id, revision))
+        return preflight(self, self.get(project_id, revision), require_script_audio=require_script_audio)
 
     def history(self, project_id):
         self.get(project_id)
@@ -209,6 +209,7 @@ class Service(Library, Channels):
         if kind == "extract_audio" and "target_track_id" not in p:
             raise ValueError("extract_audio requires target_track_id")
         if kind == "update_project":
+            previous_lines = doc.get("script_lines", [])
             if set(p) - {
                 "name",
                 "brief",
@@ -228,6 +229,10 @@ class Service(Library, Channels):
             elif "script" in p and p["script"] != doc.get("script", ""):
                 p["script_lines"] = []
             doc.update(p)
+            if "script_lines" in p:
+                from .script_audio import replace_script_audio
+
+                replace_script_audio(self, doc, previous_lines)
         elif kind == "add_track":
             doc["tracks"].append(Track.model_validate(p).model_dump())
         elif kind == "reorder_tracks":
@@ -516,7 +521,7 @@ class Service(Library, Channels):
             raise Conflict("Project changed before export planning")
         return export_plan(self, project, request.output, request.quality)
 
-    def enqueue(self, project_id, request: RenderRequest):
+    def enqueue(self, project_id, request: RenderRequest, *, require_script_audio=False):
         project = self.get(project_id)
         if request.expected_revision and request.expected_revision != project.revision:
             raise Conflict("Project changed before rendering")
@@ -527,6 +532,16 @@ class Service(Library, Channels):
         ):
             raise ValueError("Preview range must be inside timeline")
         self.validate_assets(project)
+        if require_script_audio:
+            from .preflight import narration_link_issues
+
+            issues = narration_link_issues(project)
+            if issues:
+                raise ValueError(
+                    issues[0]["message"]
+                    + " Unlinked assets: "
+                    + ", ".join(sorted({issue["asset_id"] for issue in issues}))
+                )
         from .renderer import validate_timeline
 
         validate_timeline(project)

@@ -6,7 +6,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from . import __version__
-from .agent_reference import AGENT_INSTRUCTIONS, agent_guide, operation_reference
+from .agent_reference import AGENT_INSTRUCTIONS, agent_guide, guide_page, operation_reference
 from .api_contract import (
     AssetBatchUpdate,
     AssetMetadataUpdate,
@@ -72,9 +72,30 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
-    def get_project(project_id: ProjectId, revision: OptionalRevision = None) -> dict:
+    def get_project(
+        project_id: ProjectId,
+        revision: OptionalRevision = None,
+        known_channel_version: Annotated[
+            int | None,
+            Field(
+                ge=1,
+                description="Version of this project's channel whose full rules you already read; omit to always include rules. A changed version always returns current rules.",
+            ),
+        ] = None,
+    ) -> dict:
         """Read a complete Project including ordered script_lines with stable IDs and audio/text snapshots, computed duration_ms and live channel_context (rules and recent reviews; null for independent projects). Read channel guidance before scripting, TTS or editing. Omit revision for current; set it for an immutable historical timeline with CURRENT channel guidance/version. Unknown project/revision returns a tool error."""
-        return service.summary(service.get(project_id, revision))
+        return project_context(service.get(project_id, revision), known_channel_version)
+
+    def project_context(project, known_version):
+        result = service.summary(project)
+        context = result.get("channel_context")
+        if context and context["channel"]["version"] == known_version:
+            result["channel_context"] = {
+                "channel_id": context["channel"]["id"],
+                "version": known_version,
+                "unchanged": True,
+            }
+        return result
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -90,9 +111,18 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
             ),
         ] = "",
         channel_id: OptionalChannelId = None,
+        known_channel_version: Annotated[
+            int | None,
+            Field(
+                ge=1,
+                description="Version of the selected channel whose rules you already read. Suppresses repeated rules only when still current.",
+            ),
+        ] = None,
     ) -> dict:
         """Create a new 1080x1920, 30 FPS reel at revision 1 with video/titles/voice/music track IDs. Optional channel_id attaches a local editorial channel; null/omitted is independent. Returns full Project including id, duration_ms and live channel_context: apply its language, voice, hook/CTA and production rules. Repeating creates another project. To change format use update_project with profile; to continue work use get_project instead."""
-        return service.summary(service.create(Project(name=name, brief=brief, channel_id=channel_id)))
+        return project_context(
+            service.create(Project(name=name, brief=brief, channel_id=channel_id)), known_channel_version
+        )
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -323,7 +353,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
             ),
         ] = None,
     ) -> dict:
-        """Queue a render of the CURRENT project at expected_revision; return Job immediately, not a completed video. quality: preview (max 640px) or final (profile size or output override). Optional output {width,height,fps,crf,fit,background,x,y} adapts the entire composition without changing the project; discover get_export_presets and plan_export. from_ms/to_ms are absolute project milliseconds; null end means project end; require a nonempty in-bounds range. Snapshot is immutable even if project changes later. No deduplication: repeating queues another job. Poll get_render_progress(job_id) until completed/failed/cancelled; only completed yields output_url."""
+        """Queue a render of the CURRENT project at expected_revision; return Job immediately, not a completed video. REQUIRED: every active voiceover clip asset must be attached to a script_lines entry with audio_asset_id, audio_source and actual audio_text. Unlinked narration rejects without queueing; compose_showcase attaches it automatically. quality: preview (max 640px) or final (profile size or output override). Optional output {width,height,fps,crf,fit,background,x,y} adapts the entire composition without changing the project; discover get_export_presets and plan_export. from_ms/to_ms are absolute project milliseconds; null end means project end; require a nonempty in-bounds range. Snapshot is immutable even if project changes later. No deduplication: repeating queues another job. Poll get_render_progress(job_id) until completed/failed/cancelled; only completed yields output_url."""
         return service.enqueue(
             project_id,
             RenderRequest(
@@ -333,6 +363,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
                 to_ms=to_ms,
                 output=output,
             ),
+            require_script_audio=True,
         )
 
     @mcp.tool(
@@ -448,9 +479,25 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
         )
     )
-    def get_agent_guide() -> str:
-        """START HERE. Read the shipped agent workflow: discovery, units, source audio, all editing operations, shallow replacements, revision conflicts, render polling, inspection, limits, REST/MCP differences and worked examples. Also available as synkinema://agent-guide."""
-        return agent_guide()
+    def get_agent_guide(
+        section: Annotated[
+            str,
+            Field(
+                description="overview returns a short workflow and section index; use a returned section ID or full for paginated content."
+            ),
+        ] = "overview",
+        offset: Annotated[int, Field(ge=0, description="Character offset in the selected section.")] = 0,
+        limit: Annotated[
+            int,
+            Field(
+                ge=500,
+                le=12000,
+                description="Maximum returned section characters; follow next_offset for more.",
+            ),
+        ] = 6000,
+    ) -> dict:
+        """START HERE. Returns a compact workflow and section index by default. Read only the sections needed for the task, following next_offset when present. Includes editing, source/audio QA, revisions, rendering and production. The complete unchanged Markdown resource is also available as synkinema://agent-guide."""
+        return guide_page(section, offset, limit)
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -507,8 +554,8 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     def validate_project(project_id: ProjectId, revision: OptionalRevision = None) -> dict:
-        """Cheap preflight of current/pinned revision; no render or mutation. Returns valid, errors/warnings[{code,message,...IDs/times}], counts, revision and duration_ms. Checks source references/files, source bounds, track compatibility, primary overlaps; warns about absent audio/visuals, primary gaps, muted tails and legacy_lane_overlap for old overlapping audio/text/overlay clips. All writes reject new or retimed ordinary overlaps on every track, including muted. valid means no detected structural errors, NOT successful media decoding or visual/audio quality. Run before start_render, then inspect real output."""
-        return service.preflight(project_id, revision)
+        """Cheap preflight of current/pinned revision; no render or mutation. Returns valid, errors/warnings[{code,message,...IDs/times}], counts, revision and duration_ms. Requires every active voiceover asset to have a script_lines audio association (unlinked_narration is an error). Checks source references/files, source bounds, track compatibility, primary overlaps; warns about absent audio/visuals, primary gaps, muted tails and legacy_lane_overlap for old overlapping audio/text/overlay clips. All writes reject new or retimed ordinary overlaps on every track, including muted. valid means no detected structural errors, NOT successful media decoding or visual/audio quality. Run before start_render, then inspect real output."""
+        return service.preflight(project_id, revision, require_script_audio=True)
 
     @mcp.tool(
         annotations=ToolAnnotations(

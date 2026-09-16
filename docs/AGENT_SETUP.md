@@ -131,9 +131,21 @@ gateway and compatible host/origin handling, outside this local quick start.
 | Revision conflict | Reread the project, reconcile with the user's edits and use the latest confirmed revision. Do not blindly replay a batch. |
 
 Model installation and rendering may take minutes on CPU. Production/render waits
-are bounded to 25 seconds per call; repeat them with the same ID. Allow longer
+are bounded to 60 seconds per call (20 by default); repeat them with the same ID. Allow longer
 client timeouts for synchronous frame inspection. Provider guides show how to
 adjust them where supported.
+
+For efficient discovery, `get_agent_guide()` returns a short overview and a
+paginated section index. `list_channels()` returns compact summaries; read rules
+with `get_channel`, and use `known_version` / `known_channel_version` to avoid
+repeating unchanged briefs. Full channel history requires `include_records=true`.
+
+Steam research supports [Top Wishlists](https://store.steampowered.com/search/?filter=popularwishlist),
+Coming Soon, Top Sellers and genre tag filters. Import up to eight selected
+trailers in one `import_steam_trailers` task; inspect per-item errors before
+retrying. `preview_source_media` creates short GIF/MP4/WAV excerpts, while
+`get_source_usage` checks original source intervals across projects and recorded
+publications. Animation/audio perception still depends on the MCP client.
 
 Configuration examples were checked against official client documentation on
 **2026-09-12**; each client guide links its source. This is not a claim that every

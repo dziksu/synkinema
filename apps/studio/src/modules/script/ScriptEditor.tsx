@@ -159,7 +159,14 @@ export default function ScriptEditor({
   ) => {
     if (asset.kind !== "audio" || !asset.has_audio || !asset.duration_ms)
       throw new Error(tr("Choose an audio file with a readable duration."));
-    return commit(
+    const replacesTimeline =
+      line.audio_asset_id !== asset.id &&
+      baseline.current.tracks.some(
+        (track) =>
+          track.kind === "voiceover" &&
+          track.clips.some((clip) => clip.asset_id === line.audio_asset_id),
+      );
+    const updated = await commit(
       current.map((item) =>
         item.id === line.id
           ? {
@@ -171,6 +178,13 @@ export default function ScriptEditor({
           : item,
       ),
     );
+    if (mounted.current && replacesTimeline)
+      setNotice(
+        tr(
+          "Narration updated on the timeline. Review caption timing and the surrounding picture.",
+        ),
+      );
+    return updated;
   };
   const importAudio = (
     line: ScriptLine,

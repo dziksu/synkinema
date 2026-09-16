@@ -23,9 +23,9 @@ from ..voices import VoiceRequest
 from . import remote, transcription
 from .contracts import (
     Delivery,
-    MediaSource,
     NarrationTake,
     ProductionTask,
+    TrailerImportError,
     Transcribe,
     TranscriberStatus,
     VerificationReport,
@@ -373,64 +373,91 @@ class Production:
             task.result.model_status = TranscriberStatus.model_validate(
                 next(s for s in transcription.status(self.store.root) if s["model"] == r.model)
             )
-        elif r.type in ("import_media", "import_steam_trailer"):
-            provenance = None
-            if r.type == "import_steam_trailer":
-                game, raw = await remote.steam_game(r.app_id)
-                movie = next((m for m in game.movies if m.id == r.movie_id), None)
-                if not movie or not (movie.hls_url or movie.mp4_url):
-                    raise ValueError("Selected Steam trailer has no supported media URL")
-                sources = [
-                    MediaSource(
-                        url=movie.hls_url or movie.mp4_url,
-                        filename=f"{game.name} - {movie.name}.mp4",
-                        source=f"{game.url} | movie {movie.id}: {movie.name}",
-                        license="Official promotional footage; copyright remains with "
-                        + ", ".join(game.developers + game.publishers)
-                        + ". No open license or endorsement is implied.",
-                        tags=["steam", "official-trailer", str(game.app_id)],
-                        from_ms=r.from_ms,
-                        to_ms=r.to_ms,
-                        max_height=r.max_height,
+        elif r.type in ("import_media", "import_steam_trailer", "import_steam_trailers"):
+            selections = (
+                r.sources
+                if r.type == "import_media"
+                else r.trailers
+                if r.type == "import_steam_trailers"
+                else [r]
+            )
+            games = {}
+            for i, selection in enumerate(selections):
+                await self.tick(task, f"Importing source {i + 1}/{len(selections)}", i / len(selections))
+                try:
+                    provenance = None
+                    if r.type == "import_media":
+                        candidates = [selection]
+                    else:
+                        if selection.app_id not in games:
+                            games[selection.app_id] = await remote.steam_game(selection.app_id)
+                        game, raw = games[selection.app_id]
+                        candidates = remote.trailer_sources(game, selection)
+                        provenance = {
+                            "game": game.model_dump(),
+                            "movie_id": selection.movie_id,
+                            "steam_response": json.loads(raw),
+                        }
+                    errors = []
+                    for attempt, source in enumerate(candidates):
+                        directory = work / f"source-{i}-{attempt}"
+                        directory.mkdir()
+                        try:
+                            path = await remote.import_source(
+                                source,
+                                directory,
+                                self.run,
+                                lambda phase=None, progress=None, i=i: self.tick(
+                                    task, phase, (i + (progress or 0)) / len(selections)
+                                ),
+                            )
+                            await self.tick(task, "Validating imported media")
+                            asset = self.service.import_file(
+                                path,
+                                str(Path(source.filename).with_suffix(path.suffix)),
+                                source.tags,
+                                source.source or source.url,
+                                source.license,
+                                r.project_id,
+                                r.folder_id,
+                            )
+                            break
+                        except (ValueError, OSError, TimeoutError, remote.httpx.HTTPError) as exc:
+                            errors.append(f"Alternative {attempt + 1}: {str(exc)[:600]}")
+                        finally:
+                            shutil.rmtree(directory, ignore_errors=True)
+                    else:
+                        raise ValueError("; ".join(errors))
+                    # Persist provenance before advertising the validated asset in task results.
+                    record = {
+                        "request": source.model_dump(),
+                        "asset_id": asset["id"],
+                        "checksum": asset["checksum"],
+                        "imported_at": now(),
+                        "steam": provenance,
+                    }
+                    provenance_path = self.store.path(f"cache/{asset['id']}-provenance.json")
+                    records = json.loads(provenance_path.read_text()) if provenance_path.exists() else []
+                    records = records if isinstance(records, list) else [records]
+                    provenance_path.write_text(json.dumps([*records, record], ensure_ascii=False))
+                    task.result.assets.append(Asset.model_validate(asset))
+                    self.update(task)
+                except (ValueError, OSError, TimeoutError, remote.httpx.HTTPError) as exc:
+                    if r.type != "import_steam_trailers":
+                        raise
+                    task.result.import_errors.append(
+                        TrailerImportError(
+                            index=i,
+                            app_id=selection.app_id,
+                            movie_id=selection.movie_id,
+                            error=str(exc)[:2000],
+                        )
                     )
-                ]
-                provenance = {"game": game.model_dump(), "steam_response": json.loads(raw)}
-            else:
-                sources = r.sources
-            for i, source in enumerate(sources):
-                directory = work / f"source-{i}"
-                directory.mkdir()
-                path = await remote.import_source(
-                    source,
-                    directory,
-                    self.run,
-                    lambda phase=None, progress=None, i=i: self.tick(
-                        task, phase, (i + (progress or 0)) / len(sources)
-                    ),
+                    self.update(task)
+            if task.result.import_errors:
+                raise ValueError(
+                    f"{len(task.result.import_errors)} Steam trailer(s) failed; inspect result.import_errors and reuse result.assets. Other selections were attempted; retry only failed selections with a new key."
                 )
-                await self.tick(task, "Validating imported media", 0.9)
-                asset = self.service.import_file(
-                    path,
-                    str(Path(source.filename).with_suffix(path.suffix)),
-                    source.tags,
-                    source.source or source.url,
-                    source.license,
-                    r.project_id,
-                    r.folder_id,
-                )
-                task.result.assets.append(Asset.model_validate(asset))
-                self.update(task)
-                record = {
-                    "request": source.model_dump(),
-                    "asset_id": asset["id"],
-                    "checksum": asset["checksum"],
-                    "imported_at": now(),
-                    "steam": provenance,
-                }
-                provenance_path = self.store.path(f"cache/{asset['id']}-provenance.json")
-                records = json.loads(provenance_path.read_text()) if provenance_path.exists() else []
-                records = records if isinstance(records, list) else [records]
-                provenance_path.write_text(json.dumps([*records, record], ensure_ascii=False))
         elif r.type == "transcribe":
             await self.tick(task, "Recognizing speech", 0.1)
             task.result.transcript = await self.recognize(r, work)

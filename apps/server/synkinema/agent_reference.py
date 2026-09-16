@@ -1,5 +1,6 @@
 """Discoverable agent contract; schemas derive from the same models used by the service."""
 
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -20,7 +21,7 @@ Validate before rendering, then inspect actual render_frames and audio by comple
 Metadata/heuristics do not prove visual quality or listening. Full guide: synkinema://agent-guide.
 Discover voice providers before TTS; paid/external synthesis needs authorization.
 For Script studio, read get_project and edit update_project.script_lines, preserving the full ordered list and stable IDs.
-After import_asset/generate_voice_take, explicitly attach the real audio asset, source and captured text to its line.
+After import_asset/generate_voice_take/prepare_narration, you MUST attach every narration take to script_lines using its real audio_asset_id, audio_source and captured audio_text. Plain script or scenes.voice_asset_id is insufficient. compose_showcase saves these links automatically. MCP validate_project/start_render reject unlinked active voiceover assets.
 For requested source-file removal use remove_script_audio: deletes exclusive takes and their script history associations; shared sources are retained.
 Changed script-only writes clear line audio associations. get_edit_context omits script_lines; microphone capture is browser-only.
 """
@@ -28,6 +29,32 @@ Changed script-only writes clear line audio associations. get_edit_context omits
 
 def agent_guide() -> str:
     return Path(__file__).with_name("agent_guide.md").read_text(encoding="utf-8")
+
+
+def guide_page(section="overview", offset=0, limit=6000):
+    guide = agent_guide()
+    parts = re.split(r"(?m)^## ", guide)[1:]
+    sections = {re.sub(r"[^a-z0-9]+", "-", p.splitlines()[0].lower()).strip("-"): "## " + p for p in parts}
+    if section == "overview":
+        return {
+            "overview": AGENT_INSTRUCTIONS,
+            "editorial": "Read the selected channel once before content work. A broad research topic is not permission to violate a one-game-per-film rule: propose separate videos. Never infer exceptions or update channel rules from a template. Preview motion/audio where the client supports it; ASR and stills cannot prove listening/action readability.",
+            "sections": [
+                {"id": key, "title": value.splitlines()[0][3:], "characters": len(value)}
+                for key, value in sections.items()
+            ],
+            "usage": "Request section by ID, offset and limit (max 12000 characters). section=full pages the complete guide. Full resource: synkinema://agent-guide.",
+        }
+    if section != "full" and section not in sections:
+        raise ValueError("Unknown guide section; call get_agent_guide() for the section index")
+    body = guide if section == "full" else sections[section]
+    end = offset + limit
+    return {
+        "section": section,
+        "text": body[offset:end],
+        "total_characters": len(body),
+        "next_offset": end if end < len(body) else None,
+    }
 
 
 def _partial(model, fields=None, exclude=()):
@@ -77,7 +104,7 @@ def operation_reference(operation: str | None = None) -> dict:
 
     add(
         "update_project",
-        "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
+        "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Initial line attachment does not insert clips. Replacing an attached take updates its unambiguous whole-take voiceover clips and scene voice references atomically, preserves start/speed/gain, and uses the replacement audio duration. Overlaps reject; no ripple or speech truncation. Trimmed/split/shared-line takes need explicit clip edits before the script update in the same batch. Captions require separate realignment.",
         _partial(
             Project,
             fields={
