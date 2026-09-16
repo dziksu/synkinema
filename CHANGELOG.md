@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.4.0](https://github.com/dziksu/synkinema/compare/v1.3.1...v1.4.0) (2026-09-16)
+
+### Features
+
+* **production:** link script audio to timeline ([2f687bc](https://github.com/dziksu/synkinema/commit/2f687bc6872baf3fc338bd77f4e3fb6284347d8e))
+
 ## [1.3.1](https://github.com/dziksu/synkinema/compare/v1.3.0...v1.3.1) (2026-09-16)
 
 ### Bug Fixes
