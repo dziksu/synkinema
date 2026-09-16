@@ -16,7 +16,7 @@ export function Logo({
         width={36}
         height={36}
         alt={iconOnly ? "Synkinema" : ""}
-        className="size-9 shrink-0 object-contain"
+        className="size-9 -rotate-[7deg] shrink-0 object-contain group-data-[collapsible=icon]:size-7"
       />
       {!iconOnly && (
         <span className="grid text-left group-data-[collapsible=icon]:hidden">
