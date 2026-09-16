@@ -2411,26 +2411,42 @@
     color: var(--muted-foreground);
   }
 
-  .viewer.viewer-expanded {
-    position: fixed;
-    inset: 20px 24px 20px 238px;
-    height: auto;
-    z-index: 40;
-    border: 1px solid var(--border);
-    box-shadow: 0 0 0 100vmax #000b;
-    border-radius: 12px;
+  .editor-preview-dialog {
+    --dialog-width: min(112rem, calc(100dvw - 3rem));
+    display: flex;
+    flex-direction: column;
+    width: var(--dialog-width);
+    height: min(64rem, calc(100dvh - 3rem));
+    max-width: none;
+    max-height: none;
+    gap: 0;
     overflow: hidden;
+    padding: 0;
+    background: var(--background);
   }
-  .viewer-expanded .preview-stage {
-    padding: 40px;
-  }
-  .viewer-expanded .viewer-toolbar {
-    height: 48px;
+  .editor-preview-dialog-header {
+    display: flex;
     min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px 0 18px;
+  }
+  .editor-preview-dialog > .preview-stage {
+    min-height: 0;
+    padding: clamp(16px, 4vw, 48px);
+  }
+  .editor-preview-dialog > .transport {
+    flex-shrink: 0;
   }
   @media (max-width: 740px) {
-    .viewer.viewer-expanded {
-      inset: 10px;
+    .editor-preview-dialog {
+      --dialog-width: calc(100dvw - 1rem);
+      height: calc(100dvh - 1rem);
+    }
+    .editor-preview-dialog > .preview-stage {
+      padding: 16px;
     }
   }
   /* Manual editing: generous hit targets, visible drop feedback, stable timeline scale. */

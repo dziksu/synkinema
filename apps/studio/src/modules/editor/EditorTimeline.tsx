@@ -1,5 +1,11 @@
 import { IconButton } from "@/components/icon-button";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { tr } from "@/lib/i18n";
 import { seconds, timecode } from "@/lib/time";
 import CurrentTime from "@/modules/editor/CurrentTime";
@@ -75,6 +81,81 @@ export function EditorTimeline({
     inspect,
   } = controller;
   if (!project) return null;
+  const previewTitle = showRender
+    ? latest?.request.quality === "preview"
+      ? tr("Draft preview")
+      : tr("Last export")
+    : tr("Timeline preview");
+  const previewViewport = (
+    <>
+      <Preview
+        project={project}
+        assets={assets}
+        onChange={async (track, clip, changes) => {
+          await edit("inspector_update", {
+            track_id: track.id,
+            clip_id: clip.id,
+            changes,
+            animation_duration_ms: clip.duration_ms,
+          });
+        }}
+        onInsert={insertOnCanvas}
+        renderedUrl={showRender ? latest?.output_url : undefined}
+        renderedSize={
+          latest?.output ||
+          (latest?.metadata?.width && latest?.metadata?.height
+            ? {
+                width: latest.metadata.width,
+                height: latest.metadata.height,
+              }
+            : undefined)
+        }
+      />
+      <div className="transport">
+        <span className="timecode">
+          <CurrentTime /> <b>/ {timecode(project.duration_ms)}</b>
+        </span>
+        <div>
+          <IconButton
+            label={tr("Go to start")}
+            onClick={() => state.set({ time: 0, playing: false })}
+          >
+            <SkipBack size={16} />
+          </IconButton>
+          <Button
+            variant="outline"
+            className="play-button"
+            aria-label={state.playing ? tr("Pause") : tr("Play")}
+            onClick={() => state.set({ playing: !state.playing })}
+            disabled={!project.duration_ms}
+          >
+            {state.playing ? (
+              <Pause size={19} fill="currentColor" />
+            ) : (
+              <Play size={19} fill="currentColor" />
+            )}
+          </Button>
+          <IconButton
+            label={tr("Go to next shot")}
+            onClick={() => {
+              const starts = project.tracks
+                .flatMap((t) => t.clips.map((c) => c.start_ms))
+                .sort((a, b) => a - b);
+              state.set({
+                time:
+                  starts.find((t) => t > useStudio.getState().time + 50) || 0,
+              });
+            }}
+          >
+            <ArrowRight size={17} />
+          </IconButton>
+        </div>
+        <span className="preview-label">
+          {showRender ? "FFmpeg" : tr("Simplified preview")}
+        </span>
+      </div>
+    </>
+  );
   return (
     <EditorPanels>
       <EditorTop sourceOpen={!!sourceAsset}>
@@ -117,15 +198,11 @@ export function EditorTimeline({
             />
           )}
         </section>
-        <section className={`viewer ${focusPreview ? "viewer-expanded" : ""}`}>
+        <section className="viewer">
           <div className="viewer-toolbar">
             <span>
               <span className="status-dot" />
-              {showRender
-                ? latest?.request.quality === "preview"
-                  ? tr("Draft preview")
-                  : tr("Last export")
-                : tr("Timeline preview")}
+              {previewTitle}
             </span>
             <div>
               <Button
@@ -174,73 +251,28 @@ export function EditorTimeline({
               </IconButton>
             </div>
           </div>
-          <Preview
-            project={project}
-            assets={assets}
-            onChange={async (track, clip, changes) => {
-              await edit("inspector_update", {
-                track_id: track.id,
-                clip_id: clip.id,
-                changes,
-                animation_duration_ms: clip.duration_ms,
-              });
-            }}
-            onInsert={insertOnCanvas}
-            renderedUrl={showRender ? latest?.output_url : undefined}
-            renderedSize={
-              latest?.output ||
-              (latest?.metadata?.width && latest?.metadata?.height
-                ? {
-                    width: latest.metadata.width,
-                    height: latest.metadata.height,
-                  }
-                : undefined)
-            }
-          />
-          <div className="transport">
-            <span className="timecode">
-              <CurrentTime /> <b>/ {timecode(project.duration_ms)}</b>
-            </span>
-            <div>
-              <IconButton
-                label={tr("Go to start")}
-                onClick={() => state.set({ time: 0, playing: false })}
-              >
-                <SkipBack size={16} />
-              </IconButton>
-              <Button
-                variant="outline"
-                className="play-button"
-                aria-label={state.playing ? tr("Pause") : tr("Play")}
-                onClick={() => state.set({ playing: !state.playing })}
-                disabled={!project.duration_ms}
-              >
-                {state.playing ? (
-                  <Pause size={19} fill="currentColor" />
-                ) : (
-                  <Play size={19} fill="currentColor" />
-                )}
-              </Button>
-              <IconButton
-                label={tr("Go to next shot")}
-                onClick={() => {
-                  const starts = project.tracks
-                    .flatMap((t) => t.clips.map((c) => c.start_ms))
-                    .sort((a, b) => a - b);
-                  state.set({
-                    time:
-                      starts.find((t) => t > useStudio.getState().time + 50) ||
-                      0,
-                  });
-                }}
-              >
-                <ArrowRight size={17} />
-              </IconButton>
-            </div>
-            <span className="preview-label">
-              {showRender ? "FFmpeg" : tr("Simplified preview")}
-            </span>
-          </div>
+          {!focusPreview && previewViewport}
+          <Dialog open={focusPreview} onOpenChange={setFocusPreview}>
+            <DialogContent
+              showCloseButton={false}
+              className="editor-preview-dialog"
+              style={{ display: "flex" }}
+            >
+              <div className="editor-preview-dialog-header">
+                <DialogTitle>{previewTitle}</DialogTitle>
+                <DialogDescription className="sr-only">
+                  {previewTitle}
+                </DialogDescription>
+                <IconButton
+                  label={tr("Close expanded preview")}
+                  onClick={() => setFocusPreview(false)}
+                >
+                  <X size={16} />
+                </IconButton>
+              </div>
+              {previewViewport}
+            </DialogContent>
+          </Dialog>
         </section>
         <aside className="inspector" ref={inspectorRef}>
           <div className="panel-heading">
