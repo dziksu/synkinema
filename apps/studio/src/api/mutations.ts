@@ -874,6 +874,13 @@ export const writes = {
       mutationKey: ["generate-voice"],
       retry: false,
       mutationFn: (request: VoiceRequest) => http.api.generateVoice(request),
+      onSuccess: ({ asset }, request) => {
+        updateConfirmed<Asset[]>(
+          client,
+          keys.assets(request.project_id),
+          (old) => [asset, ...(old || []).filter((a) => a.id !== asset.id)],
+        );
+      },
       onSettled: () => refresh(client, [["assets"], keys.voiceStatus]),
     }),
 };

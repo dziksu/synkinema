@@ -5055,3 +5055,193 @@ nav > button:hover,
     display: none;
   }
 }
+
+/* Script studio: narration stays primary, with shared voice settings alongside. */
+.script-page {
+  max-width: 1560px;
+}
+.script-status,
+.script-toolbar,
+.script-line-heading,
+.script-line-actions,
+.script-take,
+.script-recording,
+.script-progress,
+.script-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.script-status {
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 18px 0;
+}
+.script-brief,
+.script-scenes {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.script-page summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.script-brief .field {
+  margin-top: 16px;
+}
+.script-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+.script-workspace > .voice-generator {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 16px;
+  margin: 0;
+  padding: 20px;
+  width: 100%;
+  max-width: none;
+}
+.script-workspace > .voice-generator .field-grid {
+  grid-template-columns: 1fr;
+}
+.script-lines-panel {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.script-toolbar {
+  justify-content: space-between;
+}
+.script-toolbar h2 {
+  margin: 0;
+}
+.script-toolbar .hint {
+  margin: 8px 0 0;
+}
+.script-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0;
+}
+.script-line {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.script-line:focus-within {
+  border-color: #819958;
+}
+.script-line.is-recording {
+  border-color: #bf775d;
+}
+.script-line-heading {
+  margin-bottom: 12px;
+}
+.script-line-number {
+  font-family: monospace;
+  font-size: 16px;
+  color: #c4d6a7;
+}
+.script-line-order {
+  display: flex;
+  margin-left: auto;
+  gap: 4px;
+}
+.script-line textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--bg);
+}
+.script-line-actions {
+  margin-top: 12px;
+  gap: 8px;
+}
+.script-line-actions .button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.script-line-actions > .hint {
+  margin-left: auto;
+}
+.script-upload {
+  position: relative;
+  overflow: hidden;
+}
+.script-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.script-upload.disabled {
+  opacity: 0.45;
+}
+.script-upload:focus-within {
+  outline: 2px solid #c4d6a7;
+  outline-offset: 2px;
+}
+.script-take,
+.script-recording {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.script-take audio,
+.script-recording audio {
+  width: min(100%, 300px);
+  height: 36px;
+}
+.script-take .hint {
+  overflow-wrap: anywhere;
+  flex: 1;
+}
+.script-progress {
+  padding: 12px 0;
+  color: #c4d6a7;
+}
+.script-paste {
+  margin-top: 16px;
+}
+.recording-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ed7b6b;
+}
+@media (max-width: 1100px) {
+  .script-workspace {
+    grid-template-columns: 1fr;
+  }
+  .script-workspace > .voice-generator {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+  }
+  .script-workspace > .voice-generator .field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.script-regenerate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}

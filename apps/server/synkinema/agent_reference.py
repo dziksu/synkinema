@@ -19,6 +19,10 @@ retain task/job IDs, never enqueue to poll. Times are integer ms; source and tim
 Validate before rendering, then inspect actual render_frames and audio by completed job_id.
 Metadata/heuristics do not prove visual quality or listening. Full guide: synkinema://agent-guide.
 Discover voice providers before TTS; paid/external synthesis needs authorization.
+For Script studio, read get_project and edit update_project.script_lines, preserving the full ordered list and stable IDs.
+After import_asset/generate_voice_take, explicitly attach the real audio asset, source and captured text to its line.
+For requested source-file removal use remove_script_audio: deletes exclusive takes and their script history associations; shared sources are retained.
+Changed script-only writes clear line audio associations. get_edit_context omits script_lines; microphone capture is browser-only.
 """
 
 
@@ -73,10 +77,23 @@ def operation_reference(operation: str | None = None) -> dict:
 
     add(
         "update_project",
-        "Shallow replacement of supplied project fields. profiles/scenes/asset_ids replace their entire values; omitted nested model fields reset to defaults. IDs and revision cannot be changed. Scenes are planning metadata, not executable clips.",
-        _partial(Project, fields={"name", "brief", "script", "profile", "scenes", "asset_ids", "channel_id"}),
+        "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
+        _partial(
+            Project,
+            fields={
+                "name",
+                "brief",
+                "script",
+                "script_lines",
+                "profile",
+                "scenes",
+                "asset_ids",
+                "channel_id",
+            },
+        ),
         {
             "brief": "A concise wildlife story",
+            "script_lines": [{"id": "intro", "text": "A quiet morning in the forest."}],
             "profile": {"name": "Full HD", "kind": "video", "width": 1920, "height": 1080, "fps": 30},
         },
     )
@@ -255,6 +272,7 @@ def operation_reference(operation: str | None = None) -> dict:
 
 # Keyed by FastAPI route function name; tests require coverage for every /api route.
 REST_DESCRIPTIONS = {
+    "remove_script_audio": "Remove a line's audio and its project media membership at {expected_revision,expected_version,audio_asset_id}. Atomically clears this line/take association from this project's current script, saved revisions and render snapshot script metadata; removes matching asset_ids inventory entries. Script text and timeline remain unchanged. The removed take cannot be restored through undo. Another line or any timeline in this project's current/history/render snapshots using this source blocks removal with 409. Other projects and shared library memberships retain the source; otherwise deletes original/sidecar files with durable cleanup. Returns the confirmed project, deleted asset_ids or retained_asset_id, and actual cleanup metrics. Stale project/asset versions or changed take reject without changes. pending_files means disk cleanup remains incomplete. Not a regular reversible edit operation or batch step.",
     **CHANNEL_DESCRIPTIONS,
     **PRODUCTION_DESCRIPTIONS,
     "export_presets": "Read the shared output catalog: landscape 16:9, Reel/Short 9:16, square 1:1 and feed 4:5 in HD, Full HD, QHD (1440p, marketed as 2K; not DCI 2048), and UHD 4K tiers. Explicit pixel dimensions are authoritative. Also returns CRF quality choices, frame rates and draft cap. No writes.",

@@ -1,18 +1,50 @@
 # SpawnBrief — standing editorial rules
 
-Updated from the channel owner's feedback, 2026-09-14. Apply to future
-SpawnBrief shorts and revisions; these rules supersede older calendar examples.
+Updated from the channel owner's feedback, 2026-09-16. Apply to future
+SpawnBrief shorts and revisions. These rules supersede older calendar examples,
+multi-game formats and guidance favoring ultra-short edits or rapid cuts.
 
-## Opening: put the viewer inside the game
+## Priority: show the gameplay clearly
 
-- Start with a specific playable situation, not a generic verdict or news intro.
-- Useful patterns: “Imagine you and your friends…”, “What if you could…”.
-  In Polish: “Wyobraź sobie, że…”, “A co, gdybyś mógł z kolegami…”.
-- Finish the thought with the game's actual mechanic, stakes or funny dilemma.
-  Do not invent features to make a hook sound bigger.
-- Show real gameplay immediately. No logo splash, menu footage or title-only
-  opening. Reveal the game name after the situation earns attention.
-- Avoid vague hooks such as “This gets worse fast” or “Your next obsession”.
+- Every video covers exactly **one game**. A promotion video covers exactly
+  **one offer for that game**. No multi-game lists or promotion roundups.
+- Well-presented, varied gameplay is the highest creative priority. Give viewers
+  enough time to see what happens and get acquainted with the game or offer.
+- After the roughly three-second opening, include **at least 20 seconds of
+  substantive gameplay with narration about the game**, before the closing CTA.
+  The opening and CTA do not count toward that minimum. Longer is appropriate
+  when the explanation or action needs it; shortest runtime is not the goal.
+- Show several distinct, strong scenes demonstrating different actions,
+  mechanics or situations. Hold each shot long enough to understand the action.
+  Cut around the gameplay and explanation, not a fixed 0.8–1.5-second interval.
+- Do not replay the same source moment within a video. A crop, zoom, reversal
+  or speed change does not turn reused footage into a new scene. Check source
+  intervals and actual visuals for repetition. Simultaneous background and
+  foreground copies of one shot are one composition, not two distinct scenes.
+- For later videos about the same game, choose fresh moments instead of
+  recycling the same few scenes. If there are too few useful scenes, find more
+  appropriate footage within the authorized scope. Do not fill the duration
+  with loops, static filler, slowed speech or extra silence.
+
+## Opening: a natural introduction over gameplay
+
+- The first roughly three seconds are part of the video, with relevant gameplay
+  already visible behind the opening sentence. No separate hook card, teaser
+  montage, logo splash, menu footage or title-only intro.
+- Useful English patterns: “In this game, you and your friends…”, “In this
+  puzzle-filled game, you…”, “If you like something weird, this game is for
+  you…”, or “In this game, you play as…”. Immediately connect the opening to
+  a real mechanic, role or experience shown on screen. Mention friends only
+  when the actual game mode supports it.
+- Owner examples: “W tej grze wraz z kolegami…”, “W tej grze pełnej zagadek…”,
+  “Jeśli lubisz coś dziwnego, to ta gra jest dla ciebie…”. These express the
+  structure; the channel's viewer-facing language remains English.
+- Promotion pattern: “Another game you can claim for free on [platform] — this
+  time it is [game]…”. Name the game naturally during the introduction.
+- Verify the game, mechanics, platforms and release status with current official
+  sources. For an offer, also verify claim conditions and deadline/timezone.
+  Distinguish a keep-forever giveaway from a free weekend, demo, subscription
+  benefit or discount. Do not invent features or use stale promotion claims.
 
 ## Closing: a concrete invitation to respond
 
@@ -26,9 +58,13 @@ SpawnBrief shorts and revisions; these rules supersede older calendar examples.
 ## Voice, captions and timing
 
 - Preserve the video's established language unless the owner requests a change.
-  Current English shorts use a consistent male voice, natural and brisk delivery.
-- Measure actual leading/trailing silence; do not stretch short speech to a
-  template's minimum scene length. Keep useful breaths and question pauses.
+  Current English shorts use a consistent male voice with natural, clear,
+  conversational delivery. Do not rush speech to shorten the video.
+- Plan enough useful explanation and distinct footage for the minimum gameplay
+  section before recording. Measure actual leading/trailing silence and remove
+  excess gaps while retaining breaths, question pauses and time to understand
+  the action. Silence trimming is cleanup, not a mandate to minimize runtime.
+  If the script is too short, improve its useful content and source selection.
 - Align phrase captions to the new recording; changing script metadata alone
   does not update voice audio or captions.
 - Keep important copy away from Shorts' bottom description and right action rail.
@@ -43,8 +79,12 @@ SpawnBrief shorts and revisions; these rules supersede older calendar examples.
 
 ## Final check
 
-Inspect the first frame, new hook, game reveal, CTA and final frame from the exact
-export. Listen to the narration, check caption timing and decoded audio. Preserve
-the previous project revision for Undo. Do not publish/upload without a request.
+Confirm one game/offer, at least 20 seconds of narrated gameplay after the opening,
+several distinct scenes, no repeated source moments and sufficient time to follow
+each action. Inspect the first frame, opening, game reveal, transitions, CTA and
+final frame from the exact export. Listen to the narration, check caption timing
+and decoded audio. Preserve the previous project revision for Undo. Do not
+publish/upload without a request.
 
-Reference project: `446eda5ed0c44a02a532286b33b6707d` — Wild Climbers: Peak Panic.
+Historical voice/CTA reference: `446eda5ed0c44a02a532286b33b6707d` — Wild Climbers:
+Peak Panic. Its runtime and cut frequency are not templates for the new format.

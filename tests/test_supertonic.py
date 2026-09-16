@@ -96,6 +96,8 @@ async def test_concurrent_cache_private_media_and_cache_parameters(service):
     asset = first["asset"]
     assert asset["id"] == second["asset"]["id"]
     assert asset["kind"] == "audio" and asset["duration_ms"] == 100
+    assert asset["name"].startswith("voice-pl-f1-") and asset["name"].endswith(".wav")
+    assert ".." not in asset["name"] and "/" not in asset["name"]
     assert {"ai-generated", "pl", "F1", "supertonic-3"} <= set(asset["tags"])
     assert "OpenRAIL-M" in asset["license"] and model.REVISION in asset["source"]
     assert service.assets() == [] and len(service.assets(project_id=project.id)) == 1

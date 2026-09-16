@@ -125,6 +125,9 @@ it("requires an explicit supported language and imports only a confirmed private
   expect(
     (await screen.findByLabelText("Generated voiceover")).getAttribute("src"),
   ).toBe("/media/actual.wav");
+  expect(query.getQueryData(["assets", "private-project"])).toEqual([
+    result.asset,
+  ]);
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["assets"] });
   expect(query.getQueryState(keys.inventory)?.isInvalidated).toBe(true);
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["voice-status"] });

@@ -151,3 +151,36 @@ parameters with cancellation. Format/FPS/quality/framing choices stay local unti
 server resolves `RenderJob.output` (draft cap included), with source warnings.
 Only decoded completion metadata proves file dimensions. No project revision is
 invented to change output settings. See [export formats](EXPORT_FORMATS.md).
+
+### Script lines and audio takes
+
+`Project.script_lines` stores ordered, stable line IDs, text, and an optional
+`audio_asset_id` / `audio_source` / `audio_text` snapshot. The existing
+`update_project` operation replaces the list, validates real audio assets, and
+synchronizes the legacy `script` string. A changed script-only write clears line
+associations; old projects with only plain text stay readable. Scenes and timeline
+clips remain independent. Line audio participates in inventory, usage, history,
+and deletion protection.
+
+Studio edits use `projectWrites` with confirmed revisions and undo. Dirty drafts
+survive polling; concurrent script edits require explicit reconciliation.
+Per-line uploads and synthesis use the existing generated client mutations; only
+validated assets enter the cache. Bulk synthesis captures text/settings and saves
+each result separately, retaining completed takes on failure. By default it fills
+missing/outdated AI takes; optional regeneration still preserves manual takes.
+Recording requests microphone access only on Record, negotiates a supported MIME
+type, releases tracks on stop/cancel/unmount (including late permission replies),
+and offers a local preview before upload. Upload probing decodes audio without
+container duration, including browser live WebM, to measure its real duration.
+
+`DELETE /api/projects/{id}/script-lines/{line_id}/audio` is an explicit destructive
+lifecycle action, serialized through the same project write queue with confirmed
+project revision and asset version. It removes the take and project membership,
+scrubs only that line/take's script references and inventory entries from this
+project's historical snapshots, then deletes exclusive source files through the
+durable cleanup outbox. Other line/timeline references within the project block
+the action; shared library/other projects retain their sources. It preserves text
+and timeline undo, but removed script audio cannot be restored. The response
+reports retention and incomplete physical cleanup. On success Studio evicts
+pinned project snapshots before undo, reconciles media caches, and invalidates
+history/usage/jobs. Failures roll back the projection and preserve the take.

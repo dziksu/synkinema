@@ -46,6 +46,43 @@ def probe(path: Path):
         except Exception as exc:
             raise ValueError("Cannot decode image") from exc
     duration = float(data.get("format", {}).get("duration", 0))
+    if audio and not video and duration <= 0:
+        # MediaRecorder's live WebM files may omit duration in both headers.
+        # Decode on the server and measure the actual output timestamps.
+        decoded = subprocess.run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-nostdin",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-i",
+                str(path),
+                "-map",
+                "0:a:0",
+                "-progress",
+                "pipe:1",
+                "-nostats",
+                "-f",
+                "null",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if decoded.returncode:
+            raise ValueError("Cannot decode this audio recording")
+        timestamps = [
+            int(line.split("=", 1)[1])
+            for line in decoded.stdout.splitlines()
+            if line.startswith("out_time_us=") and line.split("=", 1)[1].lstrip("-").isdigit()
+        ]
+        duration = max(timestamps, default=0) / 1_000_000
+        if duration <= 0:
+            raise ValueError("Audio recording has no decodable duration")
     return {
         "kind": "image" if image and video else "video" if video else "audio" if audio else None,
         "width": video.get("width") if video else None,

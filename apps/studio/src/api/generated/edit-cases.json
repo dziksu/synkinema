@@ -33,6 +33,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -236,6 +237,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -456,7 +458,1295 @@
           "voice_asset_id": null
         }
       ],
+      "script": "Hello\nWorld",
+      "script_lines": [
+        {
+          "audio_asset_id": null,
+          "audio_source": null,
+          "audio_text": null,
+          "id": "line-one",
+          "text": "Hello"
+        },
+        {
+          "audio_asset_id": null,
+          "audio_source": null,
+          "audio_text": null,
+          "id": "line-two",
+          "text": "World"
+        }
+      ],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "before": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 1,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
       "script": "",
+      "script_lines": [],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "name": "update_project",
+    "plan": {
+      "steps": [
+        {
+          "payload": {
+            "script_lines": [
+              {
+                "id": "line-one",
+                "text": "Hello"
+              },
+              {
+                "id": "line-two",
+                "text": "World"
+              }
+            ]
+          },
+          "type": "update_project"
+        }
+      ]
+    }
+  },
+  {
+    "after": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16.0,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 2,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
+      "script": "",
+      "script_lines": [],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "before": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 1,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
+      "script": "",
+      "script_lines": [],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "name": "update_project",
+    "plan": {
+      "steps": [
+        {
+          "payload": {
+            "script_lines": []
+          },
+          "type": "update_project"
+        }
+      ]
+    }
+  },
+  {
+    "after": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16.0,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 2,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
+      "script": "Legacy replacement",
+      "script_lines": [],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0.0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1.0,
+                "width": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1.0,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1.0,
+                "rotation": 0.0,
+                "scale": 1.0,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0.0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "before": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 1,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
+      "script": "",
+      "script_lines": [],
+      "tracks": [
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 900,
+              "fade_out_ms": 600,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "one",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 0.5,
+              "start_ms": 0,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            },
+            {
+              "animations": [],
+              "asset_id": "asset",
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "two",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "video",
+          "kind": "video",
+          "muted": false,
+          "name": "Video"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "overlay",
+          "kind": "overlay",
+          "muted": false,
+          "name": "Elements"
+        },
+        {
+          "clips": [
+            {
+              "animations": [],
+              "asset_id": null,
+              "caption_style": "editorial",
+              "color": "#d8fb76",
+              "duration_ms": 2000,
+              "effects": [],
+              "fade_in_ms": 0,
+              "fade_out_ms": 0,
+              "font_size": 80,
+              "gain_db": 0,
+              "id": "title",
+              "name": "Untitled clip",
+              "placement": {
+                "height": 1,
+                "width": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "shape": null,
+              "source_in_ms": 0,
+              "speed": 1,
+              "start_ms": 2000,
+              "subtitle": "",
+              "text": "Title",
+              "text_x": 0.09,
+              "text_y": 0.66,
+              "transform": {
+                "fit": "cover",
+                "opacity": 1,
+                "rotation": 0,
+                "scale": 1,
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transition": {
+                "duration_ms": 300,
+                "type": "cut"
+              }
+            }
+          ],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "titles",
+          "kind": "text",
+          "muted": false,
+          "name": "Captions"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "voice",
+          "kind": "voiceover",
+          "muted": false,
+          "name": "Voice"
+        },
+        {
+          "clips": [],
+          "ducking": false,
+          "gain_db": 0,
+          "id": "empty",
+          "kind": "sound",
+          "muted": false,
+          "name": "Empty"
+        }
+      ]
+    },
+    "name": "update_project",
+    "plan": {
+      "steps": [
+        {
+          "payload": {
+            "script": "Legacy replacement"
+          },
+          "type": "update_project"
+        }
+      ]
+    }
+  },
+  {
+    "after": {
+      "asset_ids": [],
+      "brief": "",
+      "channel_context": null,
+      "channel_id": null,
+      "created_at": "2026-01-01T00:00:00+00:00",
+      "duration_ms": 4000,
+      "id": "project",
+      "name": "Reducer contract",
+      "profile": {
+        "crf": 18,
+        "fps": 30,
+        "height": 1920,
+        "kind": "reel",
+        "name": "Instagram Reel",
+        "normalize": true,
+        "target_lufs": -16.0,
+        "true_peak": -1.5,
+        "width": 1080
+      },
+      "revision": 2,
+      "scenes": [
+        {
+          "duration_ms": 4000,
+          "id": "scene",
+          "narration": "",
+          "notes": "",
+          "start_ms": 2000,
+          "title": "Scene",
+          "voice_asset_id": null
+        }
+      ],
+      "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -669,6 +1959,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -887,6 +2178,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [],
@@ -1090,6 +2382,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -1306,6 +2599,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -1500,6 +2794,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -1716,6 +3011,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -1869,6 +3165,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -2086,6 +3383,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -2289,6 +3587,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -2509,6 +3808,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -2753,6 +4053,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -2976,6 +4277,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -3219,6 +4521,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -3440,6 +4743,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -3683,6 +4987,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -3901,6 +5206,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -4145,6 +5451,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -4364,6 +5671,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -4573,6 +5881,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -4802,6 +6111,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -5005,6 +6315,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -5227,6 +6538,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -5431,6 +6743,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -5650,6 +6963,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -5853,6 +7167,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -6074,6 +7389,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -6317,6 +7633,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -6536,6 +7853,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -6699,6 +8017,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -6916,6 +8235,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -7119,6 +8439,7 @@
         }
       ],
       "script": "",
+      "script_lines": [],
       "tracks": [
         {
           "clips": [
@@ -7324,6 +8645,7 @@
           }
         ],
         "script": "",
+        "script_lines": [],
         "tracks": [
           {
             "clips": [

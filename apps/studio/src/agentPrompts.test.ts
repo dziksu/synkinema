@@ -21,6 +21,9 @@ it("builds revision-aware prompts for every Synkinema scope", () => {
 
   expect(agentInstructionsPrompt()).toContain(synkinemaMcpUrl);
   expect(agentInstructionsPrompt()).toContain("get_agent_guide");
+  expect(agentInstructionsPrompt()).toContain("update_project.script_lines");
+  expect(agentInstructionsPrompt()).toContain("original audio_text");
+  expect(agentInstructionsPrompt()).toContain("preserves manual takes");
   expect(channelAgentPrompt(channel)).toContain("channel-1");
   expect(projectAgentPrompt(project)).toContain("confirmed revision: 7");
   expect(sharedLibraryAgentPrompt({ id: "music", name: "Music" })).toContain(

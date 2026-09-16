@@ -3916,6 +3916,68 @@
         "title": "Scene",
         "type": "object"
       },
+      "EditScriptLine": {
+        "additionalProperties": false,
+        "properties": {
+          "audio_asset_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Server-validated audio asset; no automatic timeline insertion.",
+            "title": "Audio Asset Id"
+          },
+          "audio_source": {
+            "anyOf": [
+              {
+                "enum": ["recorded", "uploaded", "generated"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Audio Source"
+          },
+          "audio_text": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Text at recording/upload/generation time. A mismatch with text means the take may be outdated.",
+            "title": "Audio Text"
+          },
+          "id": {
+            "description": "Stable line identity across edits and reordering.",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["id"],
+        "title": "ScriptLine",
+        "type": "object"
+      },
       "EditStep": {
         "discriminator": {
           "propertyName": "type"
@@ -6909,6 +6971,15 @@
             "title": "Script",
             "type": "string"
           },
+          "script_lines": {
+            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+            "items": {
+              "$ref": "#/components/schemas/ScriptLine-Input"
+            },
+            "maxItems": 500,
+            "title": "Script Lines",
+            "type": "array"
+          },
           "tracks": {
             "items": {
               "$ref": "#/components/schemas/Track-Input"
@@ -7006,6 +7077,15 @@
             "title": "Script",
             "type": "string"
           },
+          "script_lines": {
+            "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+            "items": {
+              "$ref": "#/components/schemas/ScriptLine-Output"
+            },
+            "maxItems": 500,
+            "title": "Script Lines",
+            "type": "array"
+          },
           "tracks": {
             "items": {
               "$ref": "#/components/schemas/Track-Output"
@@ -7021,6 +7101,7 @@
           "name",
           "brief",
           "script",
+          "script_lines",
           "revision",
           "profile",
           "scenes",
@@ -7558,6 +7639,111 @@
           }
         },
         "required": ["type", "payload"],
+        "type": "object"
+      },
+      "RemoveScriptAudioRequest": {
+        "additionalProperties": false,
+        "examples": [
+          {
+            "audio_asset_id": "RETURNED_AUDIO_ASSET_ID",
+            "expected_revision": 3,
+            "expected_version": 1
+          }
+        ],
+        "properties": {
+          "audio_asset_id": {
+            "description": "Exact take currently attached to the selected line; a different take returns 409.",
+            "minLength": 1,
+            "title": "Audio Asset Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "description": "Last confirmed project revision; conflicts reject atomically.",
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "expected_version": {
+            "description": "Confirmed asset metadata version. Stale version returns 409; reload and reconcile.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": ["expected_version", "expected_revision", "audio_asset_id"],
+        "title": "RemoveScriptAudioRequest",
+        "type": "object"
+      },
+      "RemoveScriptAudioResult": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_ids": {
+            "description": "Exclusive private sources deleted. Shared library and other projects' historical sources are preserved.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Asset Ids",
+            "type": "array"
+          },
+          "deleted_files": {
+            "description": "Existing nonempty files physically removed by this cleanup pass.",
+            "minimum": 0.0,
+            "title": "Deleted Files",
+            "type": "integer"
+          },
+          "freed_bytes": {
+            "description": "Bytes physically unlinked in this pass, not an estimate.",
+            "minimum": 0.0,
+            "title": "Freed Bytes",
+            "type": "integer"
+          },
+          "job_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Job Ids",
+            "type": "array"
+          },
+          "pending_files": {
+            "description": "Durable pending cleanup entries; nonzero means deletion committed but disk cleanup is incomplete. Retried every 10 seconds and after restart.",
+            "minimum": 0.0,
+            "title": "Pending Files",
+            "type": "integer"
+          },
+          "project": {
+            "$ref": "#/components/schemas/ProjectSnapshot"
+          },
+          "project_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Project Ids",
+            "type": "array"
+          },
+          "retained_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.",
+            "title": "Retained Asset Id"
+          }
+        },
+        "required": [
+          "deleted_files",
+          "freed_bytes",
+          "pending_files",
+          "job_ids",
+          "project_ids",
+          "asset_ids",
+          "project",
+          "retained_asset_id"
+        ],
+        "title": "RemoveScriptAudioResult",
         "type": "object"
       },
       "RemoveTrackOperation": {
@@ -8287,6 +8473,130 @@
           "voice_asset_id"
         ],
         "title": "Scene",
+        "type": "object"
+      },
+      "ScriptLine-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio_asset_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-validated audio asset; no automatic timeline insertion.",
+            "title": "Audio Asset Id"
+          },
+          "audio_source": {
+            "anyOf": [
+              {
+                "enum": ["recorded", "uploaded", "generated"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Source"
+          },
+          "audio_text": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Text at recording/upload/generation time. A mismatch with text means the take may be outdated.",
+            "title": "Audio Text"
+          },
+          "id": {
+            "description": "Stable line identity across edits and reordering.",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["id"],
+        "title": "ScriptLine",
+        "type": "object"
+      },
+      "ScriptLine-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "audio_asset_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-validated audio asset; no automatic timeline insertion.",
+            "title": "Audio Asset Id"
+          },
+          "audio_source": {
+            "anyOf": [
+              {
+                "enum": ["recorded", "uploaded", "generated"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Source"
+          },
+          "audio_text": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Text at recording/upload/generation time. A mismatch with text means the take may be outdated.",
+            "title": "Audio Text"
+          },
+          "id": {
+            "description": "Stable line identity across edits and reordering.",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "audio_asset_id",
+          "audio_text",
+          "audio_source"
+        ],
+        "title": "ScriptLine",
         "type": "object"
       },
       "SetTransitionOperation": {
@@ -10438,7 +10748,7 @@
       },
       "UpdateProjectOperation": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied project fields. profiles/scenes/asset_ids replace their entire values; omitted nested model fields reset to defaults. IDs and revision cannot be changed. Scenes are planning metadata, not executable clips.",
+        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
         "examples": [
           {
             "expected_revision": 1,
@@ -10450,7 +10760,13 @@
                 "kind": "video",
                 "name": "Full HD",
                 "width": 1920
-              }
+              },
+              "script_lines": [
+                {
+                  "id": "intro",
+                  "text": "A quiet morning in the forest."
+                }
+              ]
             },
             "type": "update_project"
           }
@@ -10512,6 +10828,15 @@
                 "maxLength": 100000,
                 "title": "Script",
                 "type": "string"
+              },
+              "script_lines": {
+                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+                "items": {
+                  "$ref": "#/components/schemas/EditScriptLine"
+                },
+                "maxItems": 500,
+                "title": "Script Lines",
+                "type": "array"
               }
             },
             "type": "object"
@@ -10526,7 +10851,7 @@
       },
       "UpdateProjectStep": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied project fields. profiles/scenes/asset_ids replace their entire values; omitted nested model fields reset to defaults. IDs and revision cannot be changed. Scenes are planning metadata, not executable clips.",
+        "description": "Shallow replacement of supplied project fields. profile/scenes/script_lines/asset_ids replace their entire values; omitted nested model fields reset to defaults. script_lines synchronize script to newline-joined text; a changed script-only edit clears line audio associations. Line audio must reference an existing, probed audio asset. IDs and revision cannot be changed. Scenes and script lines are planning metadata, not executable clips.",
         "examples": [
           {
             "payload": {
@@ -10537,7 +10862,13 @@
                 "kind": "video",
                 "name": "Full HD",
                 "width": 1920
-              }
+              },
+              "script_lines": [
+                {
+                  "id": "intro",
+                  "text": "A quiet morning in the forest."
+                }
+              ]
             },
             "type": "update_project"
           }
@@ -10594,6 +10925,15 @@
                 "maxLength": 100000,
                 "title": "Script",
                 "type": "string"
+              },
+              "script_lines": {
+                "description": "Ordered narration lines and optional audio takes. Empty for legacy plain-text scripts. When supplied to update_project, replaces the list and synchronizes script with newline-joined text. A changed script-only edit clears these associations. Does not alter scenes or timeline clips.",
+                "items": {
+                  "$ref": "#/components/schemas/EditScriptLine"
+                },
+                "maxItems": 500,
+                "title": "Script Lines",
+                "type": "array"
               }
             },
             "type": "object"
@@ -18117,6 +18457,122 @@
           }
         ],
         "summary": "Render",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/projects/{project_id}/script-lines/{line_id}/audio": {
+      "delete": {
+        "description": "Remove a line's audio and its project media membership at {expected_revision,expected_version,audio_asset_id}. Atomically clears this line/take association from this project's current script, saved revisions and render snapshot script metadata; removes matching asset_ids inventory entries. Script text and timeline remain unchanged. The removed take cannot be restored through undo. Another line or any timeline in this project's current/history/render snapshots using this source blocks removal with 409. Other projects and shared library memberships retain the source; otherwise deletes original/sidecar files with durable cleanup. Returns the confirmed project, deleted asset_ids or retained_asset_id, and actual cleanup metrics. Stale project/asset versions or changed take reject without changes. pending_files means disk cleanup remains incomplete. Not a regular reversible edit operation or batch step.",
+        "operationId": "remove_script_audio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveScriptAudioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveScriptAudioResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Remove Script Audio",
         "tags": ["Composition"]
       }
     },

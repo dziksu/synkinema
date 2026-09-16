@@ -25,6 +25,7 @@ export function agentInstructionsPrompt(url = synkinemaMcpUrl) {
     "",
     tr("Agent instruction connection", { url }),
     tr("Agent instruction workflow"),
+    tr("Agent instruction scripts"),
     tr("Agent instruction safety"),
   ].join("\n");
 }

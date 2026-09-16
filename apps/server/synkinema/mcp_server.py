@@ -10,6 +10,7 @@ from .api_contract import (
     DeleteAssetsRequest,
     DeleteJobsRequest,
     RemoveAssetLocation,
+    RemoveScriptAudioRequest,
 )
 from .deletion import Deletion
 from .exporting import ExportOutput, export_catalog
@@ -53,7 +54,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     def get_project(project_id: str, revision: int | None = None) -> dict:
-        """Read a complete Project, computed duration_ms and live channel_context (rules and recent reviews; null for independent projects). Read channel guidance before scripting, TTS or editing. Omit revision for current; set it for an immutable historical timeline with CURRENT channel guidance/version. Unknown project/revision returns a tool error."""
+        """Read a complete Project including ordered script_lines with stable IDs and audio/text snapshots, computed duration_ms and live channel_context (rules and recent reviews; null for independent projects). Read channel guidance before scripting, TTS or editing. Omit revision for current; set it for an immutable historical timeline with CURRENT channel guidance/version. Unknown project/revision returns a tool error."""
         return service.summary(service.get(project_id, revision))
 
     @mcp.tool(
@@ -71,7 +72,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     def apply_operation(project_id: str, operation: Operation) -> dict:
-        """Apply ONE atomic operation and return full updated Project including new revision and duration_ms. operation is {expected_revision,type,payload}. Read get_operation_reference(operation=type) for exact payload schema and side effects. Supports update_project, add/update/reorder/remove_track, add/update/move/trim/split/remove_clip, set_transition, restore_revision. Serialize writes; use returned revision. Stale revisions reject: reread and reconcile instead of blind retry. append_clip, duplicate_clip and extract_audio are explicit helpers; no implicit snapping or retiming. Arrays and nested objects are shallow replacements."""
+        """Apply ONE atomic operation and return full updated Project including new revision and duration_ms. operation is {expected_revision,type,payload}. Read get_operation_reference(operation=type) for exact payload schema and side effects. Supports update_project, add/update/reorder/remove_track, add/update/move/trim/split/remove_clip, set_transition, restore_revision. Serialize writes; use returned revision. Stale revisions reject: reread and reconcile instead of blind retry. append_clip, duplicate_clip and extract_audio are explicit helpers; no implicit snapping or retiming. Arrays and nested objects are shallow replacements. For Script studio, read get_project and replace the full script_lines list, preserving untouched lines/IDs/audio metadata. A changed script-only write clears line associations."""
         return service.summary(service.apply(project_id, operation))
 
     @mcp.tool(
@@ -80,7 +81,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     def get_project_schema() -> dict:
-        """Return Project JSON Schema with nested Clip/Track/Profile models and field bounds. Cross-field rules (source duration, fades, keyframe timing, overlaps) are in get_agent_guide; effect/property-dependent bounds are in get_capabilities. Operation payloads are in get_operation_reference."""
+        """Return Project JSON Schema with nested ScriptLine/Clip/Track/Profile models and field bounds. Cross-field rules (source duration, fades, keyframe timing, overlaps) are in get_agent_guide; effect/property-dependent bounds are in get_capabilities. Operation payloads are in get_operation_reference."""
         return Project.model_json_schema()
 
     @mcp.tool(
@@ -91,7 +92,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
     def search_assets(
         query: str = "", kind: str | None = None, project_id: str | None = None, folder_id: str | None = None
     ) -> list[dict]:
-        """Read shared library when project_id is omitted, or the project collection (including assets referenced by its clips) when provided. Optional folder_id filters that collection. Private imports are absent from shared search until locate_asset adds library membership. query matches name/tags by case-insensitive substring; kind is image/video/audio or null. Results include id, duration_ms, has_audio, dimensions, URLs, checksum, tags and source/license. A video may have no audio; inspect has_audio before adding to audio tracks."""
+        """Read shared library when project_id is omitted, or the project collection (including assets referenced by its clips and script_lines) when provided. Optional folder_id filters that collection. Private imports are absent from shared search until locate_asset adds library membership. query matches name/tags by case-insensitive substring; kind is image/video/audio or null. Results include id, duration_ms, has_audio, dimensions, URLs, checksum, tags and source/license. A video may have no audio; inspect has_audio before adding to audio tracks."""
         return service.assets(query, kind, project_id, folder_id)
 
     @mcp.tool(
@@ -108,7 +109,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         project_id: str | None = None,
         folder_id: str | None = None,
     ) -> dict:
-        """Import actual bytes as raw base64 (no data-URL prefix), max 12 MiB decoded /16 MiB encoded. filename is a display name/extension, not an agent/server path; no URL fetching. Return Asset with id, duration_ms and has_audio. project_id restricts the import to that project collection; omitted means shared library. folder_id must belong to that collection. Identical bytes reuse the existing Asset and add collection membership without merging name/tags. Does not add a clip or change project revision. Pass source/license attribution strings when known. For large public URL/Steam media use start_production_task import_media/import_steam_trailer (up to 512 MiB), then wait; no external downloader/upload required. Agent-local large files use Studio or REST multipart POST /api/assets, max 2 GiB."""
+        """Import actual bytes as raw base64 (no data-URL prefix), max 12 MiB decoded /16 MiB encoded. filename is a display name/extension, not an agent/server path; no URL fetching. Return Asset with id, duration_ms and has_audio. project_id restricts the import to that project collection; omitted means shared library. folder_id must belong to that collection. Identical bytes reuse the existing Asset and add collection membership without merging name/tags. Does not attach to a script line, add a clip or change project revision. To attach imported narration, update_project.script_lines with the real asset ID, audio_source=uploaded and audio_text matching the captured text. Pass source/license attribution strings when known. For large public URL/Steam media use start_production_task import_media/import_steam_trailer (up to 512 MiB), then wait; no external downloader/upload required. Agent-local large files use Studio or REST multipart POST /api/assets, max 2 GiB."""
         import base64
         from pathlib import Path
 
@@ -176,7 +177,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     async def generate_voice_take(request: VoiceRequest) -> dict:
-        """Generate speech, not scripts. Discover get_voice_provider_status first. For local offline TTS use request={provider:'supertonic',text,voice_id:'F1',language:'pl',project_id?:id,steps?:8,speed?:1}. Exactly 31 supported language codes; na/auto/unsupported codes reject. No language detection/translation. F1–F5/M1–M5 presets; 1000-character limit; 4–16 steps; speed 0.7–2.0. Requires installed pinned Supertonic 3; no automatic model download. Label published output AI-generated per OpenRAIL-M. Legacy/default ElevenLabs requires server key and account voice_id, supports 5000 chars, sends text externally and consumes credits on cache misses: obtain authorization for paid synthesis. Returns {asset,cached} only after real import; project_id uses private media, omission shared Voiceovers. DOES NOT insert clips or change revision. Repeating identical synthesis in the same scope reuses output. Use returned asset/duration with add_clip on a voiceover track."""
+        """Generate speech, not scripts. Discover get_voice_provider_status first. For local offline TTS use request={provider:'supertonic',text,voice_id:'F1',language:'pl',project_id?:id,steps?:8,speed?:1}. Exactly 31 supported language codes; na/auto/unsupported codes reject. No language detection/translation. F1–F5/M1–M5 presets; 1000-character limit; 4–16 steps; speed 0.7–2.0. Requires installed pinned Supertonic 3; no automatic model download. Label published output AI-generated per OpenRAIL-M. Legacy/default ElevenLabs requires server key and account voice_id, supports 5000 chars, sends text externally and consumes credits on cache misses: obtain authorization for paid synthesis. Returns {asset,cached} only after real import; project_id uses private media, omission shared Voiceovers. DOES NOT insert clips or change revision. Repeating identical synthesis in the same scope reuses output. For Script studio, get_project then update_project.script_lines to attach asset.id with audio_source=generated and audio_text equal to the synthesized request.text, preserving all other lines and fields. Generate all is a caller loop with per-line saves; preserve recorded/uploaded takes. Use returned asset/duration with add_clip separately when arranging the timeline. Microphone capture is browser-only."""
         return await voices.generate(request)
 
     @mcp.tool(
@@ -501,6 +502,15 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
     async def delete_media(request: DeleteAssetsRequest) -> dict:
         """Permanently delete original files/thumbnails across all collections: {assets:[{id,expected_version}]} (1–100 distinct IDs). Confirm intended scope. Any current/historical project or render snapshot reference blocks the entire selection, as does a stale version/missing ID. No force or undo. Returns deleted IDs and physical cleanup metrics. Nonzero pending_files means committed metadata deletion with durable disk retries; use retry_file_cleanup. To hide a used file from shared library, use remove_media_membership instead."""
         return await Deletion(service, worker, inspection).assets(request)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False
+        )
+    )
+    async def remove_script_audio(project_id: str, line_id: str, request: RemoveScriptAudioRequest) -> dict:
+        """Permanently remove this line's take from Script studio and project media. Supply confirmed expected_revision, Asset expected_version and exact audio_asset_id. Clears the same line/take from this project's script history and render snapshot metadata so undo cannot restore deleted audio; preserves text/timeline. Another line or timeline in this project's history/current/render snapshots blocks with 409. Other projects/library keep their sources; exclusively owned files are deleted with durable cleanup. Returns project, deleted asset_ids or retained_asset_id, and pending_files (nonzero means physical cleanup incomplete). Do not detach with update_project when physical removal is intended. Never blindly retry conflicts."""
+        return await Deletion(service, worker, inspection).script_audio(project_id, line_id, request)
 
     @mcp.tool(
         annotations=ToolAnnotations(
