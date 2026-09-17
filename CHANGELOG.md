@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.4.1](https://github.com/dziksu/synkinema/compare/v1.4.0...v1.4.1) (2026-09-17)
+
+### Bug Fixes
+
+* **studio:** repair expanded preview dialog ([66e37be](https://github.com/dziksu/synkinema/commit/66e37be918374ecd44aaa6186f2723042ff2cd86))
+
 ## [1.4.0](https://github.com/dziksu/synkinema/compare/v1.3.1...v1.4.0) (2026-09-16)
 
 ### Features
