@@ -146,9 +146,11 @@ def test_range_keeps_quality_and_fps_without_second_lossy_encode(scene, tmp_path
         )
     )["streams"][0]
     assert stream["r_frame_rate"] == "60/1" and stream["nb_frames"] == "24"
-    encoding = [c for c in commands if "[vout]" in c]
+    encoding = [c for c in commands if "[vout]" in c and "-crf" in c]
     assert len(encoding) == 1 and encoding[0][encoding[0].index("-crf") + 1] == "15"
-    assert len(commands) == 2  # Prepare once, compose once; no range re-encode.
+    staging = [c for c in commands if "[vout]" in c and "ffv1" in c]
+    assert len(staging) == 1
+    assert len(commands) == 3  # Prepare, stream a lossless stage, then encode the selected range once.
 
 
 def test_export_catalog_contract_snapshot_and_conflicts(tmp_path):
