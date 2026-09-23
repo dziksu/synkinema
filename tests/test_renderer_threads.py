@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 from synkinema.media import probe
-from synkinema.models import OutputProfile
+from synkinema.models import Clip, OutputProfile, Project, Track
 from synkinema.renderer import Renderer
 from synkinema.service import Service
 from synkinema.storage import Store
@@ -66,6 +66,71 @@ def test_codec_thread_limits_apply_to_every_input_and_output(tmp_path, monkeypat
     result = probe(output)
     assert (result["width"], result["height"]) == (128, 128)
     assert abs(result["duration_ms"] - input_count * 200) < 50
+
+
+@pytest.mark.asyncio
+async def test_many_overlays_are_streamed_through_bounded_file_stages(tmp_path, monkeypatch):
+    monkeypatch.setenv("SYNKINEMA_FFMPEG_THREADS", "2")
+    monkeypatch.setenv("SYNKINEMA_OVERLAY_BATCH_SIZE", "2")
+    service = Service(Store(tmp_path / "data"))
+    renderer = Renderer(service)
+    source = tmp_path / "source.mp4"
+    await renderer.run(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=128x128:r=12:d=1",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(source),
+        ]
+    )
+    asset = service.import_file(source, "Red")
+    project = Project(
+        name="File-backed overlay staging",
+        profile=OutputProfile(width=128, height=128, fps=12, normalize=False),
+        tracks=[
+            Track(
+                id="video",
+                name="Video",
+                kind="video",
+                clips=[Clip(id="base", asset_id=asset["id"], duration_ms=1000)],
+            ),
+            *[
+                Track(
+                    id=f"text-{index}",
+                    name=f"Text {index}",
+                    kind="text",
+                    clips=[Clip(id=f"caption-{index}", text=str(index), duration_ms=1000)],
+                )
+                for index in range(5)
+            ],
+        ],
+    )
+    calls = []
+    create = asyncio.create_subprocess_exec
+
+    async def capture(*args, **kwargs):
+        calls.append(args)
+        return await create(*args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", capture)
+    output = tmp_path / "result.mp4"
+    await renderer.render(project, output)
+
+    stages = [
+        command
+        for command in calls
+        if ".stage-" in command[command.index("-progress") - 1]
+        and command[command.index("-progress") - 1].endswith(".mkv")
+    ]
+    assert len(stages) == 4  # base plus ceil(5 / 2) overlay passes
+    assert max(command.count("-i") for command in stages) <= 3  # prior stage + one bounded batch
+    assert not list(tmp_path.glob("result.stage-*.mkv"))
+    assert probe(output)["duration_ms"] == pytest.approx(1000, abs=100)
 
 
 def test_encoded_aac_peak_is_checked_and_corrected_without_reencoding_video(tmp_path):

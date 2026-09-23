@@ -12,7 +12,7 @@ from .exporting import composition_profile, framing_filter, resolved_output
 from .media import cached_text_layer
 from .models import ANIMATION_BOUNDS, EFFECT_BOUNDS, Project
 
-RENDERER_VERSION = 6
+RENDERER_VERSION = 7
 
 TRANSITIONS = {
     "crossfade": "fade",
@@ -139,6 +139,7 @@ class Renderer:
         self.store = service.store
         self.process = None
         self.threads = max(1, min(int(os.environ.get("SYNKINEMA_FFMPEG_THREADS", "4")), 16))
+        self.overlay_batch_size = max(1, min(int(os.environ.get("SYNKINEMA_OVERLAY_BATCH_SIZE", "12")), 32))
 
     async def run(self, args, progress=None, duration=0):
         # FFmpeg codec options apply to the next file, not the entire command.
@@ -318,37 +319,29 @@ class Renderer:
         temp.replace(output)
         return output
 
-    async def render(
-        self,
-        project: Project,
-        output: Path,
-        quality="final",
-        progress=lambda p, phase: None,
-        from_ms=0,
-        to_ms=None,
-        output_settings=None,
-    ):
-        validate_timeline(project)
-        target = resolved_output(project, output_settings, quality)
-        profile = composition_profile(project, target)
+    @staticmethod
+    def _stage_codec(output):
+        """Lossless, file-backed video stage used to cap live FFmpeg inputs."""
+        return [
+            "-an",
+            "-c:v",
+            "ffv1",
+            "-level",
+            "3",
+            "-g",
+            "1",
+            "-pix_fmt",
+            "yuv420p",
+            str(output),
+        ]
+
+    async def _compose_primary(self, sequence, rendered, profile, duration, output, progress):
+        """Stream the primary timeline to one lossless intermediate file."""
         w, h, fps = profile.width, profile.height, profile.fps
-        duration = project.duration_ms / 1000
-        active = [t for t in project.tracks if not t.muted]
-        visual = [(t, c) for t in active if t.kind in ("video", "overlay") for c in t.clips if not c.shape]
-        rendered = {}
-        for i, (track, clip) in enumerate(visual):
-            progress(0.03 + 0.48 * i / max(1, len(visual)), f"Preparing clip {i + 1}/{len(visual)}")
-            visual_source, box_profile = prepare_visual(clip, profile, track.kind == "overlay")
-            rendered[clip.id] = await self.visual_clip(
-                visual_source, box_profile, transparent=track.kind == "overlay"
-            )
         args, graph, index = [], [], 0
-        primary = next((t for t in active if t.kind == "video" and t.clips), None)
-        sequence = sorted(primary.clips, key=lambda c: c.start_ms) if primary else []
         previous = None
         end = 0.0
 
-        # Every normalized input has identical dimensions, FPS and timebase.
         def blank(seconds):
             nonlocal index
             args.extend(["-f", "lavfi", "-t", str(seconds), "-i", f"color=c=0x080e10:s={w}x{h}:r={fps}"])
@@ -401,58 +394,159 @@ class Renderer:
             previous = blank(duration)
         elif duration > end + 0.002:
             previous = concat(previous, blank(duration - end), "tail")
-        for track in active:
-            if track.kind not in ("text", "overlay"):
-                continue
-            for clip in track.clips:
-                if track.kind == "text" or clip.shape:
-                    png = cached_text_layer(clip, w, h, self.store.path("cache"))
-                    # Stop producing full-frame PNGs when this layer ends.
-                    # An unlimited image loop keeps decoding/fading even after
-                    # overlay's enable expression has hidden the caption.
-                    args += [
-                        "-loop",
-                        "1",
-                        "-framerate",
-                        str(fps),
-                        "-t",
-                        str(clip.duration_ms / 1000),
-                        "-i",
-                        str(png),
-                    ]
-                else:
-                    args += ["-i", str(rendered[clip.id])]
-                filters = ["format=rgba"]
-                px, py = 0, 0
-                if track.kind == "overlay" and not clip.shape:
-                    p = clip.placement
-                    pw, ph = max(2, round(w * p.width / 2) * 2), max(2, round(h * p.height / 2) * 2)
-                    px, py = round(w * p.x - pw / 2), round(h * p.y - ph / 2)
-                    filters += [f"scale={pw}:{ph}:flags=lanczos"]
-                if clip.transform.opacity < 1:
-                    filters += [f"colorchannelmixer=aa={clip.transform.opacity}"]
-                if any(a.property == "opacity" for a in clip.animations):
-                    opacity = expression(clip, "opacity", "T")
-                    filters += [f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='alpha(X,Y)*({opacity})'"]
-                fade = clip.fade_in_ms
-                if fade:
-                    filters += [f"fade=t=in:st=0:d={fade / 1000}:alpha=1"]
-                if clip.fade_out_ms:
-                    filters += [
-                        f"fade=t=out:st={(clip.duration_ms - clip.fade_out_ms) / 1000}:d={clip.fade_out_ms / 1000}:alpha=1"
-                    ]
-                filters += [f"setpts=PTS-STARTPTS+{clip.start_ms / 1000}/TB"]
-                graph += [
-                    f"[{index}:v]{','.join(filters)}[layer{index}]",
-                    f"[{previous}][layer{index}]overlay=x={px}:y={py}:eof_action=pass:enable='gte(t,{clip.start_ms / 1000})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000})'[over{index}]",
+        graph += [f"[{previous}]format=yuv420p[vout]"]
+        await self.run(
+            [
+                *args,
+                "-filter_complex",
+                ";".join(graph),
+                "-map",
+                "[vout]",
+                "-t",
+                str(duration),
+                *self._stage_codec(output),
+            ],
+            progress,
+            duration,
+        )
+
+    async def _apply_overlay_batch(self, source, batch, rendered, profile, duration, output, progress):
+        """Overlay a bounded layer batch and stream the result to the next stage."""
+        w, h, fps = profile.width, profile.height, profile.fps
+        args = ["-i", str(source)]
+        graph = ["[0:v]settb=AVTB,setpts=PTS-STARTPTS[base]"]
+        previous = "base"
+        for index, (track, clip) in enumerate(batch, start=1):
+            if track.kind == "text" or clip.shape:
+                png = cached_text_layer(clip, w, h, self.store.path("cache"))
+                args += [
+                    "-loop",
+                    "1",
+                    "-framerate",
+                    str(fps),
+                    "-t",
+                    str(clip.duration_ms / 1000),
+                    "-i",
+                    str(png),
                 ]
-                previous = f"over{index}"
-                index += 1
+            else:
+                args += ["-i", str(rendered[clip.id])]
+            filters = ["format=rgba"]
+            px, py = 0, 0
+            if track.kind == "overlay" and not clip.shape:
+                placement = clip.placement
+                pw, ph = (
+                    max(2, round(w * placement.width / 2) * 2),
+                    max(2, round(h * placement.height / 2) * 2),
+                )
+                px, py = round(w * placement.x - pw / 2), round(h * placement.y - ph / 2)
+                filters += [f"scale={pw}:{ph}:flags=lanczos"]
+            if clip.transform.opacity < 1:
+                filters += [f"colorchannelmixer=aa={clip.transform.opacity}"]
+            if any(animation.property == "opacity" for animation in clip.animations):
+                opacity = expression(clip, "opacity", "T")
+                filters += [f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='alpha(X,Y)*({opacity})'"]
+            if clip.fade_in_ms:
+                filters += [f"fade=t=in:st=0:d={clip.fade_in_ms / 1000}:alpha=1"]
+            if clip.fade_out_ms:
+                filters += [
+                    f"fade=t=out:st={(clip.duration_ms - clip.fade_out_ms) / 1000}:d={clip.fade_out_ms / 1000}:alpha=1"
+                ]
+            filters += [f"setpts=PTS-STARTPTS+{clip.start_ms / 1000}/TB"]
+            layer = f"layer{index}"
+            combined = f"over{index}"
+            graph += [
+                f"[{index}:v]{','.join(filters)}[{layer}]",
+                f"[{previous}][{layer}]overlay=x={px}:y={py}:eof_action=pass:enable='gte(t,{clip.start_ms / 1000})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000})'[{combined}]",
+            ]
+            previous = combined
+        graph += [f"[{previous}]format=yuv420p[vout]"]
+        await self.run(
+            [
+                *args,
+                "-filter_complex",
+                ";".join(graph),
+                "-map",
+                "[vout]",
+                "-t",
+                str(duration),
+                *self._stage_codec(output),
+            ],
+            progress,
+            duration,
+        )
+
+    async def render(
+        self,
+        project: Project,
+        output: Path,
+        quality="final",
+        progress=lambda p, phase: None,
+        from_ms=0,
+        to_ms=None,
+        output_settings=None,
+    ):
+        validate_timeline(project)
+        target = resolved_output(project, output_settings, quality)
+        profile = composition_profile(project, target)
+        duration = project.duration_ms / 1000
+        active = [t for t in project.tracks if not t.muted]
+        visual = [(t, c) for t in active if t.kind in ("video", "overlay") for c in t.clips if not c.shape]
+        rendered = {}
+        for i, (track, clip) in enumerate(visual):
+            progress(0.03 + 0.48 * i / max(1, len(visual)), f"Preparing clip {i + 1}/{len(visual)}")
+            visual_source, box_profile = prepare_visual(clip, profile, track.kind == "overlay")
+            rendered[clip.id] = await self.visual_clip(
+                visual_source, box_profile, transparent=track.kind == "overlay"
+            )
+        primary = next((t for t in active if t.kind == "video" and t.clips), None)
+        sequence = sorted(primary.clips, key=lambda c: c.start_ms) if primary else []
         length = ((to_ms or project.duration_ms) - from_ms) / 1000
-        # Select the range before encoding, retaining the selected quality and
-        # avoiding a second lossy video encode with FFmpeg's default CRF 23.
-        selection_filter = f"trim=start={from_ms / 1000}:duration={length},setpts=PTS-STARTPTS"
-        graph += [f"[{previous}]{selection_filter},{framing_filter(target)},format=yuv420p[vout]"]
+        layers = [
+            (track, clip) for track in active if track.kind in ("text", "overlay") for clip in track.clips
+        ]
+        stage_files = [output.with_suffix(".stage-000.mkv")]
+        stage_count = 1 + math.ceil(len(layers) / self.overlay_batch_size)
+
+        def stage_progress(stage, value):
+            progress(0.53 + 0.25 * (stage + value) / stage_count, "Compositing timeline")
+
+        progress(0.53, "Compositing timeline")
+        try:
+            await self._compose_primary(
+                sequence,
+                rendered,
+                profile,
+                duration,
+                stage_files[0],
+                lambda value: stage_progress(0, value),
+            )
+            for batch_index, start in enumerate(range(0, len(layers), self.overlay_batch_size), start=1):
+                next_stage = output.with_suffix(f".stage-{batch_index:03d}.mkv")
+                stage_files.append(next_stage)
+                await self._apply_overlay_batch(
+                    stage_files[-2],
+                    layers[start : start + self.overlay_batch_size],
+                    rendered,
+                    profile,
+                    duration,
+                    next_stage,
+                    lambda value, batch_index=batch_index: stage_progress(batch_index, value),
+                )
+                stage_files[-2].unlink(missing_ok=True)
+        except BaseException:
+            for stage in stage_files:
+                stage.unlink(missing_ok=True)
+            raise
+
+        # The final encoder reads one file-backed visual stream. Only audio
+        # inputs remain live, so layer count no longer multiplies decoder
+        # buffers and filter frames in RAM.
+        args = ["-i", str(stage_files[-1])]
+        graph = [
+            f"[0:v]trim=start={from_ms / 1000}:duration={length},setpts=PTS-STARTPTS,{framing_filter(target)},format=yuv420p[vout]"
+        ]
+        index = 1
         audio_labels, voice_labels, music_labels = [], [], []
         for track in active:
             if track.kind in ("video", "overlay", "text"):
@@ -529,39 +623,43 @@ class Renderer:
             args += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
             graph += [f"[{index}:a]atrim=duration={length}[aout]"]
         raw = output.with_suffix(".mix.mp4")
-        progress(0.53, "Compositing timeline")
-        await self.run(
-            [
-                *args,
-                "-filter_complex",
-                ";".join(graph),
-                "-map",
-                "[vout]",
-                "-map",
-                "[aout]",
-                "-t",
-                str(length),
-                "-c:v",
-                "libx264",
-                "-preset",
-                "veryfast" if quality == "preview" else "medium",
-                "-crf",
-                str(profile.crf),
-                "-threads",
-                str(self.threads),
-                "-c:a",
-                "aac",
-                "-b:a",
-                "192k",
-                "-ar",
-                "48000",
-                "-movflags",
-                "+faststart",
-                str(raw),
-            ],
-            lambda p: progress(0.53 + 0.32 * p, "Compositing timeline"),
-            length,
-        )
+        progress(0.78, "Compositing timeline")
+        try:
+            await self.run(
+                [
+                    *args,
+                    "-filter_complex",
+                    ";".join(graph),
+                    "-map",
+                    "[vout]",
+                    "-map",
+                    "[aout]",
+                    "-t",
+                    str(length),
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast" if quality == "preview" else "medium",
+                    "-crf",
+                    str(profile.crf),
+                    "-threads",
+                    str(self.threads),
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
+                    "-ar",
+                    "48000",
+                    "-movflags",
+                    "+faststart",
+                    str(raw),
+                ],
+                lambda value: progress(0.78 + 0.07 * value, "Compositing timeline"),
+                length,
+            )
+        finally:
+            for stage in stage_files:
+                stage.unlink(missing_ok=True)
         if profile.normalize and audio_labels:
             progress(0.86, "Measuring loudness · pass 1/2")
             stats = await self.measure(raw, profile)
