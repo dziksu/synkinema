@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.4.2](https://github.com/dziksu/synkinema/compare/v1.4.1...v1.4.2) (2026-09-23)
+
+### Bug Fixes
+
+* **renderer:** stream compositions through file stages ([8988d13](https://github.com/dziksu/synkinema/commit/8988d13d776f9acee34423d5e42f48a555850a0f))
+
 ## [1.4.1](https://github.com/dziksu/synkinema/compare/v1.4.0...v1.4.1) (2026-09-17)
 
 ### Bug Fixes
