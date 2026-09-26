@@ -16,6 +16,7 @@ import { Preview } from "@/modules/editor/preview/Preview";
 import SourceMonitor from "@/modules/editor/source/SourceMonitor";
 import { useStudio } from "@/modules/editor/store";
 import Timeline from "@/modules/editor/timeline/Timeline";
+import type { MediaInsert } from "@/modules/editor/timeline/timelineEditing";
 import { audioKinds, freeStart } from "@/modules/editor/timeline/timelineMath";
 import MediaBrowser from "@/modules/media/MediaBrowser";
 import {
@@ -76,7 +77,6 @@ export function EditorTimeline({
     addAsset,
     addText,
     insertOnCanvas,
-    insertVisual,
     updateClip,
     inspect,
   } = controller;
@@ -161,42 +161,43 @@ export function EditorTimeline({
       <EditorTop sourceOpen={!!sourceAsset}>
         <section className="asset-panel">
           <div className="panel-heading">
-            <h2>
-              {sourceAsset
-                ? tr("Source · {{name}}", { name: sourceAsset.name })
-                : tr("Project media")}
-            </h2>
+            <h2>{tr("Project media")}</h2>
             <IconButton label={tr("Import media")} onClick={dropzone.open}>
               <Plus size={18} />
             </IconButton>
           </div>
-          {sourceAsset ? (
+          {sourceAsset && (
             <SourceMonitor
               key={sourceAsset.id}
               asset={sourceAsset}
-              tracks={project.tracks}
               fps={project.profile.fps}
               busy={operation.isPending}
               onClose={() => setSourceAsset(null)}
-              onInsert={(intent) => edit("insert_source", intent)}
-            />
-          ) : (
-            <MediaBrowser
-              key={project.id}
-              project={project}
-              projectAssets={projectAssets}
-              libraryAssets={libraryAssets}
-              onAdd={addAsset}
-              onOverlay={(a) => insertVisual(undefined, a)}
-              onPreview={(a) => {
-                state.set({ playing: false });
-                setSourceAsset(a);
-              }}
-              onImport={dropzone.open}
-              onDestination={setMediaDestination}
-              onError={setNotice}
+              onInsert={(intent) =>
+                edit("insert_media", {
+                  ...intent,
+                  start_ms: Math.round(useStudio.getState().time),
+                  track_id: selectedTrack?.id,
+                  placement: "auto",
+                } satisfies MediaInsert)
+              }
             />
           )}
+          <MediaBrowser
+            key={project.id}
+            project={project}
+            projectAssets={projectAssets}
+            libraryAssets={libraryAssets}
+            activeId={sourceAsset?.id}
+            onAdd={addAsset}
+            onPreview={(a) => {
+              state.set({ playing: false });
+              setSourceAsset(a);
+            }}
+            onImport={dropzone.open}
+            onDestination={setMediaDestination}
+            onError={setNotice}
+          />
         </section>
         <section className="viewer">
           <div className="viewer-toolbar">

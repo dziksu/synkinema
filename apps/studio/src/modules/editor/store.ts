@@ -13,7 +13,11 @@ export type EditorDestination = {
   channelId: string | null;
 };
 type State = EditorDestination & {
+  /** Primary clip shown in the inspector; always part of selectedIds. */
   selectedId: string | null;
+  selectedIds: string[];
+  /** Linked selection: picture and its synced sound move together. */
+  linking: boolean;
   time: number;
   playing: boolean;
   draggingAsset: string | null;
@@ -27,10 +31,18 @@ export const useStudio = create<State>((set) => ({
   projectId: null,
   channelId: null,
   selectedId: null,
+  selectedIds: [],
+  linking: true,
   time: 0,
   playing: false,
   draggingAsset: null,
   draggingSource: null,
   audioDraft: null,
-  set: (patch) => set(patch),
+  // Selecting one clip replaces a multi-selection unless selectedIds is explicit.
+  set: (patch) =>
+    set(
+      "selectedId" in patch && !("selectedIds" in patch)
+        ? { ...patch, selectedIds: patch.selectedId ? [patch.selectedId] : [] }
+        : patch,
+    ),
 }));

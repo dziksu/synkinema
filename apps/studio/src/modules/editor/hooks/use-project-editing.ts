@@ -6,10 +6,6 @@ import {
 } from "@/modules/editor/layerInsert";
 import { placementOf } from "@/modules/editor/preview/CanvasTools";
 import {
-  sourceInsert,
-  type SourceInsert,
-} from "@/modules/editor/source/sourceInsert";
-import {
   useIsMutating,
   useMutation,
   useQueryClient,
@@ -23,6 +19,13 @@ import type { Asset, Clip, Project } from "@/lib/types";
 import { inspectorEdit } from "@/modules/editor/inspector/inspectorEdit";
 import { useStudio } from "@/modules/editor/store";
 import { deleteTimelineTrack } from "@/modules/editor/timeline/timelineActions";
+import {
+  moveSteps,
+  planMediaInsert,
+  planMove,
+  removeSteps,
+  type MediaInsert,
+} from "@/modules/editor/timeline/timelineEditing";
 import { freeStart } from "@/modules/editor/timeline/timelineMath";
 
 export function useProjectEditing(
@@ -222,16 +225,33 @@ export function useProjectEditing(
           } else if (type === "insert_layer") {
             steps = layerInsert(current, intent.kind, intent.clip).steps;
             batch = true;
-          } else if (type === "insert_source") {
-            const plan = sourceInsert(current, assets, intent as SourceInsert);
-            steps = plan.operations as EditStep[];
+          } else if (type === "insert_media") {
+            steps = planMediaInsert(
+              current,
+              assets,
+              intent as MediaInsert,
+            ).steps;
             batch = true;
-            if (!intent.append && plan.start_ms !== intent.start_ms)
-              setNotice(
-                tr("Range inserted at the first available gap: {{time}} s.", {
-                  time: (plan.start_ms / 1000).toFixed(2),
-                }),
+          } else if (type === "move_clips") {
+            const plan = planMove(current, assets, {
+              anchor: intent.anchor,
+              ids: intent.ids,
+              target: intent.target,
+              delta: intent.delta,
+              newTrackId: intent.new_track_id,
+              forceNewTrack: intent.force_new_track,
+            });
+            if (!plan.valid)
+              throw new Error(
+                tr("These clips no longer fit here. Review the timeline."),
               );
+            steps = moveSteps(current, plan);
+            batch = true;
+          } else if (type === "remove_clips") {
+            steps = removeSteps(current, intent.clip_ids);
+            if (!steps.length)
+              throw new Error(tr("This clip is no longer available."));
+            batch = true;
           } else {
             steps = [resolved as EditStep];
           }
@@ -254,7 +274,7 @@ export function useProjectEditing(
         if (
           [
             "add_clip",
-            "insert_source",
+            "insert_media",
             "insert_canvas",
             "insert_layer",
           ].includes(type) &&
@@ -263,13 +283,20 @@ export function useProjectEditing(
           const previousIds = new Set(
             current.tracks.flatMap((t) => t.clips.map((c) => c.id)),
           );
-          const added = p.tracks
+          // Select every inserted clip (picture and its sound); picture is primary.
+          const added = [...p.tracks]
+            .sort(
+              (a, b) =>
+                Number(["video", "overlay"].includes(b.kind)) -
+                Number(["video", "overlay"].includes(a.kind)),
+            )
             .flatMap((t) => t.clips)
-            .find((c) => !previousIds.has(c.id));
-          if (added)
+            .filter((c) => !previousIds.has(c.id));
+          if (added.length)
             state.set({
-              selectedId: added.id,
-              time: added.start_ms,
+              selectedId: added[0].id,
+              selectedIds: added.map((c) => c.id),
+              time: added[0].start_ms,
               playing: false,
             });
         }

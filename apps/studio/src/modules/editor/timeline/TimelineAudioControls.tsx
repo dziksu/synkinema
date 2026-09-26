@@ -372,7 +372,7 @@ export function AudioEnvelope({
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
-        useStudio.setState({ selectedId: clip.id });
+        useStudio.getState().set({ selectedId: clip.id });
         const target = e.target as Element;
         const index = target.getAttribute("data-point");
         if (e.altKey && index === null) {

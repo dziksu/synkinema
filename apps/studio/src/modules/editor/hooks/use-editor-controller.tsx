@@ -12,10 +12,7 @@ import { writes } from "@/api/mutations";
 import { keys, reads } from "@/api/queries";
 import type { Asset, AudioReport, Clip, Project } from "@/lib/types";
 import { useStudio } from "@/modules/editor/store";
-import {
-  acceptsAsset,
-  defaultAssetGain,
-} from "@/modules/editor/timeline/timelineMath";
+import type { MediaInsert } from "@/modules/editor/timeline/timelineEditing";
 import { usePlaybackShortcut } from "@/modules/editor/usePlaybackShortcut";
 import { useShallow } from "zustand/react/shallow";
 
@@ -200,6 +197,8 @@ export function useEditorController() {
     setSourceAsset(null);
     state.set({ draggingAsset: null, draggingSource: null });
   }, [state.projectId]);
+  // "+" on a media tile: insert at the playhead, preferring the selected lane,
+  // then any free compatible lane, then a new lane. Video brings its sound.
   const addAsset = (asset: Asset) => {
     if (!project) return;
     if (asset.duration_ms && asset.duration_ms < 100) {
@@ -210,37 +209,12 @@ export function useEditorController() {
       );
       return;
     }
-    const preferred =
-      asset.kind === "audio"
-        ? project.tracks.find(
-            (t) => t.kind === (asset.tags.includes("sfx") ? "sound" : "music"),
-          )
-        : project.tracks.find((t) => t.kind === "video");
-    const target =
-      (selectedTrack && acceptsAsset(selectedTrack, asset)
-        ? selectedTrack
-        : undefined) ||
-      preferred ||
-      project.tracks.find((t) => acceptsAsset(t, asset));
-    if (!target) {
-      setNotice(tr("Add a compatible video or audio track first."));
-      return;
-    }
-    const start = Math.max(
-      0,
-      ...target.clips.map((c) => c.start_ms + c.duration_ms),
-    );
-    edit("add_clip", {
-      track_id: target.id,
-      append: true,
-      clip: {
-        name: asset.name,
-        asset_id: asset.id,
-        start_ms: start,
-        duration_ms: asset.duration_ms || 4000,
-        gain_db: defaultAssetGain(asset),
-      },
-    });
+    edit("insert_media", {
+      asset_id: asset.id,
+      start_ms: Math.round(useStudio.getState().time),
+      track_id: selectedTrack?.id,
+      placement: "auto",
+    } satisfies MediaInsert);
   };
   const addText = () => setCaptionOpen(true);
   const insertOnCanvas = (intent: Omit<CanvasInsert, "start_ms">) => {
@@ -334,14 +308,10 @@ export function useEditorController() {
         edit("restore_revision", {}, e.shiftKey ? "redo" : "undo");
       } else if (
         (e.key === "Delete" || e.key === "Backspace") &&
-        selected &&
-        selectedTrack
+        state.selectedIds.length
       ) {
         e.preventDefault();
-        edit("remove_clip", {
-          track_id: selectedTrack.id,
-          clip_id: selected.id,
-        });
+        edit("remove_clips", { clip_ids: state.selectedIds });
         state.set({ selectedId: null });
       }
     };
