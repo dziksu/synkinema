@@ -21,6 +21,8 @@ REST discovery equivalents:
 
 No token is required by default on loopback. If the server uses `SYNKINEMA_API_TOKEN`, send `Authorization: Bearer ...` to API and MCP. Keep credentials out of projects/tool arguments. The current UI has no token-login flow. Host/origin protection allows local clients; use a local connection. `/media/...` is local static media, not covered by the API-token middleware. Run one server worker per data directory. Docker defaults to `/data`; a server filesystem path is not a path on the agent's machine.
 
+MCP tool arguments are strict: an unknown or misspelled top-level parameter is rejected before anything runs, with the accepted names and a correction ("Did you mean 'query'?", or "It belongs inside 'request'" for a field of a nested request). Nothing is silently ignored, so a result produced with defaults means you passed no value, not a wrong name.
+
 MCP result parsing: check `isError` first. Prefer `structuredContent` when present; otherwise parse JSON from `content` TextContent blocks. Unwrap `result` ONLY when it is the sole field of a transport envelope. A production task itself has `id`, `status` AND `result`: keep that object intact, or you lose status and recovery IDs. The guide tool returns plain Markdown text. Inspection returns a metadata text block plus actual ImageContent; preserve/display the image block rather than treating the whole result as one JSON object. REST returns ordinary JSON (except guide, SRT and SSE).
 
 ### Efficient production and diagnostics (MCP)
@@ -49,9 +51,20 @@ MCP result parsing: check `isError` first. Prefer `structuredContent` when prese
 - Historical project reads keep their immutable timeline but intentionally attach CURRENT
   channel guidance, identified by its own version. Channel edits do not mutate old renders.
   Responses' `channel_context` and `duration_ms` are read-only; omit them in Project inputs.
-- `update_channel(channel_id, request)` replaces editable fields at `expected_version`.
-  Read the full channel first; preserve omitted preferences/links. Stale versions reject.
-  Archiving is reversible; projects, records and media remain. Never blindly retry writes.
+- MCP `update_channel(channel_id, request)` changes ONLY the supplied editable fields at
+  `expected_version`; omitted fields keep their current values. Send `""` or `[]` to clear a
+  field deliberately; at least one field is required. REST offers the same partial edit as
+  `PATCH /api/channels/{id}`; REST `PUT` stays a full replacement (omitted fields reset) for
+  editors that send the whole brief. Stale versions reject; never blindly retry writes.
+  Archiving is reversible; projects, records and media remain.
+- Every edit that changes editable content snapshots the content it replaces.
+  `list_channel_versions(channel_id)` lists the current and earlier versions newest first,
+  with changed fields and the character count of each long text field, so a wiped rulebook
+  shows as a drop to 0. `get_channel_version(channel_id, version)` reads one version's full
+  text. `restore_channel_version(channel_id, version, expected_version)` copies it into a NEW
+  version (the replaced state is snapshotted too, so a restore can be undone). Publication
+  and review records bump the version without new content and create no snapshot. The most
+  recent 100 replaced versions are kept per channel.
 - `record_channel_publication` records or updates a manually observed publication URL,
   title, status, date and optional metrics. An existing `publication_id` updates one record.
   Metrics require observation time (with timezone) and evidence/source. Unknown is null,
@@ -71,7 +84,7 @@ MCP result parsing: check `isError` first. Prefer `structuredContent` when prese
 
 ### Efficient production tools
 
-- `get_edit_context` pages actual clips, asset geometry and track inventory; unchanged Clip defaults are omitted. Filter `track_ids`/`from_ms`/`to_ms` before paging. This is not a full Project replacement; use the complete nested value before a shallow replacement edit.
+- `get_edit_context` pages actual clips, asset geometry and track inventory; unchanged Clip defaults are omitted. Each visual clip with a static crop also carries `visible_source` = `{x:[start,end], y:[start,end]}`: the fractions of the source frame its crop shows at the current transform and placement. Use it to frame a subject or speech bubble: to show source span [a,b] of a cover crop, choose a window start in `[b - width, a]` and set `transform.x = start / (1 - width)`, where width = `visible_source.x[1] - visible_source.x[0]`. It is geometry only; headers and captions drawn over the panel still hide parts of it. Filter `track_ids`/`from_ms`/`to_ms` before paging. This is not a full Project replacement; use the complete nested value before a shallow replacement edit.
 - `apply_operations(..., compact=true)` returns counts, `committed`, `base_revision` and `confirmed_revision` without echoing all clips. A dry-run `project.revision` is still a provisional candidate; only `confirmed_revision` is current. Supply explicit IDs to recover your own created clips cheaply.
 - `get_work_status(request={job_ids:[...],task_ids:[...],wait_seconds:20})` waits for ANY selected work to become terminal, without starting work. It includes failures, partial-result flags, asset IDs and compact verification results, not full transcripts/FFprobe/PCM windows. Remove terminal IDs before waiting again. Use the original detail tool only to investigate an error or retrieve word timings. `passed` means the stated automated checks passed, not visual approval.
 - `analyze_source_media(request={asset_id,mode:"both",from_ms:0,to_ms:30000})` measures silence and black/freeze candidates in a <=120-second source range; audio-only `mode:"audio"` skips video. A source/settings fingerprint caches repeat reads. Results use source-absolute milliseconds, NOT timeline times. Visual detection is sampled at 8 fps; dark/still scenes can be intentional, so inspect suggested source regions. No downloaded script or external provider is used.
@@ -318,7 +331,7 @@ uploaded files keep their supplied display name.
 3. `preview` caps resolution at 640 px; `final` uses profile dimensions. Both are MP4 H.264/AAC. from_ms/to_ms are absolute project boundaries; to_ms=null means project end. Require 0<=from_ms<to_ms<=duration. The output starts at zero and lasts to_ms−from_ms. The current renderer builds the timeline before cutting a requested range, so partial render may still be expensive.
 4. On completed, output_url is a relative server URL, e.g. `/media/renders/<job_id>.mp4`; resolve against origin. URLs are usable by local clients; server `path`/`map_path` fields are not agent-local files. `list_render_jobs(project_id?)` / `GET /api/jobs?project_id=...` lists the latest 100 matching jobs (filter before limit); retain job_id and query it directly for older renders.
 5. Inspect render_frames(project_id, revision=R) or choose 1–24 timestamps with get_inspection_points. Points are midpoints of video/text clips and their transitions, capped at 24; they are not scene metadata and do not comprehensively cover overlays. Also inspect critical overlay/transition boundaries explicitly. render_frame requires 0<=time_ms<duration. MCP returns metadata and actual ImageContent; look at the pixels. REST returns media URLs. These calls may render/cache a preview synchronously; allow time and avoid duplicate calls on timeout. Full completed renders for the same revision can be reused. Prefer `render_frame(project_id,time_ms,job_id=J)` / `render_frames(project_id,job_id=J)` for final QA of the exact completed export, including range renders. REST frame/sheet bodies accept the same `job_id`. The job must belong to this project and be completed with its MP4 present; errors never trigger a fallback render. The job determines revision (any supplied revision is ignored). All requested timestamps remain **project-absolute**, inside `[from_ms,to_ms)`; frame metadata includes `output_time_ms=time_ms-from_ms`. Metadata also includes job_id and the inspected from_ms/to_ms. Default sheet points are filtered to that range; if none remain, its midpoint is used. Explicit sheets accept 1–24 points, all validated before extraction. Each sheet URL is keyed to the actual media, so different exports cannot overwrite one another's sheets.
-6. Call analyze_audio(project_id, job_id=completed_job_id) to measure that exact output. job_id determines the analyzed revision, overriding a supplied revision; pass a matching revision or omit it. Without job_id it uses a full preview. Returns integrated_lufs/true_peak_dbtp/loudness_range, EBU R128 samples, RMS/sample peaks/silence flags in 500 ms windows, warnings and URLs plus an image map through MCP. Silence or too-short audio may produce null measurements; null is not zero. For range exports, windows.time_ms is absolute project time, while ebu_r128.time_ms is relative to output start. Do not call RMS “LUFS”.
+6. Call analyze_audio(project_id, job_id=completed_job_id) to measure that exact output. job_id determines the analyzed revision, overriding a supplied revision; pass a matching revision or omit it. Without job_id it uses a full preview. Returns integrated_lufs/true_peak_dbtp/loudness_range, `dynamics`, EBU R128 samples, RMS/sample peaks/silence flags in 500 ms windows, warnings and URLs plus an image map through MCP. `dynamics.quiet_p10_dbfs` is the floor between spoken lines (where only music/ambience remain), `loud_p90_dbfs` typical speech and `separation_db` their difference. Judge a music bed from this measured separation, not from configured gains: clip gain and track gain ADD, and density/ducking change the result. Warning `bed_fills_speech_gaps` flags a bed under most of a narrated film that sits under 8 dB below speech (heuristic; listen to confirm). Silence or too-short audio may produce null measurements; null is not zero. For range exports, windows.time_ms is absolute project time, while ebu_r128.time_ms is relative to output start. Do not call RMS “LUFS”.
 7. If issues remain, create_review_comment pinned to project/revision/time, edit with current revision, re-render and re-inspect. resolve_review_comment / REST PATCH comments marks resolved with no body. export_captions / REST GET captions.srt exports revision-pinned SRT; it does not transcribe speech. Final response should identify project, revision, completed job/output URL and what was actually checked.
 
 The browser editing preview is approximate. Final FFmpeg frames and audio measurements are the evidence. No rendered soundtrack is implied by placing video alone: silent exports are valid when no audio tracks are populated.
@@ -612,9 +625,13 @@ Remote imports accept public HTTP(S) URLs on standard ports, up to 512 MiB per
 source, and finite unencrypted HLS. Every redirect, HLS segment and initialization
 map is checked; no private network, credentials, local paths, DRM, live playlists,
 byte ranges or arbitrary ffmpeg/shell arguments. HLS selects the highest rendition
-within max_height, imports at most 120 seconds when no end is given, and supports
-explicit intervals up to 10 minutes. An explicit end past the source rejects;
-choose a valid range after inspection. Direct images/audio/video are supported;
+within max_height, imports to the source end (at most 120 seconds after from_ms)
+when no end is given, and supports explicit intervals up to 10 minutes. Steam
+trailer selections default `to_ms` to that automatic end; omit it unless you need a
+sub-range. An explicit end past the source rejects with the measured duration, so
+correct it in one step. Steam sometimes returns a game's appdetails record under a
+different key; the importer accepts it only when the record's own `steam_appid`
+matches the requested app. Direct images/audio/video are supported;
 video defaults to silent, while audio-only sources keep audio. Pure untrimmed
 files keep their duration; video may be transcoded to remove audio or cap height.
 Ownership and reuse permission are not inferred from download availability.

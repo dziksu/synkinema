@@ -1446,12 +1446,62 @@
         "title": "AssetUsage",
         "type": "object"
       },
+      "AudioDynamics": {
+        "additionalProperties": false,
+        "properties": {
+          "audible_windows": {
+            "description": "Windows above -60 dBFS used for the percentiles.",
+            "title": "Audible Windows",
+            "type": "integer"
+          },
+          "loud_p90_dbfs": {
+            "description": "90th-percentile window RMS: typical speech peaks.",
+            "title": "Loud P90 Dbfs",
+            "type": "number"
+          },
+          "quiet_p10_dbfs": {
+            "description": "10th-percentile window RMS: the floor between spoken lines, where music/ambience remain.",
+            "title": "Quiet P10 Dbfs",
+            "type": "number"
+          },
+          "separation_db": {
+            "description": "loud_p90 minus quiet_p10. Measured on the mix; configured clip/track gains (which add) do not predict it.",
+            "title": "Separation Db",
+            "type": "number"
+          },
+          "window_ms": {
+            "description": "RMS window length; the same windows as `windows`.",
+            "title": "Window Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "window_ms",
+          "audible_windows",
+          "quiet_p10_dbfs",
+          "loud_p90_dbfs",
+          "separation_db"
+        ],
+        "title": "AudioDynamics",
+        "type": "object"
+      },
       "AudioReport": {
         "additionalProperties": false,
         "properties": {
           "audio_url": {
             "title": "Audio Url",
             "type": "string"
+          },
+          "dynamics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioDynamics"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Speech-gap floor versus speech level; null when fewer than 4 audible windows exist."
           },
           "ebu_r128": {
             "items": {
@@ -1552,6 +1602,7 @@
           "true_peak_dbtp",
           "loudness_range",
           "target_lufs",
+          "dynamics",
           "windows",
           "ebu_r128",
           "warnings",
@@ -2394,6 +2445,247 @@
         "title": "ChannelLogo",
         "type": "object"
       },
+      "ChannelPatch": {
+        "additionalProperties": false,
+        "description": "Partial channel update. Only supplied fields change; omitted fields keep their current values. Send an empty string or list to clear a field deliberately.",
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audience"
+          },
+          "avoid": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avoid"
+          },
+          "concept": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concept"
+          },
+          "cta_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Guidance"
+          },
+          "expected_version": {
+            "description": "Last confirmed channel version; conflicts reject without retry.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "hook_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook Guidance"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Content language, e.g. en or pl; not Studio UI language.",
+            "title": "Language"
+          },
+          "learnings": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owner-approved lessons to apply to future videos. Reviews do not change these automatically.",
+            "title": "Learnings"
+          },
+          "links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChannelLink"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Links"
+          },
+          "logo_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional ID returned by upload_channel_logo. Served at /media/channel-logos/{logo_id}.png. Null removes the association, not the reusable file. Existing briefs default to null.",
+            "title": "Logo Id"
+          },
+          "lowercase_hashtags": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowercase Hashtags"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "rules": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Standing editorial instructions: hooks, CTA, pacing, captions, exclusions and source policy.",
+            "title": "Rules"
+          },
+          "tone": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tone"
+          },
+          "visual_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual Guidance"
+          },
+          "voice_gender": {
+            "anyOf": [
+              {
+                "enum": ["unspecified", "male", "female", "neutral"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Gender"
+          },
+          "voice_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id"
+          },
+          "voice_provider": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preferred provider ID; advisory, does not install or invoke a provider.",
+            "title": "Voice Provider"
+          }
+        },
+        "required": ["expected_version"],
+        "title": "ChannelPatch",
+        "type": "object"
+      },
       "ChannelProject": {
         "additionalProperties": false,
         "properties": {
@@ -2745,6 +3037,149 @@
         },
         "required": ["name", "expected_version"],
         "title": "ChannelUpdate",
+        "type": "object"
+      },
+      "ChannelVersionDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "current": {
+            "title": "Current",
+            "type": "boolean"
+          },
+          "replaced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replaced At"
+          }
+        },
+        "required": ["channel", "current", "replaced_at"],
+        "title": "ChannelVersionDetail",
+        "type": "object"
+      },
+      "ChannelVersionRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "description": "Current confirmed channel version; conflicts reject without retry.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": ["expected_version"],
+        "title": "ChannelVersionRestore",
+        "type": "object"
+      },
+      "ChannelVersionSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "changes_from_previous": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Editable fields that differ from the next-older listed version; null for the oldest.",
+            "title": "Changes From Previous"
+          },
+          "current": {
+            "title": "Current",
+            "type": "boolean"
+          },
+          "field_lengths": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Character counts of the long text fields, e.g. to spot a wiped rulebook at a glance.",
+            "title": "Field Lengths",
+            "type": "object"
+          },
+          "replaced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When a later edit replaced this content; null for the current version.",
+            "title": "Replaced At"
+          },
+          "saved_at": {
+            "description": "When this version's editable content was written.",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "current",
+          "saved_at",
+          "replaced_at",
+          "changes_from_previous",
+          "field_lengths"
+        ],
+        "title": "ChannelVersionSummary",
+        "type": "object"
+      },
+      "ChannelVersions": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_id": {
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "current_version": {
+            "title": "Current Version",
+            "type": "integer"
+          },
+          "note": {
+            "default": "Only versions whose editable content was later replaced are snapshotted; publication/review records bump the version without new content. Restore copies a snapshot into a NEW version and snapshots the state it replaces.",
+            "title": "Note",
+            "type": "string"
+          },
+          "retention": {
+            "description": "Most recent replaced versions kept per channel; older snapshots are pruned.",
+            "title": "Retention",
+            "type": "integer"
+          },
+          "versions": {
+            "description": "Newest first, current version included.",
+            "items": {
+              "$ref": "#/components/schemas/ChannelVersionSummary"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_id",
+          "current_version",
+          "versions",
+          "retention",
+          "note"
+        ],
+        "title": "ChannelVersions",
         "type": "object"
       },
       "CleanupResult": {
@@ -5281,10 +5716,17 @@
             "type": "string"
           },
           "to_ms": {
-            "default": 120000,
-            "exclusiveMinimum": 0.0,
-            "title": "To Ms",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms; an end beyond the trailer is rejected with its measured duration.",
+            "title": "To Ms"
           },
           "type": {
             "const": "import_steam_trailer",
@@ -5340,10 +5782,17 @@
             "type": "string"
           },
           "to_ms": {
-            "default": 120000,
-            "exclusiveMinimum": 0.0,
-            "title": "To Ms",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms; an end beyond the trailer is rejected with its measured duration.",
+            "title": "To Ms"
           },
           "type": {
             "const": "import_steam_trailer",
@@ -9975,10 +10424,17 @@
             "type": "integer"
           },
           "to_ms": {
-            "default": 120000,
-            "exclusiveMinimum": 0.0,
-            "title": "To Ms",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms.",
+            "title": "To Ms"
           }
         },
         "required": ["app_id", "movie_id"],
@@ -10012,10 +10468,17 @@
             "type": "integer"
           },
           "to_ms": {
-            "default": 120000,
-            "exclusiveMinimum": 0.0,
-            "title": "To Ms",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms.",
+            "title": "To Ms"
           }
         },
         "required": ["app_id", "movie_id", "from_ms", "to_ms", "max_height"],
@@ -14578,8 +15041,113 @@
         "summary": "Get Channel",
         "tags": ["Composition"]
       },
+      "patch": {
+        "description": "Change only the supplied editable fields, guarded by expected_version; omitted fields keep their current values and an empty string or list clears a field deliberately. At least one field is required. The replaced content is snapshotted first. Conflict 409 preserves existing data; reread and reconcile.",
+        "operationId": "patch_channel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Channel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Patch Channel",
+        "tags": ["Composition"]
+      },
       "put": {
-        "description": "Replace editable channel fields using expected_version. Omitted fields reset to defaults. Conflict 409 preserves existing data; reread and reconcile. Archive is reversible and preserves projects/media.",
+        "description": "Replace ALL editable channel fields using expected_version: omitted fields reset to defaults, so send the complete brief (Studio's editor does). Use PATCH for partial edits. The replaced content is snapshotted first and can be restored from the channel's versions. Conflict 409 preserves existing data; reread and reconcile. Archive is reversible and preserves projects/media.",
         "operationId": "update_channel",
         "parameters": [
           {
@@ -14895,6 +15463,325 @@
           }
         ],
         "summary": "Record Channel Review",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/channels/{channel_id}/versions": {
+      "get": {
+        "description": "List the current channel version and every snapshotted earlier version, newest first, with when each was saved and replaced, which editable fields changed, and the character count of each long text field (a wiped rulebook shows as a drop to 0). Snapshots are written whenever editable content changes; publication/review records bump the version without new content. Read-only.",
+        "operationId": "list_channel_versions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelVersions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "List Channel Versions",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/channels/{channel_id}/versions/{version}": {
+      "get": {
+        "description": "Read the complete editable content of one snapshotted or current channel version, e.g. to compare or recover text. 404 when that version has no snapshot. Read-only.",
+        "operationId": "get_channel_version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "title": "Channel Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelVersionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Get Channel Version",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/channels/{channel_id}/versions/{version}/restore": {
+      "post": {
+        "description": "Copy a snapshotted version's editable fields into a NEW current version, guarded by the current expected_version. The content being replaced is snapshotted too, so a restore can itself be undone. Publications, reviews and linked projects are unchanged. Conflict 409 preserves existing data.",
+        "operationId": "restore_channel_version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "title": "Channel Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelVersionRestore"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Channel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Restore Channel Version",
         "tags": ["Composition"]
       }
     },
@@ -18574,7 +19461,7 @@
     },
     "/api/projects/{project_id}/inspection/audio": {
       "post": {
-        "description": "Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.",
+        "description": "Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, dynamics (gap floor between spoken lines versus speech level, separation_db), RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.",
         "operationId": "audio",
         "parameters": [
           {

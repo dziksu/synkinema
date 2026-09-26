@@ -11,6 +11,39 @@ from .media import font
 from .renderer import RENDERER_VERSION, Renderer
 
 
+def speech_gap_dynamics(windows, floor_dbfs=-60):
+    """Floor between spoken lines versus speech level, from the measured RMS windows.
+
+    Clip gain and track gain add, and density/ducking change the result, so
+    configured dB never predicted how loud a bed sits under narration. The
+    10th percentile of audible windows is the gap floor; the 90th is speech.
+    """
+    audible = [w["rms_dbfs"] for w in windows if w["rms_dbfs"] > floor_dbfs]
+    if len(audible) < 4:
+        return None
+    quiet, loud = (float(np.percentile(audible, q)) for q in (10, 90))
+    return {
+        "window_ms": 500,
+        "audible_windows": len(audible),
+        "quiet_p10_dbfs": round(quiet, 1),
+        "loud_p90_dbfs": round(loud, 1),
+        "separation_db": round(loud - quiet, 1),
+    }
+
+
+def speech_gap_warning(project, windows, dynamics, minimum_db=8):
+    """Heuristic: a bed under most of a narrated film that fills the pauses between lines."""
+    kinds = {t.name: t.kind for t in project.tracks if not t.muted}
+    bed = [w for w in windows if any(kinds.get(n) in ("music", "ambient") for n in w["active_tracks"])]
+    voiced = any(kinds.get(n) == "voiceover" for w in windows for n in w["active_tracks"])
+    if not dynamics or not voiced or len(bed) < len(windows) / 2 or dynamics["separation_db"] >= minimum_db:
+        return None
+    return {
+        "type": "bed_fills_speech_gaps",
+        "message": f"Quietest windows sit only {dynamics['separation_db']} dB under speech: music/ambience likely masks the pauses between lines. Lower the bed (clip and track gains add) and re-measure. Heuristic; listen to confirm.",
+    }
+
+
 class Inspection:
     def __init__(self, service):
         self.service = service
@@ -231,6 +264,9 @@ class Inspection:
                     "message": f"Measured {loudness} LUFS; target {project.profile.target_lufs} LUFS",
                 }
             )
+        dynamics = speech_gap_dynamics(windows)
+        if warning := speech_gap_warning(project, windows, dynamics):
+            warnings.append(warning)
         im = Image.new("RGB", (1280, 480), "#111717")
         d = ImageDraw.Draw(im)
         d.text((32, 22), f"AUDIO INSPECTION  /  r{project.revision}", font=font(22, True), fill="#d8fb76")
@@ -262,6 +298,7 @@ class Inspection:
             "true_peak_dbtp": peak,
             "loudness_range": number("input_lra"),
             "target_lufs": project.profile.target_lufs,
+            "dynamics": dynamics,
             "windows": windows,
             "ebu_r128": measurements,
             "warnings": warnings,

@@ -353,17 +353,21 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
             ),
         ] = None,
     ) -> dict:
-        """Queue a render of the CURRENT project at expected_revision; return Job immediately, not a completed video. REQUIRED: every active voiceover clip asset must be attached to a script_lines entry with audio_asset_id, audio_source and actual audio_text. Unlinked narration rejects without queueing; compose_showcase attaches it automatically. quality: preview (max 640px) or final (profile size or output override). Optional output {width,height,fps,crf,fit,background,x,y} adapts the entire composition without changing the project; discover get_export_presets and plan_export. from_ms/to_ms are absolute project milliseconds; null end means project end; require a nonempty in-bounds range. Snapshot is immutable even if project changes later. No deduplication: repeating queues another job. Poll get_render_progress(job_id) until completed/failed/cancelled; only completed yields output_url."""
-        return service.enqueue(
-            project_id,
-            RenderRequest(
-                expected_revision=expected_revision,
-                quality=quality,
-                from_ms=from_ms,
-                to_ms=to_ms,
-                output=output,
-            ),
-            require_script_audio=True,
+        """Queue a render of the CURRENT project at expected_revision; return Job immediately, not a completed video. REQUIRED: every active voiceover clip asset must be attached to a script_lines entry with audio_asset_id, audio_source and actual audio_text. Unlinked narration rejects without queueing; compose_showcase attaches it automatically. quality: preview (max 640px) or final (profile size or output override). Optional output {width,height,fps,crf,fit,background,x,y} adapts the entire composition without changing the project; discover get_export_presets and plan_export. from_ms/to_ms are absolute project milliseconds; null end means project end; require a nonempty in-bounds range. Snapshot is immutable even if project changes later. No deduplication: repeating queues another job. Poll get_render_progress(job_id) until completed/failed/cancelled; only completed yields output_url. warnings are grouped per code with count, example, IDs and factor_range; warning_count is the total (REST GET /api/jobs/{id} lists each)."""
+        from .agent_tools import agent_job
+
+        return agent_job(
+            service.enqueue(
+                project_id,
+                RenderRequest(
+                    expected_revision=expected_revision,
+                    quality=quality,
+                    from_ms=from_ms,
+                    to_ms=to_ms,
+                    output=output,
+                ),
+                require_script_audio=True,
+            )
         )
 
     @mcp.tool(
@@ -372,8 +376,10 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         )
     )
     def get_render_progress(job_id: RenderJobId) -> dict:
-        """Read one Job by id, including project_id, revision, status, progress (0..1), phase, error, request and output_url. Terminal states: completed/failed/cancelled. Poll about every 1-2 seconds with backoff. Resolve relative output_url against server origin; do not infer success from progress alone."""
-        return service.public_job(service.store.job(job_id))
+        """Read one Job by id, including project_id, revision, status, progress (0..1), phase, error, request and output_url. Terminal states: completed/failed/cancelled. Poll about every 1-2 seconds with backoff. Resolve relative output_url against server origin; do not infer success from progress alone. warnings are grouped per code (count, example, IDs); warning_count is the total."""
+        from .agent_tools import agent_job
+
+        return agent_job(service.public_job(service.store.job(job_id)))
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -438,7 +444,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
         revision: OptionalRevision = None,
         job_id: OptionalRenderJobId = None,
     ) -> list:
-        """Measure actual output: prefer job_id from a completed job belonging to project_id. That job determines revision even if a different revision was supplied; without job_id uses a full preview of revision/current. Returns metadata plus audio-map ImageContent: integrated_lufs, true_peak_dbtp, RMS/sample peaks/silence windows, ebu_r128, warnings, map_url/audio_url. null loudness means silent/too short, not zero. For range jobs, windows timestamps are project-absolute; ebu_r128 timestamps are output-relative. May render/cache and take time. active_tracks includes unmuted audio tracks overlapping any portion of each window, not proof of isolated audibility. Windows include duration_ms; metadata includes job_id/from_ms/to_ms. Does not edit the mix."""
+        """Measure actual output: prefer job_id from a completed job belonging to project_id. That job determines revision even if a different revision was supplied; without job_id uses a full preview of revision/current. Returns metadata plus audio-map ImageContent: integrated_lufs, true_peak_dbtp, RMS/sample peaks/silence windows, ebu_r128, warnings, map_url/audio_url. null loudness means silent/too short, not zero. For range jobs, windows timestamps are project-absolute; ebu_r128 timestamps are output-relative. May render/cache and take time. active_tracks includes unmuted audio tracks overlapping any portion of each window, not proof of isolated audibility. Windows include duration_ms; metadata includes job_id/from_ms/to_ms. dynamics gives the gap floor between spoken lines (quiet_p10_dbfs), speech level (loud_p90_dbfs) and separation_db, the measured way to judge a music bed; warning bed_fills_speech_gaps flags a masking bed. Does not edit the mix."""
         result = await inspection.audio(project_id, revision, job_id)
         return [{k: v for k, v in result.items() if k != "map_path"}, Image(path=result["map_path"])]
 
@@ -573,7 +579,9 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
     )
     def list_render_jobs(project_id: OptionalProjectId = None) -> list[dict]:
         """Read latest 100 render jobs, optionally scoped to one project BEFORE limiting. Returns status, revision, progress, request and output_url, without internal snapshots. Use to rediscover an existing job after reconnecting instead of queueing a duplicate; retain job_id for older results."""
-        return service.jobs(project_id)
+        from .agent_tools import agent_job
+
+        return [agent_job(job) for job in service.jobs(project_id)]
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -738,4 +746,7 @@ def make_mcp(service, worker, inspection, voices=None, production=None):
     production = production or Production(service, inspection, voices)
     register_mcp(mcp, production)
     register_agent_tools(mcp, service, inspection, production)
+    from .mcp_strict import forbid_unknown_arguments
+
+    forbid_unknown_arguments(mcp)
     return mcp

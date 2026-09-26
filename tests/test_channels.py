@@ -255,3 +255,166 @@ def test_mcp_channels_and_creation_include_guidance(api):
     assert (
         call("get_channel", {"channel_id": c["id"], "include_records": True})["projects"][0]["id"] == p["id"]
     )
+
+
+def mcp_rpc(client):
+    def call(method, params=None):
+        response = client.post(
+            "/mcp/",
+            headers={"Accept": "application/json, text/event-stream"},
+            json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}},
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["result"]
+
+    call(
+        "initialize",
+        {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}},
+    )
+    return call
+
+
+def tool_data(result):
+    assert not result.get("isError"), result
+    return result.get("structuredContent") or json.loads(
+        next(b["text"] for b in result["content"] if b["type"] == "text")
+    )
+
+
+def test_mcp_update_channel_edits_only_supplied_fields(api):
+    """Regression: sending only learnings once blanked the owner's whole rulebook."""
+    client, service = api
+    channel = create_channel(client, audience="Steam players", tone="dry", learnings="old lesson")
+    rpc = mcp_rpc(client)
+    saved = tool_data(
+        rpc(
+            "tools/call",
+            {
+                "name": "update_channel",
+                "arguments": {
+                    "channel_id": channel["id"],
+                    "request": {"expected_version": 1, "learnings": "new lesson"},
+                },
+            },
+        )
+    )
+    assert saved["version"] == 2 and saved["learnings"] == "new lesson"
+    current = service.channel(channel["id"])
+    assert current.rules == "Gameplay immediately; one concrete CTA"
+    assert (current.audience, current.tone, current.voice_gender) == ("Steam players", "dry", "male")
+    stale = rpc(
+        "tools/call",
+        {
+            "name": "update_channel",
+            "arguments": {"channel_id": channel["id"], "request": {"expected_version": 1, "tone": "x"}},
+        },
+    )
+    assert stale["isError"] is True and service.channel(channel["id"]).tone == "dry"
+    empty = rpc(
+        "tools/call",
+        {
+            "name": "update_channel",
+            "arguments": {"channel_id": channel["id"], "request": {"expected_version": 2}},
+        },
+    )
+    assert empty["isError"] is True
+
+
+def test_rest_patch_is_partial_and_validates_the_merged_channel(api):
+    client, service = api
+    channel = create_channel(client, tone="dry")
+    cid = channel["id"]
+    patched = client.patch(
+        f"/api/channels/{cid}", json={"expected_version": 1, "hook_guidance": "Premise first"}
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["hook_guidance"] == "Premise first" and patched.json()["tone"] == "dry"
+    assert client.patch(f"/api/channels/{cid}", json={"expected_version": 1, "tone": "x"}).status_code == 409
+    assert client.patch(f"/api/channels/{cid}", json={"expected_version": 2}).status_code == 422
+    assert client.patch(f"/api/channels/{cid}", json={"expected_version": 2, "name": "  "}).status_code == 422
+    assert (
+        client.patch(f"/api/channels/{cid}", json={"expected_version": 2, "rules": None}).status_code == 422
+    )
+    assert (
+        client.patch(f"/api/channels/{cid}", json={"expected_version": 2, "invented": 1}).status_code == 422
+    )
+    cleared = client.patch(f"/api/channels/{cid}", json={"expected_version": 2, "tone": ""})
+    assert cleared.status_code == 200 and cleared.json()["tone"] == ""
+    assert service.channel(cid).rules == "Gameplay immediately; one concrete CTA"
+
+
+def test_versions_expose_a_wipe_and_restore_is_itself_undoable(api):
+    client, _ = api
+    channel = create_channel(client, concept="Game teasers", learnings="keep")
+    cid = channel["id"]
+    # The historical accident: a full PUT carrying only one field.
+    wiped = client.put(f"/api/channels/{cid}", json={"name": "SpawnBrief QA", "expected_version": 1})
+    assert wiped.status_code == 200 and wiped.json()["rules"] == ""
+    body = {
+        "expected_version": 2,
+        "project_id": None,
+        "title": "Published",
+        "platform": "youtube",
+        "url": "https://youtube.com/shorts/x",
+    }
+    assert client.post(f"/api/channels/{cid}/publications", json=body).status_code == 200  # version 3
+    listing = client.get(f"/api/channels/{cid}/versions").json()
+    assert listing["current_version"] == 3
+    assert [v["version"] for v in listing["versions"]] == [3, 1]  # publication added no content
+    current, original = listing["versions"]
+    assert current["current"] and current["field_lengths"]["rules"] == 0
+    assert set(current["changes_from_previous"]) >= {"rules", "concept", "learnings", "voice_gender"}
+    assert original["field_lengths"]["rules"] == len("Gameplay immediately; one concrete CTA")
+    assert original["changes_from_previous"] is None and original["replaced_at"]
+    detail = client.get(f"/api/channels/{cid}/versions/1").json()
+    assert detail["channel"]["concept"] == "Game teasers" and detail["current"] is False
+    assert client.get(f"/api/channels/{cid}/versions/2").status_code == 404
+    assert (
+        client.post(f"/api/channels/{cid}/versions/1/restore", json={"expected_version": 2}).status_code
+        == 409
+    )
+    restored = client.post(f"/api/channels/{cid}/versions/1/restore", json={"expected_version": 3})
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["version"] == 4 and restored.json()["rules"].startswith("Gameplay")
+    assert restored.json()["learnings"] == "keep" and restored.json()["voice_gender"] == "male"
+    assert client.get(f"/api/channels/{cid}").json()["publications"][0]["title"] == "Published"
+    # The wiped state was snapshotted by the restore, so the restore can be undone.
+    assert [v["version"] for v in client.get(f"/api/channels/{cid}/versions").json()["versions"]] == [4, 3, 1]
+    assert (
+        client.post(f"/api/channels/{cid}/versions/4/restore", json={"expected_version": 4}).status_code
+        == 422
+    )
+
+
+def test_mcp_version_tools_and_retention(api, monkeypatch):
+    from synkinema import channels
+
+    monkeypatch.setattr(channels, "VERSION_RETENTION", 2)
+    client, service = api
+    channel = create_channel(client)
+    cid = channel["id"]
+    for version, tone in enumerate(["a", "b", "c", "d"], start=1):
+        assert (
+            client.patch(f"/api/channels/{cid}", json={"expected_version": version, "tone": tone}).status_code
+            == 200
+        )
+    rpc = mcp_rpc(client)
+    listing = tool_data(
+        rpc("tools/call", {"name": "list_channel_versions", "arguments": {"channel_id": cid}})
+    )
+    assert [v["version"] for v in listing["versions"]] == [5, 4, 3] and listing["retention"] == 2
+    old = tool_data(
+        rpc("tools/call", {"name": "get_channel_version", "arguments": {"channel_id": cid, "version": 3}})
+    )
+    assert old["channel"]["tone"] == "b"
+    restored = tool_data(
+        rpc(
+            "tools/call",
+            {
+                "name": "restore_channel_version",
+                "arguments": {"channel_id": cid, "version": 3, "expected_version": 5},
+            },
+        )
+    )
+    assert restored["tone"] == "b" and restored["version"] == 6
+    assert service.channel(cid).rules == "Gameplay immediately; one concrete CTA"

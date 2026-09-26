@@ -410,3 +410,128 @@ def test_mcp_new_tools_and_compact_mutation(tmp_path):
             },
         )
         assert result["confirmed_revision"] == 1 and "tracks" not in result["project"]
+
+
+def test_mcp_render_jobs_group_repeated_warnings_but_rest_keeps_each(tmp_path):
+    from PIL import Image
+    from synkinema.agent_tools import grouped_warnings
+
+    assert grouped_warnings([]) == []
+    single = grouped_warnings([{"code": "draft_quality", "message": "Draft."}])
+    assert single == [{"code": "draft_quality", "count": 1, "message": "Draft."}]
+
+    app = create_app(tmp_path / "jobs", start_worker=False)
+    image = tmp_path / "small.png"
+    Image.new("RGB", (160, 90), "green").save(image)
+    with TestClient(app) as c:
+        with image.open("rb") as f:
+            asset = c.post("/api/assets", files={"file": ("small.png", f, "image/png")}).json()
+        p = c.post("/api/projects", json={"name": "Upscaled"}).json()
+        clips = [
+            {"id": f"shot{i}", "asset_id": asset["id"], "start_ms": i * 1000, "duration_ms": 1000}
+            for i in range(20)
+        ]
+        p = c.post(
+            f"/api/projects/{p['id']}/operations/batch",
+            json={
+                "expected_revision": 1,
+                "operations": [
+                    {"type": "add_clip", "payload": {"track_id": "video", "clip": clip}} for clip in clips
+                ],
+                "dry_run": False,
+            },
+        ).json()["project"]
+
+        def rpc(method, params=None):
+            response = c.post(
+                "/mcp/",
+                headers={"Accept": "application/json, text/event-stream"},
+                json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}},
+            )
+            return response.json()["result"]
+
+        rpc(
+            "initialize",
+            {
+                "protocolVersion": "2025-03-26",
+                "capabilities": {},
+                "clientInfo": {"name": "t", "version": "1"},
+            },
+        )
+        result = rpc(
+            "tools/call",
+            {
+                "name": "start_render",
+                "arguments": {"project_id": p["id"], "expected_revision": p["revision"]},
+            },
+        )
+        job = result.get("structuredContent") or json.loads(result["content"][0]["text"])
+        assert job["warning_count"] == 20
+        (upscale,) = job["warnings"]
+        assert upscale["code"] == "source_upscale" and upscale["count"] == 20
+        assert upscale["asset_ids"] == [asset["id"]]
+        assert len(upscale["clip_ids"]) == 12 and upscale["clip_id_count"] == 20
+        assert upscale["factor_range"][0] == upscale["factor_range"][1] > 1
+        progress = rpc("tools/call", {"name": "get_render_progress", "arguments": {"job_id": job["id"]}})
+        assert json.loads(progress["content"][0]["text"])["warnings"] == job["warnings"]
+        rest = c.get(f"/api/jobs/{job['id']}").json()
+        assert len(rest["warnings"]) == 20 and all("clip_id" in w for w in rest["warnings"])
+
+
+def test_edit_context_reports_the_visible_source_window(tmp_path):
+    from PIL import Image
+
+    app = create_app(tmp_path / "framing", start_worker=False)
+    image = tmp_path / "wide.png"
+    Image.new("RGB", (1920, 1080), "green").save(image)
+    with TestClient(app) as c:
+        with image.open("rb") as f:
+            asset = c.post("/api/assets", files={"file": ("wide.png", f, "image/png")}).json()
+        p = c.post("/api/projects", json={"name": "Framing"}).json()
+        panel = {"x": 0.5, "y": 0.48, "width": 1, "height": 0.65}
+        operations = [
+            {
+                "type": "add_track",
+                "payload": {"id": "gameplay", "name": "Gameplay", "kind": "overlay", "clips": []},
+            },
+            {
+                "type": "add_clip",
+                "payload": {
+                    "track_id": "gameplay",
+                    "clip": {
+                        "id": "panel",
+                        "asset_id": asset["id"],
+                        "duration_ms": 2000,
+                        "placement": panel,
+                        "transform": {"x": 0.505},
+                    },
+                },
+            },
+            {
+                "type": "add_clip",
+                "payload": {
+                    "track_id": "video",
+                    "clip": {
+                        "id": "moving",
+                        "asset_id": asset["id"],
+                        "duration_ms": 2000,
+                        "animations": [
+                            {
+                                "property": "x",
+                                "keyframes": [{"time_ms": 0, "value": 0}, {"time_ms": 2000, "value": 1}],
+                            }
+                        ],
+                    },
+                },
+            },
+        ]
+        response = c.post(
+            f"/api/projects/{p['id']}/operations/batch",
+            json={"expected_revision": 1, "operations": operations, "dry_run": False},
+        )
+        assert response.status_code == 200, response.text
+        service = app.state.service
+        clips = {c["id"]: c for c in edit_context(service, EditContext(project_id=p["id"]))["clips"]}
+    # 1080x1248 panel shows 48.68% of a 16:9 frame; anchor x=0.505 starts it at 0.505*0.5132.
+    assert clips["panel"]["visible_source"] == {"x": [0.2592, 0.746], "y": [0.0, 1.0]}
+    assert "visible_source" not in clips["moving"]  # animated crops move; no single window

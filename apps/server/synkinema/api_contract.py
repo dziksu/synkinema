@@ -238,11 +238,26 @@ class AudioWarning(Model):
     message: str
 
 
+class AudioDynamics(Model):
+    window_ms: int = Field(description="RMS window length; the same windows as `windows`.")
+    audible_windows: int = Field(description="Windows above -60 dBFS used for the percentiles.")
+    quiet_p10_dbfs: float = Field(
+        description="10th-percentile window RMS: the floor between spoken lines, where music/ambience remain."
+    )
+    loud_p90_dbfs: float = Field(description="90th-percentile window RMS: typical speech peaks.")
+    separation_db: float = Field(
+        description="loud_p90 minus quiet_p10. Measured on the mix; configured clip/track gains (which add) do not predict it."
+    )
+
+
 class AudioReport(InspectionRange):
     integrated_lufs: float | None
     true_peak_dbtp: float | None
     loudness_range: float | None
     target_lufs: float
+    dynamics: AudioDynamics | None = Field(
+        description="Speech-gap floor versus speech level; null when fewer than 4 audible windows exist."
+    )
     windows: list[AudioWindow]
     ebu_r128: list[LoudnessSample]
     warnings: list[AudioWarning]
