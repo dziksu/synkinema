@@ -3,7 +3,7 @@
     "schemas": {
       "AddClipOperation": {
         "additionalProperties": false,
-        "description": "Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start.",
+        "description": "Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "expected_revision": 1,
@@ -168,6 +168,19 @@
                     "title": "Text",
                     "type": "string"
                   },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
+                  },
                   "text_x": {
                     "default": 0.09,
                     "description": "Left edge of caption block as fraction of output width.",
@@ -211,7 +224,7 @@
       },
       "AddClipStep": {
         "additionalProperties": false,
-        "description": "Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start.",
+        "description": "Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "payload": {
@@ -369,6 +382,19 @@
                     "maxLength": 2000,
                     "title": "Text",
                     "type": "string"
+                  },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
                   },
                   "text_x": {
                     "default": 0.09,
@@ -639,7 +665,7 @@
       },
       "AppendClipOperation": {
         "additionalProperties": false,
-        "description": "Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps.",
+        "description": "Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "expected_revision": 1,
@@ -794,6 +820,19 @@
                     "title": "Text",
                     "type": "string"
                   },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
+                  },
                   "text_x": {
                     "default": 0.09,
                     "description": "Left edge of caption block as fraction of output width.",
@@ -836,7 +875,7 @@
       },
       "AppendClipStep": {
         "additionalProperties": false,
-        "description": "Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps.",
+        "description": "Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "payload": {
@@ -984,6 +1023,19 @@
                     "maxLength": 2000,
                     "title": "Text",
                     "type": "string"
+                  },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
                   },
                   "text_x": {
                     "default": 0.09,
@@ -2858,6 +2910,19 @@
             "title": "Text",
             "type": "string"
           },
+          "text_align": {
+            "default": "auto",
+            "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+            "enum": ["auto", "left", "center", "right"],
+            "title": "Text Align",
+            "type": "string"
+          },
+          "text_auto_center": {
+            "default": false,
+            "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+            "title": "Text Auto Center",
+            "type": "boolean"
+          },
           "text_x": {
             "default": 0.09,
             "description": "Left edge of caption block as fraction of output width.",
@@ -3020,6 +3085,19 @@
             "title": "Text",
             "type": "string"
           },
+          "text_align": {
+            "default": "auto",
+            "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+            "enum": ["auto", "left", "center", "right"],
+            "title": "Text Align",
+            "type": "string"
+          },
+          "text_auto_center": {
+            "default": false,
+            "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+            "title": "Text Auto Center",
+            "type": "boolean"
+          },
           "text_x": {
             "default": 0.09,
             "description": "Left edge of caption block as fraction of output width.",
@@ -3057,6 +3135,8 @@
           "placement",
           "shape",
           "caption_style",
+          "text_align",
+          "text_auto_center",
           "text_x",
           "effects",
           "animations",
@@ -3715,6 +3795,19 @@
             "maxLength": 2000,
             "title": "Text",
             "type": "string"
+          },
+          "text_align": {
+            "default": "auto",
+            "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+            "enum": ["auto", "left", "center", "right"],
+            "title": "Text Align",
+            "type": "string"
+          },
+          "text_auto_center": {
+            "default": false,
+            "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+            "title": "Text Auto Center",
+            "type": "boolean"
           },
           "text_x": {
             "default": 0.09,
@@ -10728,6 +10821,19 @@
                     "title": "Text",
                     "type": "string"
                   },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
+                  },
                   "text_x": {
                     "default": 0.09,
                     "description": "Left edge of caption block as fraction of output width.",
@@ -10931,6 +11037,19 @@
                     "title": "Text",
                     "type": "string"
                   },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
+                  },
                   "text_x": {
                     "default": 0.09,
                     "description": "Left edge of caption block as fraction of output width.",
@@ -10977,7 +11096,7 @@
       },
       "UpdateClipOperation": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects.",
+        "description": "Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "expected_revision": 1,
@@ -11141,6 +11260,19 @@
                     "title": "Text",
                     "type": "string"
                   },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
+                  },
                   "text_x": {
                     "default": 0.09,
                     "description": "Left edge of caption block as fraction of output width.",
@@ -11187,7 +11319,7 @@
       },
       "UpdateClipStep": {
         "additionalProperties": false,
-        "description": "Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects.",
+        "description": "Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout.",
         "examples": [
           {
             "payload": {
@@ -11344,6 +11476,19 @@
                     "maxLength": 2000,
                     "title": "Text",
                     "type": "string"
+                  },
+                  "text_align": {
+                    "default": "auto",
+                    "description": "Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+                    "enum": ["auto", "left", "center", "right"],
+                    "title": "Text Align",
+                    "type": "string"
+                  },
+                  "text_auto_center": {
+                    "default": false,
+                    "description": "When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+                    "title": "Text Auto Center",
+                    "type": "boolean"
                   },
                   "text_x": {
                     "default": 0.09,

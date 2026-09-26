@@ -415,6 +415,15 @@ def test_full_mcp_transport_workflow_real_render_verification_and_bundle(tmp_pat
             "compose_showcase", {"project_id": project["id"], "request": {**request, "dry_run": False}}
         )
         assert saved["project"]["revision"] == 2
+        caption_track = next(t for t in saved["project"]["tracks"] if t["id"] == "captions")
+        assert caption_track["clips"]
+        assert all(c["text_auto_center"] for c in caption_track["clips"])
+        assert all(
+            not c["text_auto_center"]
+            for t in saved["project"]["tracks"]
+            if t["id"] == "titles"
+            for c in t["clips"]
+        )
         assert (
             saved["project"]["script_lines"][0]["audio_asset_id"]
             == narration["result"]["narration"][0]["asset"]["id"]

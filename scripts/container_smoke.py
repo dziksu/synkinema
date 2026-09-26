@@ -36,13 +36,20 @@ async def main():
                 tracks=[
                     Track(kind="video", name="Main", clips=[Clip(asset_id=a["id"], duration_ms=1500)]),
                     Track(
-                        kind="text", name="Caption", clips=[Clip(text="Zażółć gęślą jaźń", duration_ms=1500)]
+                        kind="text",
+                        name="Caption",
+                        clips=[
+                            Clip(text="Zażółć gęślą jaźń", start_ms=i * 500, duration_ms=500)
+                            for i in range(3)
+                        ],
                     ),
                 ],
             )
         )
         out = s.store.path("renders/smoke.mp4")
-        await Renderer(s).render(p, out)
+        renderer = Renderer(s)
+        renderer.overlay_batch_size = 2  # Exercise multiple windows and concat in the runtime FFmpeg.
+        await renderer.render(p, out)
         meta = probe(out)
         assert meta["duration_ms"] == 1500 and abs(meta["audio_duration_ms"] - 1500) < 100
         frame = await Inspection(s).frame(p.id, 500)

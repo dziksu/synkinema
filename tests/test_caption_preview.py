@@ -1,11 +1,138 @@
 import io
 from itertools import pairwise
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from synkinema.app import create_app
 from synkinema.media import cached_text_layer, text_layer
 from synkinema.models import Clip, OutputProfile, Project, Track
+
+
+@pytest.mark.parametrize("style", ["editorial", "bold", "boxed", "minimal"])
+@pytest.mark.parametrize("size", [(1080, 1920), (640, 360)])
+def test_auto_center_ignores_manual_anchor_and_alignment_across_layout_changes(tmp_path, style, size):
+    from synkinema.media import caption_bounds
+
+    width, height = size
+    clip = Clip(
+        text="SHORT\nA much longer wrapped caption for the whole screen",
+        subtitle="Subtitle below",
+        caption_style=style,
+        font_size=44,
+        text_y=0.3,
+        text_auto_center=True,
+    )
+    for font_size in (44, 72):
+        rasters = [
+            cached_text_layer(
+                clip.model_copy(update={"text_x": x, "text_align": align, "font_size": font_size}),
+                width,
+                height,
+                tmp_path,
+            )
+            for x, align in ((0, "left"), (0.5, "right"), (0.9, "auto"))
+        ]
+        assert len(set(rasters)) == 3
+        assert all(Image.open(p).tobytes() == Image.open(rasters[0]).tobytes() for p in rasters)
+        bounds = caption_bounds(rasters[0])
+        assert abs(bounds["left"] + bounds["width"] / 2 - width / 2) <= 1
+        assert 0 <= bounds["left"] < bounds["left"] + bounds["width"] <= width
+
+
+def test_auto_center_api_preview_persistence_conflict_and_undo(tmp_path):
+    from synkinema.agent_reference import AGENT_INSTRUCTIONS, operation_reference
+
+    app = create_app(tmp_path, start_worker=False)
+    original = Clip(id="caption", text="Centered subtitle", text_x=0.7, text_align="right", text_y=0.59)
+    project = app.state.service.create(
+        Project(
+            name="Auto-center QA",
+            tracks=[Track(id="captions", name="Captions", kind="text", clips=[original])],
+        )
+    )
+    with TestClient(app) as client:
+        endpoint = f"/api/projects/{project.id}/operations"
+        edit = {
+            "expected_revision": 1,
+            "type": "update_clip",
+            "payload": {"track_id": "captions", "clip_id": "caption", "changes": {"text_auto_center": True}},
+        }
+        saved = client.post(endpoint, json=edit)
+        assert saved.status_code == 200, saved.text
+        clip = saved.json()["tracks"][0]["clips"][0]
+        assert clip["text_auto_center"] is True
+        assert (clip["text_x"], clip["text_align"], clip["text_y"]) == (0.7, "right", 0.59)
+        preview = client.post(
+            "/api/preview/caption", json={"clip": clip, "profile": saved.json()["profile"]}
+        ).json()
+        assert abs(preview["bounds"]["left"] + preview["bounds"]["width"] / 2 - 540) <= 1
+        pinned = client.get(f"/api/projects/{project.id}/clips/caption/text-layer", params={"revision": 2})
+        assert pinned.content == client.get(preview["url"]).content
+        assert client.post(endpoint, json=edit).status_code == 409
+        edit["expected_revision"] = 2
+        edit["payload"]["changes"]["text_auto_center"] = "invalid"
+        assert client.post(endpoint, json=edit).status_code == 422
+        restored = client.post(
+            endpoint, json={"expected_revision": 2, "type": "restore_revision", "payload": {"revision": 1}}
+        )
+        assert restored.json()["tracks"][0]["clips"][0]["text_auto_center"] is False
+    assert "text_auto_center=true" in AGENT_INSTRUCTIONS
+    reference = operation_reference("update_clip")
+    assert "text_auto_center=true" in reference["description"]
+    assert (
+        reference["payload_schema"]["properties"]["changes"]["properties"]["text_auto_center"]["default"]
+        is False
+    )
+
+
+@pytest.mark.parametrize("style", ["editorial", "bold", "boxed", "minimal"])
+def test_explicit_alignment_preserves_defaults_and_changes_cached_raster(tmp_path, style):
+    from synkinema.media import caption_bounds
+
+    clip = Clip(text="SHORT\nA LONGER LINE", subtitle="Subtitle", caption_style=style, font_size=44)
+    rasters = {
+        alignment: cached_text_layer(clip.model_copy(update={"text_align": alignment}), 1080, 1920, tmp_path)
+        for alignment in ("auto", "left", "center", "right")
+    }
+    default = "center" if style in ("bold", "boxed") else "left"
+    assert Image.open(rasters["auto"]).tobytes() == Image.open(rasters[default]).tobytes()
+    bounds = {alignment: caption_bounds(path) for alignment, path in rasters.items()}
+    assert bounds["left"]["left"] < bounds["center"]["left"] < bounds["right"]["left"]
+    center = bounds["center"]
+    assert abs(center["left"] + center["width"] / 2 - 540) < 4
+    assert len(set(rasters.values())) == 4
+
+
+def test_alignment_edit_validation_revision_and_undo(tmp_path):
+    app = create_app(tmp_path, start_worker=False)
+    project = app.state.service.create(
+        Project(
+            name="Alignment",
+            tracks=[
+                Track(id="captions", name="Captions", kind="text", clips=[Clip(id="caption", text="Hello")])
+            ],
+        )
+    )
+    with TestClient(app) as client:
+        endpoint = f"/api/projects/{project.id}/operations"
+        operation = {
+            "expected_revision": 1,
+            "type": "update_clip",
+            "payload": {"track_id": "captions", "clip_id": "caption", "changes": {"text_align": "center"}},
+        }
+        response = client.post(endpoint, json=operation)
+        assert response.status_code == 200, response.text
+        assert response.json()["tracks"][0]["clips"][0]["text_align"] == "center"
+        assert client.post(endpoint, json=operation).status_code == 409
+        operation["expected_revision"] = 2
+        operation["payload"]["changes"]["text_align"] = "invalid"
+        assert client.post(endpoint, json=operation).status_code == 422
+        restored = client.post(
+            endpoint, json={"expected_revision": 2, "type": "restore_revision", "payload": {"revision": 1}}
+        )
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["tracks"][0]["clips"][0]["text_align"] == "auto"
 
 
 def test_caption_png_matches_export_layout_and_pins_revisions(tmp_path):

@@ -126,6 +126,14 @@ class Clip(Model):
         description="Assetless graphic on an overlay track; uses placement and color. Only opacity animation is supported.",
     )
     caption_style: Literal["editorial", "bold", "boxed", "minimal"] = "editorial"
+    text_align: Literal["auto", "left", "center", "right"] = Field(
+        "auto",
+        description="Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.",
+    )
+    text_auto_center: bool = Field(
+        False,
+        description="When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.",
+    )
     text_x: float = Field(
         0.09, ge=0, le=0.9, description="Left edge of caption block as fraction of output width."
     )

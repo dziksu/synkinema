@@ -133,6 +133,33 @@ def validate_timeline(project):
             end = c.start_ms + c.duration_ms
 
 
+def overlay_windows(layers, duration_ms, fps, batch_size):
+    """Frame-aligned windows bounded by time and the number of distinct layers.
+
+    Sequential captions normally need one pass over each frame, regardless of
+    their total count. Simultaneous layers retain track order and fall back to
+    bounded batches *inside* a window, never another whole-film pass.
+    """
+    total = math.ceil(duration_ms * fps / 1000)
+    spans = [
+        (math.ceil(c.start_ms * fps / 1000), math.ceil((c.start_ms + c.duration_ms) * fps / 1000))
+        for _, c in layers
+    ]
+    start = 0
+    while start < total:
+        end = min(total, start + 30 * fps)
+        members = {i for i, (a, b) in enumerate(spans) if a <= start < b}
+        for boundary in sorted({a for a, b in spans if start < a < end and b > a}):
+            entering = {i for i, (a, b) in enumerate(spans) if a == boundary and b > a}
+            if len(members | entering) > batch_size:
+                end = boundary
+                break
+            members |= entering
+        selected = [layer for layer, (a, b) in zip(layers, spans) if a < end and b > start]
+        yield start, end, selected
+        start = end
+
+
 class Renderer:
     def __init__(self, service):
         self.service = service
@@ -410,13 +437,36 @@ class Renderer:
             duration,
         )
 
-    async def _apply_overlay_batch(self, source, batch, rendered, profile, duration, output, progress):
+    async def _apply_overlay_batch(
+        self,
+        source,
+        batch,
+        rendered,
+        profile,
+        duration,
+        output,
+        progress,
+        *,
+        start_frame=0,
+        source_start_frame=0,
+        frame_count=None,
+    ):
         """Overlay a bounded layer batch and stream the result to the next stage."""
         w, h, fps = profile.width, profile.height, profile.fps
-        args = ["-i", str(source)]
-        graph = ["[0:v]settb=AVTB,setpts=PTS-STARTPTS[base]"]
+        # MKV timestamps are millisecond-quantized. Seek just before the target
+        # frame, then rebuild exact CFR timestamps rather than accumulating
+        # rounding errors at every segment boundary.
+        seek = math.floor(source_start_frame * 1000 / fps) / 1000
+        args = ["-ss", str(seek), "-i", str(source)] if source_start_frame else ["-i", str(source)]
+        graph = [f"[0:v]settb=AVTB,setpts=N/({fps}*TB)[base]"]
+        start = start_frame / fps
         previous = "base"
         for index, (track, clip) in enumerate(batch, start=1):
+            # Preserve the original clip-local clock for fades/animations when
+            # a layer crosses a window. Include the preceding secondary frame
+            # for overlay framesync when the clip starts between canvas frames.
+            skip_frames = max(0, math.floor((start - clip.start_ms / 1000) * fps + 1e-7))
+            skip = skip_frames / fps
             if track.kind == "text" or clip.shape:
                 png = cached_text_layer(clip, w, h, self.store.path("cache"))
                 args += [
@@ -425,13 +475,15 @@ class Renderer:
                     "-framerate",
                     str(fps),
                     "-t",
-                    str(clip.duration_ms / 1000),
+                    str(max(1 / fps, clip.duration_ms / 1000 - skip)),
                     "-i",
                     str(png),
                 ]
             else:
+                if skip_frames:
+                    args += ["-ss", str(math.floor(skip * 1000) / 1000)]
                 args += ["-i", str(rendered[clip.id])]
-            filters = ["format=rgba"]
+            filters = [f"settb=AVTB,setpts=(N/{fps}+{skip})/TB", "format=rgba"]
             px, py = 0, 0
             if track.kind == "overlay" and not clip.shape:
                 placement = clip.placement
@@ -452,12 +504,12 @@ class Renderer:
                 filters += [
                     f"fade=t=out:st={(clip.duration_ms - clip.fade_out_ms) / 1000}:d={clip.fade_out_ms / 1000}:alpha=1"
                 ]
-            filters += [f"setpts=PTS-STARTPTS+{clip.start_ms / 1000}/TB"]
+            filters += [f"setpts=PTS+({clip.start_ms / 1000 - start})/TB"]
             layer = f"layer{index}"
             combined = f"over{index}"
             graph += [
                 f"[{index}:v]{','.join(filters)}[{layer}]",
-                f"[{previous}][{layer}]overlay=x={px}:y={py}:eof_action=pass:enable='gte(t,{clip.start_ms / 1000})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000})'[{combined}]",
+                f"[{previous}][{layer}]overlay=x={px}:y={py}:eof_action=pass:enable='gte(t,{clip.start_ms / 1000 - start})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000 - start})'[{combined}]",
             ]
             previous = combined
         graph += [f"[{previous}]format=yuv420p[vout]"]
@@ -470,11 +522,86 @@ class Renderer:
                 "[vout]",
                 "-t",
                 str(duration),
+                *(["-frames:v", str(frame_count)] if frame_count is not None else []),
                 *self._stage_codec(output),
             ],
             progress,
             duration,
         )
+
+    async def _compose_overlays(self, source, layers, rendered, profile, duration_ms, output, progress):
+        """Render independent short windows and concatenate losslessly on disk."""
+        windows = list(overlay_windows(layers, duration_ms, profile.fps, self.overlay_batch_size))
+        work = sum(
+            (end - start) * max(1, math.ceil(len(batch) / self.overlay_batch_size))
+            for start, end, batch in windows
+        )
+        done = 0
+        temporary = []
+        segments = []
+        manifest = output.with_suffix(".concat.txt")
+        try:
+            for index, (start, end, layers_in_window) in enumerate(windows):
+                batches = [
+                    layers_in_window[i : i + self.overlay_batch_size]
+                    for i in range(0, len(layers_in_window), self.overlay_batch_size)
+                ] or [[]]
+                previous = source
+                for batch_index, batch in enumerate(batches):
+                    part = output.with_suffix(f".window-{index:04d}-{batch_index:03d}.mkv")
+                    temporary.append(part)
+                    await self._apply_overlay_batch(
+                        previous,
+                        batch,
+                        rendered,
+                        profile,
+                        (end - start) / profile.fps,
+                        part,
+                        lambda value, done=done, frames=end - start: progress((done + frames * value) / work),
+                        start_frame=start,
+                        source_start_frame=start if batch_index == 0 else 0,
+                        frame_count=end - start,
+                    )
+                    if previous != source:
+                        previous.unlink(missing_ok=True)
+                    previous = part
+                    done += end - start
+                    progress(done / work)
+                segments.append((previous, (end - start) / profile.fps))
+            if len(segments) == 1:
+                segments[0][0].replace(output)
+                return
+            # Explicit frame-derived durations prevent millisecond rounding in
+            # individual Matroska files from accumulating across many windows.
+            manifest.write_text(
+                "ffconcat version 1.0\n"
+                + "".join(
+                    "file '" + str(path.resolve()).replace("'", "'\\''") + f"'\nduration {seconds:.12f}\n"
+                    for path, seconds in segments
+                )
+            )
+            await self.run(
+                [
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    str(manifest),
+                    "-map",
+                    "0:v",
+                    "-c:v",
+                    "copy",
+                    str(output),
+                ]
+            )
+        except BaseException:
+            output.unlink(missing_ok=True)
+            raise
+        finally:
+            manifest.unlink(missing_ok=True)
+            for path in temporary:
+                path.unlink(missing_ok=True)
 
     async def render(
         self,
@@ -506,11 +633,6 @@ class Renderer:
             (track, clip) for track in active if track.kind in ("text", "overlay") for clip in track.clips
         ]
         stage_files = [output.with_suffix(".stage-000.mkv")]
-        stage_count = 1 + math.ceil(len(layers) / self.overlay_batch_size)
-
-        def stage_progress(stage, value):
-            progress(0.53 + 0.25 * (stage + value) / stage_count, "Compositing timeline")
-
         progress(0.53, "Compositing timeline")
         try:
             await self._compose_primary(
@@ -519,21 +641,21 @@ class Renderer:
                 profile,
                 duration,
                 stage_files[0],
-                lambda value: stage_progress(0, value),
+                lambda value: progress(0.53 + 0.07 * value, "Compositing timeline"),
             )
-            for batch_index, start in enumerate(range(0, len(layers), self.overlay_batch_size), start=1):
-                next_stage = output.with_suffix(f".stage-{batch_index:03d}.mkv")
+            if layers:
+                next_stage = output.with_suffix(".stage-overlays.mkv")
                 stage_files.append(next_stage)
-                await self._apply_overlay_batch(
-                    stage_files[-2],
-                    layers[start : start + self.overlay_batch_size],
+                await self._compose_overlays(
+                    stage_files[0],
+                    layers,
                     rendered,
                     profile,
-                    duration,
+                    project.duration_ms,
                     next_stage,
-                    lambda value, batch_index=batch_index: stage_progress(batch_index, value),
+                    lambda value: progress(0.60 + 0.18 * value, "Compositing timeline"),
                 )
-                stage_files[-2].unlink(missing_ok=True)
+                stage_files[0].unlink(missing_ok=True)
         except BaseException:
             for stage in stage_files:
                 stage.unlink(missing_ok=True)

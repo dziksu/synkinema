@@ -48,6 +48,8 @@
     "start_ms": 0,
     "subtitle": "",
     "text": "",
+    "text_align": "auto",
+    "text_auto_center": false,
     "text_x": 0.09,
     "text_y": 0.66,
     "transform": {

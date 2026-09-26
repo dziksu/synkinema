@@ -17,6 +17,7 @@ over full inventories/results. Read confirmed revisions; serialize writes. Dry r
 On conflict reread and reconcile, never blindly retry. Use clone_project for alternate cuts.
 Use typed production tasks, analyze_source_media, plan_narration_cut and audit_edit;
 retain task/job IDs, never enqueue to poll. Times are integer ms; source and timeline differ.
+For centered subtitles set clip.text_auto_center=true. It centers the whole caption on the canvas, ignoring text_x/text_align; text_y still sets height. text_align=center alone only aligns lines inside the manually positioned block.
 Validate before rendering, then inspect actual render_frames and audio by completed job_id.
 Metadata/heuristics do not prove visual quality or listening. Full guide: synkinema://agent-guide.
 Discover voice providers before TTS; paid/external synthesis needs authorization.
@@ -100,6 +101,13 @@ def operation_reference(operation: str | None = None) -> dict:
     records = {}
 
     def add(name, description, schema, example):
+        if name in {"add_clip", "append_clip", "update_clip"}:
+            description += (
+                " For centered subtitles set text_auto_center=true on clip/changes: the renderer centers"
+                " all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align."
+                " text_y remains adjustable. False restores saved manual positioning; text_align=center"
+                " alone does not center a displaced block. Preview and export use the same layout."
+            )
         records[name] = {"description": description, "payload_schema": schema, "example_payload": example}
 
     add(

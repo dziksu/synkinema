@@ -7,6 +7,7 @@ import {
 } from "@/modules/editor/layerInsert";
 import {
   CanvasTarget,
+  captionAnchorX,
   captionPlacement,
   placementOf,
   placementStyle,
@@ -329,8 +330,8 @@ export function Preview({
                       clip={original}
                       opacity={opacity}
                       imageStyle={(rasterClip) => ({
-                        transform: `translate(${(clip.text_x - rasterClip.text_x) * canvasSize.width}px, ${(clip.text_y - rasterClip.text_y) * canvasSize.height}px) scale(${clip.font_size / rasterClip.font_size})`,
-                        transformOrigin: `${rasterClip.text_x * 100}% ${rasterClip.text_y * 100}%`,
+                        transform: `translate(${(captionAnchorX(clip) - captionAnchorX(rasterClip)) * canvasSize.width}px, ${(clip.text_y - rasterClip.text_y) * canvasSize.height}px) scale(${clip.font_size / rasterClip.font_size})`,
+                        transformOrigin: `${captionAnchorX(rasterClip) * 100}% ${rasterClip.text_y * 100}%`,
                       })}
                     >
                       {(bounds, rasterClip) => (

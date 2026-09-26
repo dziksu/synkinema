@@ -7,6 +7,8 @@ import { useRef, type CSSProperties, type PointerEvent } from "react";
 
 export type Placement = { x: number; y: number; width: number; height: number };
 export const fullFrame: Placement = { x: 0.5, y: 0.5, width: 1, height: 1 };
+export const captionAnchorX = (clip: Clip) =>
+  clip.text_auto_center ? 0.5 : clip.text_x;
 export const placementOf = (clip: Clip): Placement =>
   clip.placement || fullFrame;
 export const placementStyle = (p: Placement): CSSProperties => ({
@@ -26,8 +28,9 @@ export function captionPlacement(
   const scale = draft.font_size / original.font_size;
   return {
     x:
-      draft.text_x +
-      ((bounds.left + bounds.width / 2) / profile.width - original.text_x) *
+      captionAnchorX(draft) +
+      ((bounds.left + bounds.width / 2) / profile.width -
+        captionAnchorX(original)) *
         scale,
     y:
       draft.text_y +
@@ -39,6 +42,14 @@ export function captionPlacement(
 }
 const clamp = (v: number, min: number, max: number) =>
   Math.max(min, Math.min(max, v));
+export function moveCaption(clip: Clip, dx: number, dy: number): Partial<Clip> {
+  return {
+    ...(!clip.text_auto_center
+      ? { text_x: clamp((clip.text_x ?? 0.09) + dx, 0, 0.9) }
+      : {}),
+    text_y: clamp(clip.text_y + dy, 0.1, 0.85),
+  };
+}
 export function movePlacement(
   p: Placement,
   dx: number,
@@ -321,10 +332,7 @@ export function CanvasTarget({
                   ),
                 ),
               }
-            : {
-                text_x: clamp((d.original.text_x ?? 0.09) + dx, 0, 0.9),
-                text_y: clamp(d.original.text_y + dy, 0.1, 0.85),
-              }
+            : moveCaption(d.original, dx, dy)
           : {
               placement: d.corner
                 ? resizePlacement(d.p, dx, dy, d.corner, !e.shiftKey)
@@ -363,10 +371,7 @@ export function CanvasTarget({
           dy = (dir[1] * (e.shiftKey ? 10 : 1)) / (frameHeight || frameWidth);
         onCommit(
           text
-            ? {
-                text_x: clamp((clip.text_x ?? 0.09) + dx, 0, 0.9),
-                text_y: clamp(clip.text_y + dy, 0.1, 0.85),
-              }
+            ? moveCaption(clip, dx, dy)
             : { placement: movePlacement(p, dx, dy, false) },
         );
       }}
