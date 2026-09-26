@@ -122,6 +122,7 @@ the public internet. See [SECURITY.md](../SECURITY.md).
 | `SYNKINEMA_API_ORIGIN` | Studio server-only engine origin: `http://127.0.0.1:8080` in development; `http://127.0.0.1:8081` for the bundled container engine |
 | `HOST`, `PORT` | Studio Node listener; `0.0.0.0:8080` in the image. Keep container defaults for existing Compose port mappings |
 | `SYNKINEMA_FFMPEG_THREADS` | 4; bounded to 1–16 |
+| `SYNKINEMA_OVERLAY_BATCH_SIZE` | 12; bounded to 1–32; maximum text/overlay inputs per temporal-window pass, see [rendering details](RENDER_OVERLAY_WINDOWS.md) |
 | `SYNKINEMA_FONT` | Optional TTF path; otherwise DejaVu/Arial fallback |
 | `SYNKINEMA_ALLOWED_HOSTS` | Additional trusted hostnames/IPs, comma-separated |
 | `SYNKINEMA_API_TOKEN` | Optional bearer token for `/api` and `/mcp`; health stays public; media is not covered |

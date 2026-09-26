@@ -334,7 +334,9 @@ def register_mcp(mcp, p):
 
     @tool("wait_for_render", D["render_wait"], read)
     async def wait_render(job_id: RenderJobId, request: WaitRequest) -> dict:
-        return await render_wait(p, job_id, request.timeout_seconds)
+        from ..agent_tools import agent_job
+
+        return agent_job(await render_wait(p, job_id, request.timeout_seconds))
 
     @tool("compare_project_revisions", D["revision_compare"], read)
     def compare(project_id: ProjectId, request: RevisionCompare) -> RevisionComparison:

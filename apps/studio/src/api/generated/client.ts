@@ -10,7 +10,7 @@
  * ---------------------------------------------------------------
  */
 
-/** Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. */
+/** Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface AddClipOperation {
   /**
    * Last confirmed server revision. Serialize writes; conflicts reject atomically.
@@ -132,6 +132,18 @@ export interface AddClipOperation {
        */
       text?: string;
       /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
+      /**
        * Text X
        * Left edge of caption block as fraction of output width.
        * @min 0
@@ -155,7 +167,7 @@ export interface AddClipOperation {
   type: "add_clip";
 }
 
-/** Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. */
+/** Append a clip record on an existing track at its explicit start_ms (default 0); does NOT append in time, snap, resolve collisions or extract audio. Omit id to generate one. Reference library asset_id for media; text tracks require nonempty text. Overlay tracks also accept assetless shape clips (rectangle/ellipse/line). placement sets layer position/size; caption_style selects text styling. Full Clip defaults apply. All track kinds reject new overlapping intervals (422), including muted tracks; explicit primary-video transitions are the only intentional overlap. For simultaneous layers choose an unmuted same-kind track free for the entire [start_ms,start_ms+duration_ms) interval, or batch add_track + add_clip. This operation never silently changes the requested start. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface AddClipStep {
   payload: {
     /** Clip */
@@ -271,6 +283,18 @@ export interface AddClipStep {
        * @default ""
        */
       text?: string;
+      /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
       /**
        * Text X
        * Left edge of caption block as fraction of output width.
@@ -418,7 +442,7 @@ export interface ApiError {
   detail: string | ValidationIssue[];
 }
 
-/** Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. */
+/** Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface AppendClipOperation {
   /**
    * Last confirmed server revision. Serialize writes; conflicts reject atomically.
@@ -531,6 +555,18 @@ export interface AppendClipOperation {
        */
       text?: string;
       /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
+      /**
        * Text X
        * Left edge of caption block as fraction of output width.
        * @min 0
@@ -554,7 +590,7 @@ export interface AppendClipOperation {
   type: "append_clip";
 }
 
-/** Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. */
+/** Append at the end of the target track (0 when empty), never at the global project end. Omit start_ms. If duration_ms omitted, use remaining source duration / speed rounded down; images/text default 4000ms. Source limits still apply. Incoming transition must be cut; set_transition afterwards can ripple aligned media. Provide id to refer to this clip in later batch steps. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface AppendClipStep {
   payload: {
     clip: {
@@ -661,6 +697,18 @@ export interface AppendClipStep {
        * @default ""
        */
       text?: string;
+      /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
       /**
        * Text X
        * Left edge of caption block as fraction of output width.
@@ -851,12 +899,43 @@ export interface AssetUsage {
   version: number;
 }
 
+/** AudioDynamics */
+export interface AudioDynamics {
+  /**
+   * Loud P90 Dbfs
+   * 90th-percentile window RMS: typical speech peaks.
+   */
+  loud_p90_dbfs: number;
+  /**
+   * Quiet P10 Dbfs
+   * 10th-percentile window RMS: the floor between spoken lines, where music/ambience remain.
+   */
+  quiet_p10_dbfs: number;
+  /**
+   * Audible Windows
+   * Windows above -60 dBFS used for the percentiles.
+   */
+  audible_windows: number;
+  /**
+   * Separation Db
+   * loud_p90 minus quiet_p10. Measured on the mix; configured clip/track gains (which add) do not predict it.
+   */
+  separation_db: number;
+  /**
+   * Window Ms
+   * RMS window length; the same windows as `windows`.
+   */
+  window_ms: number;
+}
+
 /** AudioReport */
 export interface AudioReport {
   /** Ebu R128 */
   ebu_r128: LoudnessSample[];
   /** Audio Url */
   audio_url: string;
+  /** Speech-gap floor versus speech level; null when fewer than 4 audible windows exist. */
+  dynamics: AudioDynamics | null;
   /** From Ms */
   from_ms: number;
   /** Integrated Lufs */
@@ -1376,6 +1455,70 @@ export interface ChannelLogo {
   width: number;
 }
 
+/**
+ * ChannelPatch
+ * Partial channel update. Only supplied fields change; omitted fields keep their current values. Send an empty string or list to clear a field deliberately.
+ */
+export interface ChannelPatch {
+  /** Archived */
+  archived?: boolean | null;
+  /** Audience */
+  audience?: string | null;
+  /** Avoid */
+  avoid?: string | null;
+  /** Concept */
+  concept?: string | null;
+  /** Cta Guidance */
+  cta_guidance?: string | null;
+  /**
+   * Expected Version
+   * Last confirmed channel version; conflicts reject without retry.
+   * @min 1
+   */
+  expected_version: number;
+  /** Hook Guidance */
+  hook_guidance?: string | null;
+  /**
+   * Language
+   * Content language, e.g. en or pl; not Studio UI language.
+   */
+  language?: string | null;
+  /**
+   * Learnings
+   * Owner-approved lessons to apply to future videos. Reviews do not change these automatically.
+   */
+  learnings?: string | null;
+  /** Links */
+  links?: ChannelLink[] | null;
+  /**
+   * Logo Id
+   * Optional ID returned by upload_channel_logo. Served at /media/channel-logos/{logo_id}.png. Null removes the association, not the reusable file. Existing briefs default to null.
+   */
+  logo_id?: string | null;
+  /** Lowercase Hashtags */
+  lowercase_hashtags?: boolean | null;
+  /** Name */
+  name?: string | null;
+  /**
+   * Rules
+   * Standing editorial instructions: hooks, CTA, pacing, captions, exclusions and source policy.
+   */
+  rules?: string | null;
+  /** Tone */
+  tone?: string | null;
+  /** Visual Guidance */
+  visual_guidance?: string | null;
+  /** Voice Gender */
+  voice_gender?: "unspecified" | "male" | "female" | "neutral" | null;
+  /** Voice Id */
+  voice_id?: string | null;
+  /**
+   * Voice Provider
+   * Preferred provider ID; advisory, does not install or invoke a provider.
+   */
+  voice_provider?: string | null;
+}
+
 /** ChannelProject */
 export interface ChannelProject {
   /** Duration Ms */
@@ -1656,6 +1799,76 @@ export interface ChannelUpdate {
   voice_provider?: string;
 }
 
+/** ChannelVersionDetail */
+export interface ChannelVersionDetail {
+  channel: Channel;
+  /** Current */
+  current: boolean;
+  /** Replaced At */
+  replaced_at: string | null;
+}
+
+/** ChannelVersionRestore */
+export interface ChannelVersionRestore {
+  /**
+   * Expected Version
+   * Current confirmed channel version; conflicts reject without retry.
+   * @min 1
+   */
+  expected_version: number;
+}
+
+/** ChannelVersionSummary */
+export interface ChannelVersionSummary {
+  /**
+   * Changes From Previous
+   * Editable fields that differ from the next-older listed version; null for the oldest.
+   */
+  changes_from_previous: string[] | null;
+  /** Current */
+  current: boolean;
+  /**
+   * Field Lengths
+   * Character counts of the long text fields, e.g. to spot a wiped rulebook at a glance.
+   */
+  field_lengths: Record<string, number>;
+  /**
+   * Replaced At
+   * When a later edit replaced this content; null for the current version.
+   */
+  replaced_at: string | null;
+  /**
+   * Saved At
+   * When this version's editable content was written.
+   */
+  saved_at: string;
+  /** Version */
+  version: number;
+}
+
+/** ChannelVersions */
+export interface ChannelVersions {
+  /** Channel Id */
+  channel_id: string;
+  /** Current Version */
+  current_version: number;
+  /**
+   * Note
+   * @default "Only versions whose editable content was later replaced are snapshotted; publication/review records bump the version without new content. Restore copies a snapshot into a NEW version and snapshots the state it replaces."
+   */
+  note: string;
+  /**
+   * Retention
+   * Most recent replaced versions kept per channel; older snapshots are pruned.
+   */
+  retention: number;
+  /**
+   * Versions
+   * Newest first, current version included.
+   */
+  versions: ChannelVersionSummary[];
+}
+
 /** CleanupResult */
 export interface CleanupResult {
   /**
@@ -1798,6 +2011,18 @@ export interface ClipInput {
    */
   text?: string;
   /**
+   * Text Align
+   * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+   * @default "auto"
+   */
+  text_align?: "auto" | "left" | "center" | "right";
+  /**
+   * Text Auto Center
+   * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+   * @default false
+   */
+  text_auto_center?: boolean;
+  /**
    * Text X
    * Left edge of caption block as fraction of output width.
    * @min 0
@@ -1925,6 +2150,18 @@ export interface ClipOutput {
    * @default ""
    */
   text: string;
+  /**
+   * Text Align
+   * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+   * @default "auto"
+   */
+  text_align: "auto" | "left" | "center" | "right";
+  /**
+   * Text Auto Center
+   * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+   * @default false
+   */
+  text_auto_center: boolean;
   /**
    * Text X
    * Left edge of caption block as fraction of output width.
@@ -2313,6 +2550,18 @@ export interface EditClip {
    * @default ""
    */
   text?: string;
+  /**
+   * Text Align
+   * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+   * @default "auto"
+   */
+  text_align?: "auto" | "left" | "center" | "right";
+  /**
+   * Text Auto Center
+   * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+   * @default false
+   */
+  text_auto_center?: boolean;
   /**
    * Text X
    * Left edge of caption block as fraction of output width.
@@ -3239,10 +3488,9 @@ export interface ImportSteamInput {
   project_id: string;
   /**
    * To Ms
-   * @exclusiveMin 0
-   * @default 120000
+   * Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms; an end beyond the trailer is rejected with its measured duration.
    */
-  to_ms?: number;
+  to_ms?: number | null;
   /**
    * Type
    * @default "import_steam_trailer"
@@ -3282,10 +3530,9 @@ export interface ImportSteamOutput {
   project_id: string;
   /**
    * To Ms
-   * @exclusiveMin 0
-   * @default 120000
+   * Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms; an end beyond the trailer is rejected with its measured duration.
    */
-  to_ms: number;
+  to_ms: number | null;
   /**
    * Type
    * @default "import_steam_trailer"
@@ -5508,10 +5755,9 @@ export interface SteamTrailerSelectionInput {
   movie_id: number;
   /**
    * To Ms
-   * @exclusiveMin 0
-   * @default 120000
+   * Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms.
    */
-  to_ms?: number;
+  to_ms?: number | null;
 }
 
 /** SteamTrailerSelection */
@@ -5541,10 +5787,9 @@ export interface SteamTrailerSelectionOutput {
   movie_id: number;
   /**
    * To Ms
-   * @exclusiveMin 0
-   * @default 120000
+   * Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms.
    */
-  to_ms: number;
+  to_ms: number | null;
 }
 
 /** TextLayerRequest */
@@ -6056,6 +6301,18 @@ export interface TrimClipOperation {
        */
       text?: string;
       /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
+      /**
        * Text X
        * Left edge of caption block as fraction of output width.
        * @min 0
@@ -6195,6 +6452,18 @@ export interface TrimClipStep {
        */
       text?: string;
       /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
+      /**
        * Text X
        * Left edge of caption block as fraction of output width.
        * @min 0
@@ -6220,7 +6489,7 @@ export interface TrimClipStep {
   type: "trim_clip";
 }
 
-/** Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. */
+/** Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface UpdateClipOperation {
   /**
    * Last confirmed server revision. Serialize writes; conflicts reject atomically.
@@ -6339,6 +6608,18 @@ export interface UpdateClipOperation {
        */
       text?: string;
       /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
+      /**
        * Text X
        * Left edge of caption block as fraction of output width.
        * @min 0
@@ -6364,7 +6645,7 @@ export interface UpdateClipOperation {
   type: "update_clip";
 }
 
-/** Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. */
+/** Shallow replacement of supplied clip fields except immutable id. effects/animations replace entire arrays; transform/transition are rebuilt with model defaults for omitted properties. Read-modify-write complete nested values. Does not retime animations, adjust source bounds, ripple, or snap. All edits validate the final timeline and reject new overlaps on every track kind, including muted tracks. Use dedicated move/trim/transition operations for their side effects. For centered subtitles set text_auto_center=true on clip/changes: the renderer centers all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align. text_y remains adjustable. False restores saved manual positioning; text_align=center alone does not center a displaced block. Preview and export use the same layout. */
 export interface UpdateClipStep {
   payload: {
     changes: {
@@ -6477,6 +6758,18 @@ export interface UpdateClipStep {
        * @default ""
        */
       text?: string;
+      /**
+       * Text Align
+       * Line alignment within the caption block, including subtitles. Auto preserves style defaults: centered bold/boxed, left editorial/minimal. Does not move the block's text_x anchor.
+       * @default "auto"
+       */
+      text_align?: "auto" | "left" | "center" | "right";
+      /**
+       * Text Auto Center
+       * When true, automatically center the whole caption horizontally on the output canvas (50% width), including every wrapped line, subtitle and editorial dash. Overrides text_x and text_align without changing their saved values; text_y still controls vertical placement. Use this single flag for centered subtitles in preview and export. False preserves manual positioning and existing projects.
+       * @default false
+       */
+      text_auto_center?: boolean;
       /**
        * Text X
        * Left edge of caption block as fraction of output width.
@@ -7417,7 +7710,7 @@ export class Api<
       }),
 
     /**
-     * @description Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.
+     * @description Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, dynamics (gap floor between spoken lines versus speech level, separation_db), RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.
      *
      * @tags Composition
      * @name Audio
@@ -7939,6 +8232,28 @@ export class Api<
       }),
 
     /**
+     * @description Read the complete editable content of one snapshotted or current channel version, e.g. to compare or recover text. 404 when that version has no snapshot. Read-only.
+     *
+     * @tags Composition
+     * @name GetChannelVersion
+     * @summary Get Channel Version
+     * @request GET:/api/channels/{channel_id}/versions/{version}
+     * @secure
+     */
+    getChannelVersion: (
+      channelId: string,
+      version: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<ChannelVersionDetail, ApiError>({
+        path: `/api/channels/${channelId}/versions/${version}`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Read readiness metadata: version and whether ffmpeg/ffprobe executables are available. Does not perform a render. Exempt from optional bearer authentication.
      *
      * @tags Composition
@@ -8036,6 +8351,24 @@ export class Api<
       }),
 
     /**
+     * @description List the current channel version and every snapshotted earlier version, newest first, with when each was saved and replaced, which editable fields changed, and the character count of each long text field (a wiped rulebook shows as a drop to 0). Snapshots are written whenever editable content changes; publication/review records bump the version without new content. Read-only.
+     *
+     * @tags Composition
+     * @name ListChannelVersions
+     * @summary List Channel Versions
+     * @request GET:/api/channels/{channel_id}/versions
+     * @secure
+     */
+    listChannelVersions: (channelId: string, params: RequestParams = {}) =>
+      this.request<ChannelVersions, ApiError>({
+        path: `/api/channels/${channelId}/versions`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Add or move an asset to a folder in a collection. Null project_id means shared library; null folder_id means root. Other collections and timeline references stay unchanged. No binary copies or project revision changes.
      *
      * @tags Composition
@@ -8104,6 +8437,30 @@ export class Api<
         method: "GET",
         query: query,
         secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Change only the supplied editable fields, guarded by expected_version; omitted fields keep their current values and an empty string or list clears a field deliberately. At least one field is required. The replaced content is snapshotted first. Conflict 409 preserves existing data; reread and reconcile.
+     *
+     * @tags Composition
+     * @name PatchChannel
+     * @summary Patch Channel
+     * @request PATCH:/api/channels/{channel_id}
+     * @secure
+     */
+    patchChannel: (
+      channelId: string,
+      data: ChannelPatch,
+      params: RequestParams = {},
+    ) =>
+      this.request<Channel, ApiError>({
+        path: `/api/channels/${channelId}`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: "application/json",
         format: "json",
         ...params,
       }),
@@ -8611,6 +8968,31 @@ export class Api<
       }),
 
     /**
+     * @description Copy a snapshotted version's editable fields into a NEW current version, guarded by the current expected_version. The content being replaced is snapshotted too, so a restore can itself be undone. Publications, reviews and linked projects are unchanged. Conflict 409 preserves existing data.
+     *
+     * @tags Composition
+     * @name RestoreChannelVersion
+     * @summary Restore Channel Version
+     * @request POST:/api/channels/{channel_id}/versions/{version}/restore
+     * @secure
+     */
+    restoreChannelVersion: (
+      channelId: string,
+      version: number,
+      data: ChannelVersionRestore,
+      params: RequestParams = {},
+    ) =>
+      this.request<Channel, ApiError>({
+        path: `/api/channels/${channelId}/versions/${version}/restore`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Retry all previously committed file deletions immediately. No new project/job deletion is selected. Returns files physically unlinked, freed_bytes and remaining pending_files. Safe to repeat; missing files resolve pending entries. Waits for in-progress inspection before cleaning its cache.
      *
      * @tags Composition
@@ -8863,7 +9245,7 @@ export class Api<
       }),
 
     /**
-     * @description Replace editable channel fields using expected_version. Omitted fields reset to defaults. Conflict 409 preserves existing data; reread and reconcile. Archive is reversible and preserves projects/media.
+     * @description Replace ALL editable channel fields using expected_version: omitted fields reset to defaults, so send the complete brief (Studio's editor does). Use PATCH for partial edits. The replaced content is snapshotted first and can be restored from the channel's versions. Conflict 409 preserves existing data; reread and reconcile. Archive is reversible and preserves projects/media.
      *
      * @tags Composition
      * @name UpdateChannel

@@ -141,3 +141,34 @@ def test_range_default_fallback_and_short_audio_windows(context):
     assert audio["windows"][0]["active_tracks"] == ["Short SFX"]
     assert audio["windows"][1]["active_tracks"] == []
     assert audio["windows"][0]["duration_ms"] == 500
+
+
+def test_speech_gap_dynamics_and_masking_warning():
+    from synkinema.inspection import speech_gap_dynamics, speech_gap_warning
+    from synkinema.models import Project
+
+    project = Project(name="Mix")
+    names = {t.kind: t.name for t in project.tracks}
+    voice, music = names["voiceover"], names["music"]
+
+    def window(rms, *tracks):
+        return {"rms_dbfs": rms, "active_tracks": list(tracks)}
+
+    # Healthy mix measured on a published Short: gaps ~14 dB under speech.
+    healthy = [
+        window(-14, voice, music),
+        window(-28, music),
+        window(-15, voice, music),
+        window(-27, music),
+    ] * 5
+    dynamics = speech_gap_dynamics(healthy)
+    assert dynamics["window_ms"] == 500 and dynamics["audible_windows"] == 20
+    assert dynamics["separation_db"] >= 12
+    assert speech_gap_warning(project, healthy, dynamics) is None
+    masked = [window(-14, voice, music), window(-18, music)] * 10
+    warning = speech_gap_warning(project, masked, speech_gap_dynamics(masked))
+    assert warning["type"] == "bed_fills_speech_gaps"
+    # Continuous speech without a bed is not a masking problem.
+    talk = [window(-14, voice), window(-17, voice)] * 10
+    assert speech_gap_warning(project, talk, speech_gap_dynamics(talk)) is None
+    assert speech_gap_dynamics([window(-80), window(-14, voice)]) is None

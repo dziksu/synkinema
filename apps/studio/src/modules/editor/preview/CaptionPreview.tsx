@@ -21,6 +21,8 @@ const sameTypography = (a: Clip, b: Clip) =>
   a.text === b.text &&
   a.subtitle === b.subtitle &&
   a.caption_style === b.caption_style &&
+  a.text_align === b.text_align &&
+  a.text_auto_center === b.text_auto_center &&
   a.font_size === b.font_size &&
   a.color === b.color;
 

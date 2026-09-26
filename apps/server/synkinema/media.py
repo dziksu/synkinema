@@ -223,7 +223,8 @@ def text_layer(clip, width, height, output):
     size = max(1, round(clip.font_size * scale))
     f = font(size, True)
     small = font(max(1, round(38 * scale)))
-    block_width = width * min(0.82, 0.98 - clip.text_x)
+    text_x = 0.09 if clip.text_auto_center else clip.text_x
+    block_width = width * min(0.82, 0.98 - text_x)
     lines = wrapped(d, clip.text, f, block_width)
     line_height = size * 1.14
     y = height * clip.text_y
@@ -232,13 +233,25 @@ def text_layer(clip, width, height, output):
         len(subtitle_lines) * 40 * scale + 32 * scale if clip.subtitle else 0
     )
     y = min(y, height * 0.88 - block_height)
-    x = round(width * clip.text_x)
+    x = round(width * text_x)
+    alignment = "center" if clip.text_auto_center else clip.text_align
+    if alignment == "auto":
+        alignment = "center" if clip.caption_style in ("bold", "boxed") else "left"
+
+    def aligned_offset(content_width):
+        if clip.text_auto_center:
+            return (width - content_width) / 2
+        remainder = block_width - content_width
+        return x + (remainder / 2 if alignment == "center" else remainder if alignment == "right" else 0)
+
+    def aligned_x(line, line_font):
+        if clip.text_auto_center:
+            left, _, right, _ = d.textbbox((0, 0), line, font=line_font)
+            return (width - (right - left)) / 2 - left
+        return aligned_offset(d.textlength(line, font=line_font))
+
     if clip.caption_style != "editorial":
         pad = max(2, round(20 * scale))
-        centered = clip.caption_style in ("bold", "boxed")
-
-        def aligned_x(line, line_font):
-            return x + (block_width - d.textlength(line, font=line_font)) / 2 if centered else x
 
         for line in lines:
             xx = aligned_x(line, f)
@@ -285,19 +298,25 @@ def text_layer(clip, width, height, output):
         for yy in range(max(0, round(y - height * 0.12)), height):
             alpha = int(min(190, max(0, (yy - y + height * 0.12) / (height * 0.3) * 190)))
             d.line((0, yy, width, yy), fill=(5, 12, 12, alpha))
+    dash_x = aligned_offset(56 * scale)
     d.rounded_rectangle(
-        (x, y - 28 * scale, x + 56 * scale, y - 20 * scale), radius=4 * scale, fill=clip.color
+        (dash_x, y - 28 * scale, dash_x + 56 * scale, y - 20 * scale), radius=4 * scale, fill=clip.color
     )
-    foreground.append((x, y - 28 * scale, x + 56 * scale + 1, y - 20 * scale + 1))
+    foreground.append((dash_x, y - 28 * scale, dash_x + 56 * scale + 1, y - 20 * scale + 1))
     for line in lines:
         draw_text(
-            (x, y), line, font=f, fill="white", stroke_width=max(1, round(scale)), stroke_fill=(0, 0, 0, 70)
+            (aligned_x(line, f), y),
+            line,
+            font=f,
+            fill="white",
+            stroke_width=max(1, round(scale)),
+            stroke_fill=(0, 0, 0, 70),
         )
         y += line_height
     if clip.subtitle:
         y += 22 * scale
         for line in subtitle_lines:
-            draw_text((x, y), line, font=small, fill=clip.color)
+            draw_text((aligned_x(line, small), y), line, font=small, fill=clip.color)
             y += 40 * scale
     save_caption()
     return output

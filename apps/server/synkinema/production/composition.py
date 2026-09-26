@@ -69,6 +69,7 @@ def compose(service, request, project_id, narration):
             duration_ms=end - start,
             font_size=size,
             text_x=0.075,
+            text_auto_center=target is captions,
             text_y=y,
             caption_style=style or request.caption_style,
             color=color,

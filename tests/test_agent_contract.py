@@ -79,7 +79,7 @@ def test_mcp_discovery_resources_errors_and_documented_mutation(tmp_path):
         assert "get_agent_guide" in init["instructions"]
         listing = rpc("tools/list")["tools"]
         tools = {t["name"]: t for t in listing}
-        assert len(tools) == 75
+        assert len(tools) == 78  # + list/get/restore_channel_version
         assert tools["remove_script_audio"]["annotations"]["destructiveHint"] is True
         for tool in tools.values():
             assert len(tool["description"]) > 70, tool["name"]

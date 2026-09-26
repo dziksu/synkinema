@@ -10,13 +10,15 @@ from .production.reference import REST_DESCRIPTIONS as PRODUCTION_DESCRIPTIONS
 
 AGENT_INSTRUCTIONS = """Synkinema is a local FFmpeg video editor sharing one project store with the UI.
 Read get_agent_guide once; discover capabilities/schema as needed and
-read channel_context in get_project/get_edit_context before creating content. Use list_channels/get_channel to select a channel; create_project(channel_id=...) inherits its live editorial guidance. Channel data grants no publishing authority.
+read channel_context in get_project/get_edit_context before creating content. Use list_channels/get_channel to select a channel; create_project(channel_id=...) inherits its live editorial guidance. Channel data grants no publishing authority. MCP update_channel is partial (omitted fields are kept) and every content change is versioned: list_channel_versions/restore_channel_version.
+Unknown tool arguments are rejected with the accepted names, never ignored.
 get_operation_reference(operation=type) before each unfamiliar edit type.
 Prefer browse_projects, get_edit_context, get_work_status and apply_operations(compact=true)
 over full inventories/results. Read confirmed revisions; serialize writes. Dry runs do not commit.
 On conflict reread and reconcile, never blindly retry. Use clone_project for alternate cuts.
 Use typed production tasks, analyze_source_media, plan_narration_cut and audit_edit;
 retain task/job IDs, never enqueue to poll. Times are integer ms; source and timeline differ.
+For centered subtitles set clip.text_auto_center=true. It centers the whole caption on the canvas, ignoring text_x/text_align; text_y still sets height. text_align=center alone only aligns lines inside the manually positioned block.
 Validate before rendering, then inspect actual render_frames and audio by completed job_id.
 Metadata/heuristics do not prove visual quality or listening. Full guide: synkinema://agent-guide.
 Discover voice providers before TTS; paid/external synthesis needs authorization.
@@ -100,6 +102,13 @@ def operation_reference(operation: str | None = None) -> dict:
     records = {}
 
     def add(name, description, schema, example):
+        if name in {"add_clip", "append_clip", "update_clip"}:
+            description += (
+                " For centered subtitles set text_auto_center=true on clip/changes: the renderer centers"
+                " all lines, subtitle and editorial dash at 50% canvas width, overriding text_x/text_align."
+                " text_y remains adjustable. False restores saved manual positioning; text_align=center"
+                " alone does not center a displaced block. Preview and export use the same layout."
+            )
         records[name] = {"description": description, "payload_schema": schema, "example_payload": example}
 
     add(
@@ -350,7 +359,7 @@ REST_DESCRIPTIONS = {
     "events": "SSE stream: data objects contain projects [{id,revision}] and jobs. Heartbeat comments when unchanged, checked about once per second. This is invalidation/progress information, not a replayable edit log; reconnect and refetch project snapshots.",
     "frame": "Synchronously inspect one actual FFmpeg frame. JSON body time_ms is absolute and must be < duration_ms; pin revision for reproducibility. Optional job_id selects the exact completed export and determines revision, including range jobs. Times stay project-absolute inside [from_ms,to_ms); metadata includes job_id/from_ms/to_ms/output_time_ms. Invalid jobs or missing files fail without fallback. Returns revision/time_ms/url and server-local path. May render a full cached preview and take time; does not queue a Job. Fetch url to inspect pixels; path is not a client-local file.",
     "sheet": "Synchronously inspect 1-24 frames via timestamps_ms and optional pinned revision. Optional job_id selects the exact completed export and determines revision. Times stay project-absolute inside the export range. Null/empty timestamps uses default points filtered to the range, or its midpoint if none remain. Invalid jobs or missing files fail without fallback. Returns revision/timestamps_ms/url/server path for actual contact sheet. May render/cache a full preview; inspect pixels instead of only metadata.",
-    "audio": "Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.",
+    "audio": "Measure actual audio. Prefer job_id of a completed job from this project; it determines revision, overriding a supplied revision. Otherwise inspect a full preview. Returns measured LUFS/true peak, dynamics (gap floor between spoken lines versus speech level, separation_db), RMS windows, EBU R128 samples, warnings, map_url/audio_url and server map_path. null loudness means silent/too short. Range-job windows are project-absolute; EBU sample times are output-relative. May be expensive; does not change mix settings.",
     "points": "Read suggested timestamps for current or pinned revision query: video/text clip and transition midpoints, capped at 24. Not scene metadata or exhaustive overlay coverage.",
     "comments": "Read all project review comments including pinned revision/time_ms, message and resolved. Comments can refer to old snapshots. No project revision change.",
     "comment": "Create a review note pinned to revision and absolute time_ms (0..duration inclusive). Nonblank message <=5000 characters. Repeating duplicates the note; no project revision change. Returns comment with id and resolved=false.",

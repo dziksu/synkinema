@@ -415,6 +415,15 @@ def test_full_mcp_transport_workflow_real_render_verification_and_bundle(tmp_pat
             "compose_showcase", {"project_id": project["id"], "request": {**request, "dry_run": False}}
         )
         assert saved["project"]["revision"] == 2
+        caption_track = next(t for t in saved["project"]["tracks"] if t["id"] == "captions")
+        assert caption_track["clips"]
+        assert all(c["text_auto_center"] for c in caption_track["clips"])
+        assert all(
+            not c["text_auto_center"]
+            for t in saved["project"]["tracks"]
+            if t["id"] == "titles"
+            for c in t["clips"]
+        )
         assert (
             saved["project"]["script_lines"][0]["audio_asset_id"]
             == narration["result"]["narration"][0]["asset"]["id"]
@@ -627,3 +636,77 @@ async def test_voice_install_verifies_before_replacement_and_reuses_ready_model(
         assert not list(p.store.path("uploads").glob("production-*"))
     finally:
         await p.stop()
+
+
+def test_appdetails_accepts_a_rekeyed_record_only_for_the_same_game():
+    game = {"success": True, "data": {"steam_appid": 2085540, "name": "Stick It to the Stickman"}}
+    # Observed on the live store: appids=2085540 answered under key "4129390".
+    assert remote.appdetails_record({"4129390": game}, 2085540) is game
+    assert remote.appdetails_record({"2085540": game}, 2085540) is game
+    assert remote.appdetails_record({"4129390": {"success": False}}, 4129390) == {"success": False}
+    assert remote.appdetails_record({}, 1) == {}
+    with pytest.raises(ValueError, match="refusing to substitute"):
+        remote.appdetails_record({"9": {"success": True, "data": {"steam_appid": 9}}}, 2085540)
+
+
+@pytest.mark.asyncio
+async def test_steam_game_reads_a_rekeyed_appdetails_response(monkeypatch):
+    body = {
+        "4129390": {
+            "success": True,
+            "data": {
+                "steam_appid": 2085540,
+                "name": "Stick It to the Stickman",
+                "release_date": {"coming_soon": False, "date": "Sep 23, 2026"},
+                "developers": ["Free Lives"],
+                "publishers": ["Devolver Digital"],
+                "movies": [
+                    {"id": 257432755, "name": "1.0 Launch Trailer", "hls_h264": "https://cdn.example/a.m3u8"}
+                ],
+            },
+        }
+    }
+
+    async def download(url, **kw):
+        assert "appids=2085540" in url
+        return json.dumps(body).encode()
+
+    monkeypatch.setattr(remote, "download", download)
+    game, _ = await remote.steam_game(2085540)
+    assert game.app_id == 2085540 and game.name == "Stick It to the Stickman"
+    assert [m.id for m in game.movies] == [257432755] and game.movies[0].hls_url.endswith("a.m3u8")
+
+
+@pytest.mark.asyncio
+async def test_hls_import_defaults_to_the_trailer_end_and_reports_real_duration(monkeypatch, tmp_path):
+    from synkinema.production.contracts import ImportSteam, MediaSource, SteamTrailerSelection
+
+    # 85.5 s trailer: the former fixed default to_ms=120000 always failed on it.
+    playlist = "#EXTM3U\n" + "#EXTINF:4.5,\nseg.ts\n" * 19 + "#EXT-X-ENDLIST\n"
+    fetched = []
+
+    async def download(url, path=None, limit=None, tick=None, resolved=None):
+        if resolved is not None:
+            resolved.append(url)
+        fetched.append(url)
+        return playlist.encode() if url.endswith(".m3u8") else b"segment"
+
+    commands = []
+
+    async def run(args):
+        commands.append(args)
+        (tmp_path / "import.mp4").write_bytes(b"encoded")
+
+    async def tick(*a):
+        pass
+
+    monkeypatch.setattr(remote, "download", download)
+    assert ImportSteam(project_id="p", app_id=1, movie_id=2).to_ms is None
+    assert SteamTrailerSelection(app_id=1, movie_id=2).to_ms is None
+    await remote.import_source(MediaSource(url="https://cdn.example/list.m3u8"), tmp_path, run, tick)
+    assert len(fetched) == 1 + 19  # every segment, no failure
+    assert commands[0][commands[0].index("-t") + 1] == str(85.5)
+    with pytest.raises(ValueError, match="duration of 85500 ms; choose to_ms ≤ 85500"):
+        await remote.import_source(
+            MediaSource(url="https://cdn.example/list.m3u8", to_ms=120_000), tmp_path, run, tick
+        )

@@ -90,14 +90,47 @@ export default function ClipInspector({
             value={c.caption_style}
             onChange={(caption_style) => onChange({ caption_style })}
           />
-          <NumberField
-            label={tr("X position")}
-            value={c.text_x ?? 0.09}
-            min={0}
-            max={0.9}
-            step={0.01}
-            onChange={(text_x) => onChange({ text_x })}
-          />
+          <Button
+            variant="outline"
+            aria-pressed={c.text_auto_center ?? false}
+            onClick={() => onChange({ text_auto_center: !c.text_auto_center })}
+          >
+            {tr("Auto-center horizontally")}
+            {c.text_auto_center && <Check size={15} />}
+          </Button>
+          <p className="hint">
+            {tr(
+              "Keeps every caption line centered on the screen. Vertical position stays adjustable. Turn off to position text manually.",
+            )}
+          </p>
+          {!c.text_auto_center && (
+            <>
+              <NumberField
+                label={tr("X position")}
+                value={c.text_x ?? 0.09}
+                min={0}
+                max={0.9}
+                step={0.01}
+                onChange={(text_x) => onChange({ text_x })}
+              />
+              <label className="field">
+                {tr("Text alignment")}
+                <NativeSelect
+                  value={c.text_align ?? "auto"}
+                  onChange={(e) =>
+                    onChange({
+                      text_align: e.target.value as Clip["text_align"],
+                    })
+                  }
+                >
+                  <option value="auto">{tr("Style default")}</option>
+                  <option value="left">{tr("Align left")}</option>
+                  <option value="center">{tr("Align center")}</option>
+                  <option value="right">{tr("Align right")}</option>
+                </NativeSelect>
+              </label>
+            </>
+          )}
           <label className="field">
             {" "}
             {tr("Heading")}{" "}

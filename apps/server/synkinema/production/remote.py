@@ -151,9 +151,14 @@ async def import_source(source: MediaSource, work: Path, run, tick):
             body = (await download(url, limit=2 * 1024**2, resolved=resolved)).decode()
             url = resolved[-1]
         init, entries = segments(body, url)
-        end = source.to_ms or min(entries[-1][1], source.from_ms + 120_000)
-        if source.from_ms >= entries[-1][1] or end > entries[-1][1]:
-            raise ValueError("Requested interval exceeds HLS source duration")
+        length = entries[-1][1]
+        end = source.to_ms or min(length, source.from_ms + 120_000)
+        if source.from_ms >= length or end > length:
+            # Report the measured length so a caller can correct the interval in one step.
+            raise ValueError(
+                f"Requested interval {source.from_ms}–{end} ms exceeds the HLS source duration of {length} ms; "
+                f"choose to_ms ≤ {length}, or omit to_ms to import to the end (at most 120 s)"
+            )
         selected = [e for e in entries if e[0] < end and e[1] > source.from_ms]
         raw = work / "source.bin"
         total = 0
@@ -413,10 +418,33 @@ def trailer_sources(game, selection):
     ]
 
 
+def appdetails_record(body, app_id):
+    """Select the requested app from an appdetails response.
+
+    Steam can key the record by an internal ID instead of the requested one
+    (observed: appids=2085540 answered under "4129390", whose data still says
+    steam_appid 2085540). Accept a single re-keyed record only when its own
+    steam_appid confirms the requested game; never substitute another game.
+    """
+    if str(app_id) in body:
+        return body[str(app_id)]
+    if len(body) == 1:
+        ((key, record),) = body.items()
+        record = record if isinstance(record, dict) else {}
+        data = record.get("data") or {}
+        if record.get("success") and data.get("steam_appid") == app_id:
+            return record
+        if record.get("success"):
+            raise ValueError(
+                f"Steam answered app {app_id} with a record for app {data.get('steam_appid')} (key {key}); refusing to substitute a different game"
+            )
+    return {}
+
+
 async def steam_game(app_id):
     url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&l=english"
     raw = await download(url, limit=5 * 1024**2)
-    payload = json.loads(raw).get(str(app_id), {})
+    payload = appdetails_record(json.loads(raw), app_id)
     if not payload.get("success"):
         raise ValueError(f"Steam has no available metadata for app {app_id}")
     data = payload["data"]

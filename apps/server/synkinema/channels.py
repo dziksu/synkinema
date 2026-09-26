@@ -2,10 +2,10 @@
 
 import json
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, create_model, field_validator, model_validator
 from sqlalchemy import text
 
 from .models import Model, uid
@@ -91,6 +91,68 @@ class ChannelUpdate(ChannelInput):
         ge=1,
         description="Last confirmed channel version; conflicts reject without retry. Replaces editable fields, including links.",
     )
+
+
+EDITABLE_FIELDS = tuple(ChannelInput.model_fields)
+# Snapshots are only written when editable content changes, so this bounds
+# storage without losing the history of an actively edited rulebook.
+VERSION_RETENTION = 100
+
+
+def _keep_current(field):
+    """Same type and bounds as ChannelInput, but omission means "keep the current value"."""
+    annotation = Annotated[(field.annotation, *field.metadata)] if field.metadata else field.annotation
+    return annotation | None, Field(None, description=field.description)
+
+
+ChannelPatch = create_model(
+    "ChannelPatch",
+    __base__=Model,
+    __doc__="Partial channel update. Only supplied fields change; omitted fields keep their current values. Send an empty string or list to clear a field deliberately.",
+    expected_version=(
+        int,
+        Field(ge=1, description="Last confirmed channel version; conflicts reject without retry."),
+    ),
+    **{name: _keep_current(field) for name, field in ChannelInput.model_fields.items()},
+)
+
+
+class ChannelVersionRestore(Model):
+    expected_version: int = Field(
+        ge=1, description="Current confirmed channel version; conflicts reject without retry."
+    )
+
+
+class ChannelVersionSummary(Model):
+    version: int
+    current: bool
+    saved_at: str = Field(description="When this version's editable content was written.")
+    replaced_at: str | None = Field(
+        None, description="When a later edit replaced this content; null for the current version."
+    )
+    changes_from_previous: list[str] | None = Field(
+        None,
+        description="Editable fields that differ from the next-older listed version; null for the oldest.",
+    )
+    field_lengths: dict[str, int] = Field(
+        description="Character counts of the long text fields, e.g. to spot a wiped rulebook at a glance."
+    )
+
+
+class ChannelVersions(Model):
+    channel_id: str
+    current_version: int
+    versions: list[ChannelVersionSummary] = Field(description="Newest first, current version included.")
+    retention: int = Field(
+        description="Most recent replaced versions kept per channel; older snapshots are pruned."
+    )
+    note: str = "Only versions whose editable content was later replaced are snapshotted; publication/review records bump the version without new content. Restore copies a snapshot into a NEW version and snapshots the state it replaces."
+
+
+class ChannelVersionDetail(Model):
+    channel: Channel
+    current: bool
+    replaced_at: str | None = None
 
 
 class ChannelProject(Model):
@@ -267,13 +329,32 @@ class Channels:
                 raise Conflict(
                     f"Expected channel version {expected_version}; current version is {channel.version}. Reload and reconcile your draft."
                 )
+            previous = channel
             channel = action(conn, channel)
+            if any(getattr(previous, name) != getattr(channel, name) for name in EDITABLE_FIELDS):
+                self._snapshot_channel(conn, previous)
             channel = channel.model_copy(update={"version": expected_version + 1, "updated_at": now()})
             conn.execute(
                 text("UPDATE channels SET document=:doc,updated_at=:time WHERE id=:id"),
                 {"id": channel_id, "doc": channel.model_dump_json(), "time": channel.updated_at},
             )
         return channel
+
+    @staticmethod
+    def _snapshot_channel(conn, channel):
+        """Keep the content being replaced; the channel table holds only the current document."""
+        conn.execute(
+            text("INSERT INTO channel_records VALUES(:id,:channel,'version',:doc,:time)"),
+            {"id": uid(), "channel": channel.id, "doc": channel.model_dump_json(), "time": now()},
+        )
+        conn.execute(
+            text(
+                "DELETE FROM channel_records WHERE channel_id=:channel AND kind='version' AND id NOT IN "
+                "(SELECT id FROM channel_records WHERE channel_id=:channel AND kind='version' "
+                "ORDER BY created_at DESC,id DESC LIMIT :keep)"
+            ),
+            {"channel": channel.id, "keep": VERSION_RETENTION},
+        )
 
     def update_channel(self, channel_id, request: ChannelUpdate):
         self.validate_channel_logo(request.logo_id)
@@ -283,6 +364,82 @@ class Channels:
             lambda _conn, channel: Channel(
                 **{**channel.model_dump(), **request.model_dump(exclude={"expected_version"})}
             ),
+        )
+
+    def patch_channel(self, channel_id, request):
+        supplied = request.model_fields_set - {"expected_version"}
+        if not supplied:
+            raise ValueError(
+                "Supply at least one channel field to change; omitted fields keep their current values"
+            )
+        if "logo_id" in supplied:
+            self.validate_channel_logo(request.logo_id)
+        changes = request.model_dump(include=supplied)
+        return self._channel_write(
+            channel_id,
+            request.expected_version,
+            lambda _conn, channel: Channel.model_validate({**channel.model_dump(), **changes}),
+        )
+
+    def _channel_snapshots(self, channel_id):
+        return [
+            (Channel.model_validate_json(r["document"]), r["created_at"])
+            for r in self.store.rows(
+                "SELECT document,created_at FROM channel_records WHERE channel_id=:id AND kind='version' ORDER BY created_at DESC,id DESC",
+                id=channel_id,
+            )
+        ]
+
+    def channel_versions(self, channel_id):
+        current = self.channel(channel_id)
+        entries = [(current, None)] + self._channel_snapshots(channel_id)
+        versions = []
+        for index, (channel, replaced_at) in enumerate(entries):
+            older = entries[index + 1][0] if index + 1 < len(entries) else None
+            versions.append(
+                ChannelVersionSummary(
+                    version=channel.version,
+                    current=replaced_at is None,
+                    saved_at=channel.updated_at,
+                    replaced_at=replaced_at,
+                    changes_from_previous=None
+                    if older is None
+                    else [name for name in EDITABLE_FIELDS if getattr(older, name) != getattr(channel, name)],
+                    field_lengths={
+                        name: len(getattr(channel, name))
+                        for name in EDITABLE_FIELDS
+                        if isinstance(getattr(channel, name), str) and name not in ("name", "language")
+                    },
+                )
+            )
+        return ChannelVersions(
+            channel_id=channel_id,
+            current_version=current.version,
+            versions=versions,
+            retention=VERSION_RETENTION,
+        )
+
+    def channel_version(self, channel_id, version):
+        current = self.channel(channel_id)
+        if version == current.version:
+            return ChannelVersionDetail(channel=current, current=True)
+        for channel, replaced_at in self._channel_snapshots(channel_id):
+            if channel.version == version:
+                return ChannelVersionDetail(channel=channel, current=False, replaced_at=replaced_at)
+        raise KeyError(
+            f"Channel version {version} has no snapshot. list_channel_versions shows every restorable version."
+        )
+
+    def restore_channel_version(self, channel_id, version, request: ChannelVersionRestore):
+        target = self.channel_version(channel_id, version)
+        if target.current:
+            raise ValueError(f"Version {version} is already current; nothing to restore")
+        self.validate_channel_logo(target.channel.logo_id)
+        restored = target.channel.model_dump(include=set(EDITABLE_FIELDS))
+        return self._channel_write(
+            channel_id,
+            request.expected_version,
+            lambda _conn, channel: Channel.model_validate({**channel.model_dump(), **restored}),
         )
 
     def channel_records(self, channel_id, kind, limit=-1):

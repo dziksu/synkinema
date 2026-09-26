@@ -1,6 +1,7 @@
 """Token-efficient MCP views and advisory editing plans; no alternate mutation path."""
 
 import asyncio
+import re
 from collections import Counter
 
 from mcp.types import ToolAnnotations
@@ -142,6 +143,46 @@ def project_header(project):
     }
 
 
+UPSCALE_FACTOR = re.compile(r"enlarged about ([0-9.]+)×")
+
+
+def grouped_warnings(warnings, max_ids=12):
+    """One entry per warning code. A 30-shot film otherwise repeated ~30 near-identical
+    source_upscale messages in every start/progress/wait response; REST keeps the full list."""
+    groups = {}
+    for warning in warnings:
+        code = warning.get("code", "unknown")
+        group = groups.setdefault(
+            code, {"code": code, "count": 0, "example": warning.get("message", ""), "ids": {}}
+        )
+        group["count"] += 1
+        for field in ("asset_id", "clip_id"):
+            if warning.get(field):
+                group["ids"].setdefault(field + "s", {})[warning[field]] = None
+        if match := UPSCALE_FACTOR.search(warning.get("message", "")):
+            factor = float(match[1])
+            low, high = group.get("factor_range", (factor, factor))
+            group["factor_range"] = (min(low, factor), max(high, factor))
+    result = []
+    for group in groups.values():
+        ids = group.pop("ids")
+        if group["count"] == 1:
+            group["message"] = group.pop("example")
+        for key, values in ids.items():
+            values = list(values)
+            group[key] = values[:max_ids]
+            if len(values) > max_ids:
+                group[key.removesuffix("s") + "_count"] = len(values)
+        result.append(group)
+    return result
+
+
+def agent_job(job):
+    """Render job for MCP: full fields, grouped warnings (use REST GET /api/jobs/{id} for each one)."""
+    warnings = job.get("warnings") or []
+    return {**job, "warnings": grouped_warnings(warnings), "warning_count": len(warnings)}
+
+
 def compact_batch(result):
     """Never label a dry-run candidate revision as a committed server revision."""
     return {
@@ -176,6 +217,31 @@ def browse_projects(service, request):
     }
 
 
+def visible_source(clip, asset, profile):
+    """Source-frame fractions a visual clip shows, using the renderer's crop.
+
+    transform.x/y are crop anchors (object-position), not offsets, which is
+    hard to reason about when framing a speech bubble inside a 65% panel.
+    Returns None when the crop moves (animated scale/x/y) or is not a plain
+    crop (contain with zoom).
+    """
+    width, height = asset.get("width"), asset.get("height")
+    t = clip.transform
+    if not width or not height or any(a.property in ("scale", "x", "y") for a in clip.animations):
+        return None
+    if t.fit == "contain":
+        return {"x": [0.0, 1.0], "y": [0.0, 1.0]} if t.scale == 1 else None
+    box_w = max(2, round(profile.width * clip.placement.width / 2) * 2)
+    box_h = max(2, round(profile.height * clip.placement.height / 2) * 2)
+    crop_w = min(width, height * box_w / box_h) / t.scale
+    crop_h = min(height, width * box_h / box_w) / t.scale
+    left, top = (width - crop_w) * t.x, (height - crop_h) * t.y
+    return {
+        "x": [round(left / width, 4), round((left + crop_w) / width, 4)],
+        "y": [round(top / height, 4), round((top + crop_h) / height, 4)],
+    }
+
+
 def edit_context(service, request):
     p = service.get(request.project_id, request.revision)
     known = {t.id for t in p.tracks}
@@ -203,6 +269,15 @@ def edit_context(service, request):
             )
         except KeyError:
             assets.append({"id": aid, "error": "missing_asset"})
+    geometry = {a["id"]: a for a in assets if "error" not in a}
+    visual = {t.id for t in p.tracks if t.kind in ("video", "overlay")}
+
+    def framing(track_id, clip):
+        if track_id not in visual or clip.shape or clip.asset_id not in geometry:
+            return {}
+        rect = visible_source(clip, geometry[clip.asset_id], p.profile)
+        return {"visible_source": rect} if rect else {}
+
     return {
         **project_header(p),
         "channel_context": service.channel_context(p.channel_id),
@@ -226,6 +301,7 @@ def edit_context(service, request):
                 "start_ms": c.start_ms,
                 "duration_ms": c.duration_ms,
                 "source_in_ms": c.source_in_ms,
+                **framing(tid, c),
             }
             for tid, c in page
         ],
@@ -233,6 +309,7 @@ def edit_context(service, request):
         "matching_clips": len(clips),
         "offset": request.offset,
         "next_offset": request.offset + len(page) if request.offset + len(page) < len(clips) else None,
+        "visible_source": "Derived per visual clip: the [start, end) fractions of the source frame's width (x) and height (y) its crop shows at the current transform and placement, e.g. x [0.26, 0.74] for a centred 16:9 source in a full-width 65% panel. Absent when the crop is animated. Geometry only; overlaid headers/captions still cover parts of it.",
         "omitted": "Clip model defaults; project brief/script/script_lines/scenes. Not a full Project replacement. Use get_project for full nested edits; pin this revision for subsequent pages.",
     }
 

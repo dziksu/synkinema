@@ -121,15 +121,12 @@ async def test_many_overlays_are_streamed_through_bounded_file_stages(tmp_path, 
     output = tmp_path / "result.mp4"
     await renderer.render(project, output)
 
-    stages = [
-        command
-        for command in calls
-        if ".stage-" in command[command.index("-progress") - 1]
-        and command[command.index("-progress") - 1].endswith(".mkv")
-    ]
+    stages = [command for command in calls if "ffv1" in command]
     assert len(stages) == 4  # base plus ceil(5 / 2) overlay passes
     assert max(command.count("-i") for command in stages) <= 3  # prior stage + one bounded batch
     assert not list(tmp_path.glob("result.stage-*.mkv"))
+    assert not list(tmp_path.glob("*.window-*.mkv"))
+    assert not list(tmp_path.glob("*.concat.txt"))
     assert probe(output)["duration_ms"] == pytest.approx(1000, abs=100)
 
 

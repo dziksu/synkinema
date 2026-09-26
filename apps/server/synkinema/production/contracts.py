@@ -62,12 +62,16 @@ class ImportSteam(Model):
         description="Exact returned Steam movie ID. Select after get_steam_games, never assume the first trailer is gameplay.",
     )
     from_ms: int = Field(0, ge=0)
-    to_ms: int = Field(120_000, gt=0)
+    to_ms: int | None = Field(
+        None,
+        gt=0,
+        description="Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms; an end beyond the trailer is rejected with its measured duration.",
+    )
     max_height: int = Field(1080, ge=240, le=2160)
 
     @model_validator(mode="after")
     def interval(self):
-        if self.to_ms <= self.from_ms or self.to_ms - self.from_ms > 600_000:
+        if self.to_ms is not None and (self.to_ms <= self.from_ms or self.to_ms - self.from_ms > 600_000):
             raise ValueError("Choose a nonempty source range of at most 10 minutes")
         return self
 
@@ -81,7 +85,11 @@ class SteamTrailerSelection(Model):
     app_id: int = Field(gt=0)
     movie_id: int = Field(gt=0)
     from_ms: int = Field(0, ge=0)
-    to_ms: int = Field(120_000, gt=0)
+    to_ms: int | None = Field(
+        None,
+        gt=0,
+        description="Exclusive trailer end in milliseconds. Omit to import to the trailer's end, at most 120 s after from_ms.",
+    )
     max_height: int = Field(1080, ge=240, le=2160)
 
     _interval = model_validator(mode="after")(ImportSteam.interval)
