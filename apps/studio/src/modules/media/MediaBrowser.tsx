@@ -5,23 +5,20 @@ import { reads } from "@/api/queries";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
 import { tr, useLocale } from "@/lib/i18n";
 import type { Asset, Project } from "@/lib/types";
 import AssetCard from "@/modules/media/AssetCard";
 import FolderRemoval from "@/modules/media/FolderRemoval";
-import { RoutedMediaManager } from "@/modules/media/routed-media-manager";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   Folder,
   FolderPlus,
   Pencil,
-  SlidersHorizontal,
   Trash2,
   Upload,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 
@@ -31,23 +28,22 @@ export default function MediaBrowser({
   projectAssets,
   libraryAssets,
   onAdd,
-  onOverlay,
   onPreview,
   onImport,
   onDestination,
   onError,
-  renderAsset,
+  activeId,
 }: {
   project?: Project;
   projectAssets: Asset[];
   libraryAssets: Asset[];
   onAdd: (asset: Asset) => void;
-  onOverlay: (asset: Asset) => void;
   onPreview: (asset: Asset) => void;
   onImport: () => void;
   onDestination: (d: MediaDestination) => void;
   onError: (message: string) => void;
-  renderAsset?: (asset: Asset) => ReactNode;
+  /** Asset open in the preview monitor. */
+  activeId?: string;
 }) {
   useLocale();
   const query = useQueryClient();
@@ -83,8 +79,6 @@ export default function MediaBrowser({
     window.addEventListener("pointerdown", dismiss);
     return () => window.removeEventListener("pointerdown", dismiss);
   }, [foldersOpen]);
-  const setManaged = (asset?: Asset) =>
-    void updateSearch({ mediaId: asset?.id, mediaTab: undefined });
   const [removingFolder, setRemovingFolder] = useState<{
     id: string;
     name: string;
@@ -356,105 +350,15 @@ export default function MediaBrowser({
       </div>
       {error && <p role="alert">{error.message}</p>}
       <div className="asset-scroll">
-        <div className={renderAsset ? "library-grid" : "asset-grid"}>
+        <div className="media-tile-grid">
           {filtered.map((a) => (
-            <div
+            <AssetCard
               key={a.id}
-              className="organized-asset"
-              draggable={!!renderAsset}
-              onDragStart={(e) => {
-                if (renderAsset) {
-                  e.dataTransfer.setData("application/synkinema-asset", a.id);
-                  e.dataTransfer.effectAllowed = "copy";
-                }
-              }}
-            >
-              {renderAsset ? (
-                renderAsset(a)
-              ) : (
-                <AssetCard
-                  asset={a}
-                  onAdd={() => onAdd(a)}
-                  onPreview={() => onPreview(a)}
-                />
-              )}
-              <Button
-                variant="outline"
-                className="media-manage-button"
-                aria-label={tr("Manage {{name}}", { name: a.name })}
-                onClick={() => setManaged(a)}
-              >
-                <SlidersHorizontal size={13} />
-                {tr("Manage media")}
-              </Button>
-              <details className="asset-menu">
-                <summary>{tr("Organize & insert")}</summary>
-                {project && a.kind !== "audio" && (
-                  <Button
-                    variant="ghost"
-                    className="text-button"
-                    onClick={() => onOverlay(a)}
-                  >
-                    {tr("Add as overlay")}
-                  </Button>
-                )}
-                {project && tab === "library" && (
-                  <Button
-                    variant="ghost"
-                    className="text-button"
-                    disabled={
-                      location.isPending || project.id in (a.locations || {})
-                    }
-                    onClick={() =>
-                      location.mutate({
-                        assetId: a.id,
-                        destination: { project_id: project.id },
-                      })
-                    }
-                  >
-                    {project.id in (a.locations || {})
-                      ? tr("In project media")
-                      : tr("Add to project media")}
-                  </Button>
-                )}
-                {project && tab === "project" && (
-                  <Button
-                    variant="ghost"
-                    className="text-button"
-                    disabled={
-                      location.isPending || "library" in (a.locations || {})
-                    }
-                    onClick={() =>
-                      location.mutate({ assetId: a.id, destination: {} })
-                    }
-                  >
-                    {"library" in (a.locations || {})
-                      ? tr("Shared in library")
-                      : tr("Share to library")}
-                  </Button>
-                )}
-                <label className="field">
-                  {tr("Move to folder")}
-                  <NativeSelect
-                    aria-label={tr("Folder for {{name}}", { name: a.name })}
-                    value={a.locations?.[scope] || ""}
-                    disabled={location.isPending}
-                    onChange={(e) => move(a.id, e.target.value)}
-                  >
-                    <option value="">{tr("Collection root")}</option>
-                    {folders.map((f) => (
-                      <option
-                        key={f.id}
-                        value={f.id}
-                        disabled={f.id.startsWith("pending:")}
-                      >
-                        {f.name}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </label>
-              </details>
-            </div>
+              asset={a}
+              active={a.id === activeId}
+              onAdd={() => onAdd(a)}
+              onPreview={() => onPreview(a)}
+            />
           ))}
         </div>
         {!filtered.length && (
@@ -481,7 +385,6 @@ export default function MediaBrowser({
           }}
         />
       )}
-      <RoutedMediaManager onNotice={onError} />
       <button className="import-area" onClick={onImport}>
         <Upload size={18} />
         <span>

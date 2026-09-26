@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { tr, useLocale } from "@/lib/i18n";
 import type { Asset } from "@/lib/types";
 import { useStudio } from "@/modules/editor/store";
 import { usableAsset } from "@/modules/editor/timeline/timelineMath";
-import { Music2, Pause, Play, Plus, Scissors } from "lucide-react";
-import { useRef, useState } from "react";
+import { Film, Image, Music2, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export function sourceLink(source: string): string | undefined {
   const match = source.match(/https?:\/\/[^\s|]+/i)?.[0];
@@ -16,41 +15,64 @@ export function sourceLink(source: string): string | undefined {
   }
 }
 
+export const assetDuration = (asset: Asset) =>
+  asset.duration_ms && asset.duration_ms < 1000
+    ? `${asset.duration_ms} ms`
+    : asset.duration_ms
+      ? `${(asset.duration_ms / 1000).toFixed(1)} s`
+      : tr("IMG");
+
+/**
+ * Compact media tile: click opens the preview monitor, hovering a video plays a
+ * muted loop, "+" inserts at the playhead and dragging places it on a track.
+ */
 export default function AssetCard({
   asset,
   onAdd,
   onPreview,
+  active = false,
 }: {
   asset: Asset;
   onAdd: () => void;
   onPreview?: () => void;
+  active?: boolean;
 }) {
   useLocale();
-  const audio = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [error, setError] = useState(false);
-  const duration =
-    asset.duration_ms && asset.duration_ms < 1000
-      ? `${asset.duration_ms} ms`
-      : asset.duration_ms
-        ? `${(asset.duration_ms / 1000).toFixed(1)} s`
-        : tr("IMG");
+  const usable = usableAsset(asset);
+  const [hover, setHover] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const Kind =
+    asset.kind === "video" ? Film : asset.kind === "audio" ? Music2 : Image;
   return (
-    <article className="asset-shell">
+    <article
+      className={`media-tile ${active ? "active" : ""} ${usable ? "" : "unusable"}`}
+      onPointerEnter={() => {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => setHover(true), 250);
+      }}
+      onPointerLeave={() => {
+        clearTimeout(timer.current);
+        setHover(false);
+      }}
+    >
       <button
         type="button"
-        className="asset-card"
+        className="media-tile-preview"
+        aria-label={tr("Preview {{name}}", { name: asset.name })}
         title={
-          usableAsset(asset)
-            ? tr("Add {{name}} to timeline", { name: asset.name })
+          usable
+            ? tr("Click to preview · drag onto the timeline")
             : tr("Media is shorter than the minimum clip duration of 100 ms")
         }
-        onClick={onAdd}
-        draggable={usableAsset(asset)}
-        disabled={!usableAsset(asset)}
+        onClick={onPreview}
+        draggable={usable}
         onDragStart={(e) => {
+          setHover(false);
           e.dataTransfer.setData("application/synkinema-asset", asset.id);
           e.dataTransfer.effectAllowed = "copy";
+          const thumb = e.currentTarget.querySelector("img");
+          if (thumb) e.dataTransfer.setDragImage(thumb, 24, 18);
           useStudio
             .getState()
             .set({ draggingAsset: asset.id, draggingSource: null });
@@ -61,93 +83,47 @@ export default function AssetCard({
             .set({ draggingAsset: null, draggingSource: null })
         }
       >
-        <div>
-          {asset.thumbnail_url ? (
-            <img
-              src={asset.thumbnail_url}
-              alt=""
-              loading="lazy"
-              draggable={false}
-            />
-          ) : (
-            <div className="audio-thumb">
-              <Music2 size={24} />
-            </div>
-          )}
-          <span className="asset-add">
-            <Plus size={14} />
-          </span>
-          <span className="asset-duration">{duration}</span>
-        </div>
-        <strong>{asset.name}</strong>
-      </button>
-      {onPreview && asset.kind !== "image" && usableAsset(asset) && (
-        <Button
-          variant="outline"
-          className="asset-source-button"
-          aria-label={tr("Select source range from {{name}}", {
-            name: asset.name,
-          })}
-          onClick={() => {
-            audio.current?.pause();
-            onPreview();
-          }}
-        >
-          <Scissors size={13} /> {tr("Select source range")}{" "}
-        </Button>
-      )}
-      {asset.kind === "audio" && (
-        <>
-          <audio
-            ref={audio}
-            data-asset-audition
-            src={asset.url}
-            preload="none"
-            onEnded={() => setPlaying(false)}
-            onPause={() => setPlaying(false)}
-            onPlay={() => {
-              document
-                .querySelectorAll<HTMLAudioElement>(
-                  "audio[data-asset-audition]",
-                )
-                .forEach((a) => {
-                  if (a !== audio.current) a.pause();
-                });
-              setPlaying(true);
-            }}
+        {asset.thumbnail_url ? (
+          <img
+            src={asset.thumbnail_url}
+            alt=""
+            loading="lazy"
+            draggable={false}
           />
-          <button
-            type="button"
-            className="asset-audition"
-            aria-label={
-              playing
-                ? tr("Stop auditioning {{name}}", { name: asset.name })
-                : tr("Audition {{name}}", { name: asset.name })
-            }
-            title={playing ? tr("Stop audition") : tr("Audition before adding")}
-            onClick={async () => {
-              if (!audio.current) return;
-              if (playing) {
-                audio.current.pause();
-                audio.current.currentTime = 0;
-              } else {
-                setError(false);
-                audio.current.currentTime = 0;
-                try {
-                  await audio.current.play();
-                } catch {
-                  setError(true);
-                }
-              }
-            }}
-          >
-            {playing ? <Pause size={14} /> : <Play size={14} />}
-          </button>
-          {error && (
-            <small role="status">{tr("Unable to play this file.")}</small>
-          )}
-        </>
-      )}
+        ) : (
+          <span className="media-tile-placeholder">
+            <Kind size={20} />
+          </span>
+        )}
+        {hover && asset.kind === "video" && (
+          <video
+            src={asset.url}
+            muted
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden
+          />
+        )}
+        <span className="media-tile-kind">
+          <Kind size={11} />
+        </span>
+        <span className="media-tile-duration">{assetDuration(asset)}</span>
+      </button>
+      <button
+        type="button"
+        className="media-tile-add"
+        disabled={!usable}
+        aria-label={tr("Insert {{name}} at playhead", { name: asset.name })}
+        title={tr("Insert at playhead")}
+        onClick={onAdd}
+      >
+        <Plus size={14} />
+      </button>
+      <span className="media-tile-name" title={asset.name}>
+        {asset.name}
+      </span>
     </article>
   );
 }

@@ -17,6 +17,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       page: "studio",
       projectId,
       selectedId: null,
+      selectedIds: [],
       time: 0,
       playing: false,
       draggingAsset: null,
