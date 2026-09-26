@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.5.0](https://github.com/dziksu/synkinema/compare/v1.4.2...v1.5.0) (2026-09-26)
+
+### Features
+
+* **mcp:** reject unknown arguments and version channel edits ([8a0a69a](https://github.com/dziksu/synkinema/commit/8a0a69ae358f1b64c9143fe2780b09afff5b8364))
+
+### Bug Fixes
+
+* **renderer:** keep layers on their last covered frame ([67ff894](https://github.com/dziksu/synkinema/commit/67ff894a5d5f45319981703c7a75e7a97c71df8b))
+
 ## [1.4.2](https://github.com/dziksu/synkinema/compare/v1.4.1...v1.4.2) (2026-09-23)
 
 ### Bug Fixes
