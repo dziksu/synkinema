@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.6.0](https://github.com/dziksu/synkinema/compare/v1.5.0...v1.6.0) (2026-09-26)
+
+### Features
+
+* **studio:** pro timeline editing with multi-select and linked audio ([c6b5d5d](https://github.com/dziksu/synkinema/commit/c6b5d5d9d08d984b1ee96ae91c64fb41f0f6098c))
+
 ## [1.5.0](https://github.com/dziksu/synkinema/compare/v1.4.2...v1.5.0) (2026-09-26)
 
 ### Features
