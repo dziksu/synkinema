@@ -12,7 +12,7 @@ from .exporting import composition_profile, framing_filter, resolved_output
 from .media import cached_text_layer
 from .models import ANIMATION_BOUNDS, EFFECT_BOUNDS, Project
 
-RENDERER_VERSION = 7
+RENDERER_VERSION = 8  # 8: layers keep their last covered frame (eof_action=repeat)
 
 TRANSITIONS = {
     "crossfade": "fade",
@@ -507,9 +507,14 @@ class Renderer:
             filters += [f"setpts=PTS+({clip.start_ms / 1000 - start})/TB"]
             layer = f"layer{index}"
             combined = f"over{index}"
+            # FFmpeg timestamps a finished layer's EOF one tick after its last
+            # frame. A clip starting between canvas frames therefore "ends"
+            # just before its final covered canvas frame, and eof_action=pass
+            # dropped it there: a one-frame flash at cuts and a bare final
+            # frame. Repeat the last frame; `enable` alone bounds visibility.
             graph += [
                 f"[{index}:v]{','.join(filters)}[{layer}]",
-                f"[{previous}][{layer}]overlay=x={px}:y={py}:eof_action=pass:enable='gte(t,{clip.start_ms / 1000 - start})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000 - start})'[{combined}]",
+                f"[{previous}][{layer}]overlay=x={px}:y={py}:eof_action=repeat:enable='gte(t,{clip.start_ms / 1000 - start})*lt(t,{(clip.start_ms + clip.duration_ms) / 1000 - start})'[{combined}]",
             ]
             previous = combined
         graph += [f"[{previous}]format=yuv420p[vout]"]

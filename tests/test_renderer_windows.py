@@ -154,3 +154,92 @@ async def test_window_failure_cleans_own_intermediates_preserves_source(tmp_path
     assert not output.exists()
     assert not list(tmp_path.glob("*.window-*.mkv"))
     assert not list(tmp_path.glob("*.concat.txt"))
+
+
+def rgb_at(path, frame, x, y, size=128):
+    data = subprocess.check_output(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-vf",
+            f"select=eq(n\\,{frame})",
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ]
+    )
+    offset = (y * size + x) * 3
+    return tuple(data[offset : offset + 3])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["shape", "video"])
+async def test_off_frame_layer_keeps_its_last_frame_and_the_final_frame(tmp_path, kind):
+    """A layer whose clock sits just before frame boundaries must not vanish on its last frame.
+
+    FFmpeg places a finished secondary input's EOF one tick after its last
+    frame. With eof_action=pass, the final covered canvas frame (and every
+    layer ending with the film) was passed through bare, producing a one-frame
+    flash at cuts and a background-only final frame.
+    """
+    renderer = Renderer(Service(Store(tmp_path / "data")))
+    profile = OutputProfile(width=128, height=128, fps=30, normalize=False)
+    source = tmp_path / "base.mkv"
+    # 1.633 s -> 49 canvas frames; frame 48 (1.600 s) is the final frame.
+    await renderer.run(
+        ["-f", "lavfi", "-i", "color=c=black:s=128x128:r=30:d=1.633", *renderer._stage_codec(source)]
+    )
+    track = Track(name="Layer", kind="overlay")
+    rendered = {}
+    if kind == "shape":
+        clip = Clip(shape="rectangle", start_ms=933, duration_ms=700, color="#00ff00")
+    else:
+        green = tmp_path / "green.mkv"
+        await renderer.run(
+            [
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=0x00ff00:s=128x128:r=30:d=0.7",
+                "-pix_fmt",
+                "bgra",
+                "-c:v",
+                "ffv1",
+                str(green),
+            ]
+        )
+        clip = Clip(id="green", asset_id="green", start_ms=933, duration_ms=700)
+        rendered[clip.id] = green
+    # A second layer ends mid-film on the same off-frame clock (a cut).
+    cut = Clip(
+        shape="rectangle",
+        start_ms=233,
+        duration_ms=500,
+        color="#ff0000",
+        placement={"x": 0.25, "width": 0.25},
+    )
+    result = tmp_path / "result.mkv"
+    await renderer._compose_overlays(
+        source, [(track, clip), (track, cut)], rendered, profile, 1633, result, lambda _: None
+    )
+    assert len(decoded_hashes(result)) == 49
+
+    def is_green(frame):
+        r, g, b = rgb_at(result, frame, 96, 64)
+        return g > 200 and r < 60 and b < 60
+
+    def is_red(frame):
+        r, g, b = rgb_at(result, frame, 32, 64)
+        return r > 200 and g < 60 and b < 60
+
+    assert not is_green(27) and is_green(28)  # 0.933 s starts on canvas frame 28 (0.9333 s)
+    assert is_green(48)  # the film's final frame keeps every layer
+    # Red covers 0.233-0.733 s: canvas frames 7..21; frame 21 (0.700 s) is its last.
+    assert not is_red(6) and is_red(7) and is_red(21) and not is_red(22)

@@ -28,6 +28,12 @@ their loaded code until restarted; this change cannot accelerate an existing job
 unsplit compositions at 12, 25 and 30 fps. Cases cover off-frame caption times,
 simultaneous layers, video overlays, opacity animation, fades, blank windows,
 long-lived layers, a partial final frame, monotonic progress and failure cleanup.
+They also assert actual pixels at layer boundaries: a layer whose clock falls
+between canvas frames must stay visible on its last covered frame and on the
+film's final frame. FFmpeg timestamps a finished layer's EOF one tick after its
+last frame, so `eof_action=pass` used to drop such layers there, producing a
+one-frame flash at cuts and a background-only final frame. Layers now use
+`eof_action=repeat`; the `enable` window alone bounds visibility.
 The existing renderer/export/effects/inspection tests exercise the complete output
 pipeline, including delivery formats and audio processing.
 
