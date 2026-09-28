@@ -47,7 +47,7 @@ referencing==0.37.0
 rpds-py==2026.6.3
 setuptools==84.0.0
 soundfile==0.14.0
-SQLAlchemy==2.0.54
+SQLAlchemy==2.1.0
 sse-starlette==3.4.11
 starlette==1.6.0
 supertonic==1.3.1
