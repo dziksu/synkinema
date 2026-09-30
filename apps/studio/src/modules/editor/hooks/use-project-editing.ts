@@ -15,8 +15,13 @@ import { useRef } from "react";
 import type { EditStep } from "@/api/generated/client";
 import { writes } from "@/api/mutations";
 import { projectWrites } from "@/api/projectMutations";
+import { reads } from "@/api/queries";
 import type { Asset, Clip, Project } from "@/lib/types";
 import { inspectorEdit } from "@/modules/editor/inspector/inspectorEdit";
+import {
+  planScriptTake,
+  type ScriptTakePlacement,
+} from "@/modules/script/scriptTimeline";
 import { useStudio } from "@/modules/editor/store";
 import { deleteTimelineTrack } from "@/modules/editor/timeline/timelineActions";
 import {
@@ -128,6 +133,7 @@ export function useProjectEditing(
       : null;
     let resolvedDirectionRevision: number | undefined;
     let before: Project;
+    let scriptPlacement: ScriptTakePlacement | undefined;
     return operation
       .mutateAsync({
         projectId: id,
@@ -252,6 +258,26 @@ export function useProjectEditing(
             if (!steps.length)
               throw new Error(tr("This clip is no longer available."));
             batch = true;
+          } else if (type === "insert_script_take") {
+            const line = current.script_lines.find(
+              (item) => item.id === intent.line_id,
+            );
+            const asset =
+              assets.find((item) => item.id === intent.asset_id) ||
+              (await query.fetchQuery(reads.assets(query, current.id))).find(
+                (item) => item.id === intent.asset_id,
+              );
+            if (!line || !asset)
+              throw new Error(tr("This script take is no longer available."));
+            scriptPlacement = planScriptTake(
+              current,
+              line,
+              asset,
+              intent.start_ms,
+              intent.with_captions,
+            );
+            steps = scriptPlacement.steps;
+            batch = steps.length > 1;
           } else {
             steps = [resolved as EditStep];
           }
@@ -271,6 +297,20 @@ export function useProjectEditing(
           stacks.redo = [];
         }
         setShowRender(false);
+        if (scriptPlacement) {
+          if (useStudio.getState().projectId === id)
+            state.set({
+              selectedId: scriptPlacement.selected_id,
+              selectedIds: [scriptPlacement.selected_id],
+              time: scriptPlacement.start_ms,
+              playing: false,
+            });
+          setNotice(
+            intent.with_captions
+              ? tr("Narration and subtitles are ready on the timeline.")
+              : tr("Narration is ready on the timeline."),
+          );
+        }
         if (
           [
             "add_clip",

@@ -6,6 +6,7 @@ import { reads } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormDraft } from "@/hooks/use-form-draft";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { tr, useLocale } from "@/lib/i18n";
 import type { Asset, Project } from "@/lib/types";
 import {
@@ -16,13 +17,16 @@ import {
   type ScriptLine,
 } from "@/modules/script/scriptLines";
 import { useLineRecorder } from "@/modules/script/useLineRecorder";
+import { scriptTakeStatus } from "@/modules/script/scriptTimeline";
 import VoiceGenerator from "@/modules/script/VoiceGenerator";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDown,
   ArrowDownToLine,
   ArrowUp,
+  Captions,
   Check,
+  Clapperboard,
   LoaderCircle,
   Mic,
   Plus,
@@ -36,11 +40,18 @@ import { useEffect, useRef, useState } from "react";
 export default function ScriptEditor({
   project,
   onSaved,
+  onPlace,
 }: {
   project: Project;
   onSaved: (project: Project) => void;
+  onPlace: (
+    lineId: string,
+    assetId: string,
+    withCaptions: boolean,
+  ) => Promise<boolean>;
 }) {
   useLocale();
+  const { updateSearch } = useWorkspaceNavigation();
   const query = useQueryClient();
   const media = useQuery(reads.assets(query, project.id));
   const edit = useMutation({ ...projectWrites(query), onSuccess: onSaved });
@@ -65,6 +76,7 @@ export default function ScriptEditor({
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [timelineAdded, setTimelineAdded] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -104,10 +116,15 @@ export default function ScriptEditor({
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
   }, [dirty, busy]);
-  const commit = async (next: ScriptLine[], nextBrief = brief) => {
+  const commit = async (
+    next: ScriptLine[],
+    nextBrief = brief,
+    replaceAudio?: ProjectEdit["replaceAudio"],
+  ) => {
     const expectedContent = scriptContent(baseline.current);
     const result = await edit.mutateAsync({
       projectId: project.id,
+      replaceAudio,
       resolve: (current) => {
         if (scriptContent(current) !== expectedContent)
           throw new Error(
@@ -138,6 +155,7 @@ export default function ScriptEditor({
     setJob(id);
     setError("");
     setNotice("");
+    setTimelineAdded(false);
     setSaved(false);
     stopped.current = false;
     try {
@@ -155,7 +173,7 @@ export default function ScriptEditor({
     current: ScriptLine[],
     line: ScriptLine,
     asset: Asset,
-    source: ScriptLine["audio_source"],
+    source: NonNullable<ScriptLine["audio_source"]>,
   ) => {
     if (asset.kind !== "audio" || !asset.has_audio || !asset.duration_ms)
       throw new Error(tr("Choose an audio file with a readable duration."));
@@ -166,6 +184,27 @@ export default function ScriptEditor({
           track.kind === "voiceover" &&
           track.clips.some((clip) => clip.asset_id === line.audio_asset_id),
       );
+    let replaceAudio: ProjectEdit["replaceAudio"];
+    if (line.audio_asset_id && line.audio_asset_id !== asset.id) {
+      const assets = await query.fetchQuery(reads.assets(query, project.id));
+      const previous = assets.find((item) => item.id === line.audio_asset_id);
+      if (!previous)
+        throw new Error(
+          tr(
+            "The previous audio changed. Reload the project before replacing it.",
+          ),
+        );
+      replaceAudio = {
+        lineId: line.id,
+        request: {
+          expected_version: previous.version,
+          audio_asset_id: previous.id,
+          replacement_asset_id: asset.id,
+          audio_text: line.text,
+          audio_source: source,
+        },
+      };
+    }
     const updated = await commit(
       current.map((item) =>
         item.id === line.id
@@ -177,6 +216,8 @@ export default function ScriptEditor({
             }
           : item,
       ),
+      brief,
+      replaceAudio,
     );
     if (mounted.current && replacesTimeline)
       setNotice(
@@ -259,6 +300,20 @@ export default function ScriptEditor({
               )
             : tr("Audio and its local file were removed."),
       );
+    });
+  const placeTake = (line: ScriptLine, asset: Asset, withCaptions: boolean) =>
+    run(line.id, async () => {
+      if (dirty) await commit(lines);
+      if (!mounted.current) return;
+      const placed = await onPlace(line.id, asset.id, withCaptions);
+      if (placed && mounted.current) {
+        setTimelineAdded(true);
+        setNotice(
+          withCaptions
+            ? tr("Narration and subtitles are ready on the timeline.")
+            : tr("Narration is ready on the timeline."),
+        );
+      }
     });
   const generate = (
     targets: ScriptLine[],
@@ -352,7 +407,16 @@ export default function ScriptEditor({
       )}
       {notice && (
         <p className="hint" role="status">
-          {notice}
+          {notice}{" "}
+          {timelineAdded && (
+            <Button
+              variant="ghost"
+              className="text-button"
+              onClick={() => void updateSearch({ editorTab: undefined })}
+            >
+              {tr("View timeline")}
+            </Button>
+          )}
         </p>
       )}
       {changedElsewhere && dirty && !busy && (
@@ -468,6 +532,9 @@ export default function ScriptEditor({
                     const asset = media.data?.find(
                       (item) => item.id === line.audio_asset_id,
                     );
+                    const timeline = asset
+                      ? scriptTakeStatus(project, line)
+                      : undefined;
                     const outdated =
                       !!line.audio_asset_id && line.audio_text !== line.text;
                     const active = recorder.lineId === line.id;
@@ -703,31 +770,103 @@ export default function ScriptEditor({
                           </div>
                         )}
                         {asset && (
-                          <div className="script-take">
-                            <audio
-                              controls
-                              preload="none"
-                              src={asset.url}
-                              aria-label={tr("Audio for line {{number}}", {
-                                number: index + 1,
-                              })}
-                            />
-                            <span className="hint">
-                              {asset.name} ·{" "}
-                              {(asset.duration_ms! / 1000).toFixed(1)} s
-                            </span>
-                            <Button
-                              variant="ghost"
-                              className="text-button"
-                              disabled={busy}
-                              title={tr(
-                                "Remove this take from the project and disk. Its audio cannot be restored from script history. Shared files are kept.",
+                          <>
+                            <div className="script-take">
+                              <audio
+                                controls
+                                preload="none"
+                                src={asset.url}
+                                aria-label={tr("Audio for line {{number}}", {
+                                  number: index + 1,
+                                })}
+                              />
+                              <span className="hint">
+                                {asset.name} ·{" "}
+                                {(asset.duration_ms! / 1000).toFixed(1)} s
+                              </span>
+                              <Button
+                                variant="ghost"
+                                className="text-button"
+                                disabled={busy}
+                                title={tr(
+                                  "Remove this take from the project and disk. Its audio cannot be restored from script history. Shared files are kept.",
+                                )}
+                                onClick={() => void removeAudio(line, asset)}
+                              >
+                                <Trash2 size={14} /> {tr("Remove audio")}
+                              </Button>
+                            </div>
+                            <div className="script-timeline-actions">
+                              {!timeline?.clip && !timeline?.ambiguous && (
+                                <Button
+                                  variant="outline"
+                                  className="button"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    void placeTake(line, asset, false)
+                                  }
+                                >
+                                  <Clapperboard size={15} />{" "}
+                                  {tr("Add to timeline")}
+                                </Button>
                               )}
-                              onClick={() => void removeAudio(line, asset)}
-                            >
-                              <Trash2 size={14} /> {tr("Remove audio")}
-                            </Button>
-                          </div>
+                              {timeline?.ambiguous ? (
+                                <span className="hint">
+                                  {tr(
+                                    "Used multiple times — arrange subtitles in Edit.",
+                                  )}
+                                </span>
+                              ) : timeline?.captionsSynced ? (
+                                <span className="script-timeline-ready">
+                                  <Check size={14} />{" "}
+                                  {tr("Audio and subtitles on timeline")}
+                                </span>
+                              ) : (
+                                <Button
+                                  variant={
+                                    timeline?.clip ? "outline" : "default"
+                                  }
+                                  className={
+                                    timeline?.clip ? "button" : "button primary"
+                                  }
+                                  disabled={
+                                    busy ||
+                                    !line.audio_text?.trim() ||
+                                    line.audio_text.length > 2000
+                                  }
+                                  title={
+                                    line.audio_text &&
+                                    line.audio_text.length > 2000
+                                      ? tr(
+                                          "Split long script lines before adding subtitles",
+                                        )
+                                      : undefined
+                                  }
+                                  onClick={() =>
+                                    void placeTake(line, asset, true)
+                                  }
+                                >
+                                  <Captions size={15} />{" "}
+                                  {timeline?.clip
+                                    ? timeline.caption
+                                      ? tr("Sync subtitles")
+                                      : tr("Add subtitles")
+                                    : tr("Add with subtitles")}
+                                </Button>
+                              )}
+                              {(timeline?.clip || timeline?.ambiguous) && (
+                                <Button
+                                  variant="ghost"
+                                  className="text-button"
+                                  onClick={() =>
+                                    void updateSearch({ editorTab: undefined })
+                                  }
+                                >
+                                  {tr("View timeline")}
+                                </Button>
+                              )}
+                            </div>
+                          </>
                         )}
                         {line.audio_asset_id &&
                           !asset &&
@@ -811,7 +950,7 @@ export default function ScriptEditor({
                 )}
                 <p className="hint">
                   {tr(
-                    "Audio is saved in project media. Add takes to a voiceover track in Edit when you are ready to arrange timing.",
+                    "Place a ready take on the timeline here, or choose Add with subtitles to align one caption with its spoken line.",
                   )}
                 </p>
               </section>

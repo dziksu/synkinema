@@ -128,3 +128,75 @@ it("rolls back the line, scene and clip together when the revision-guarded save 
     client.clear();
   }
 });
+
+it("replaces through the guarded audio endpoint and removes the retired take from caches", async () => {
+  const sample = fixture();
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  client.setQueryData(keys.project(sample.before.id), sample.before);
+  client.setQueryData(keys.projects, [sample.before]);
+  client.setQueryData([...keys.project(sample.before.id), 1], sample.before);
+  client.setQueryData(
+    keys.assets(sample.before.id),
+    Object.values(sample.plan.audioAssets),
+  );
+  const assetRead = vi
+    .spyOn(http.api, "assets")
+    .mockResolvedValue(Object.values(sample.plan.audioAssets));
+  const operation = vi.spyOn(http.api, "operation");
+  const replacement = vi
+    .spyOn(http.api, "replaceScriptAudio")
+    .mockResolvedValue({
+      project: sample.after,
+      asset_ids: ["old"],
+      retained_asset_id: null,
+      job_ids: [],
+      project_ids: [],
+      deleted_files: 1,
+      pending_files: 0,
+      freed_bytes: 1,
+    });
+  try {
+    const result = await new MutationObserver(
+      client,
+      projectWrites(client),
+    ).mutate({
+      projectId: sample.before.id,
+      resolve: () => ({ steps: sample.plan.steps }),
+      replaceAudio: {
+        lineId: sample.before.script_lines[0].id,
+        request: {
+          expected_version: 1,
+          audio_asset_id: "old",
+          replacement_asset_id: "new",
+          audio_text: sample.after.script_lines[0].audio_text!,
+          audio_source: "recorded",
+        },
+      },
+    });
+    expect(result).toEqual(sample.after);
+    expect(replacement).toHaveBeenCalledWith(
+      sample.before.id,
+      sample.before.script_lines[0].id,
+      expect.objectContaining({
+        expected_revision: 1,
+        audio_asset_id: "old",
+        replacement_asset_id: "new",
+      }),
+    );
+    expect(operation).not.toHaveBeenCalled();
+    expect(
+      client.getQueryData([...keys.project(sample.before.id), 1]),
+    ).toBeUndefined();
+    expect(
+      client
+        .getQueryData<Asset[]>(keys.assets(sample.before.id))
+        ?.map((asset) => asset.id),
+    ).toEqual(["new"]);
+    expect(assetRead.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+  } finally {
+    vi.restoreAllMocks();
+    client.clear();
+  }
+});

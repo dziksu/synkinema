@@ -8546,7 +8546,7 @@
                 "type": "null"
               }
             ],
-            "description": "Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.",
+            "description": "Source retained because another collection, script line or historical timeline still uses it. Replacement removes this project's collection membership when no current reference needs it.",
             "title": "Retained Asset Id"
           }
         },
@@ -8974,6 +8974,67 @@
           }
         },
         "required": ["type", "payload"],
+        "type": "object"
+      },
+      "ReplaceScriptAudioRequest": {
+        "additionalProperties": false,
+        "examples": [
+          {
+            "audio_asset_id": "OLD_AUDIO_ASSET_ID",
+            "audio_source": "recorded",
+            "audio_text": "The recorded narration.",
+            "expected_revision": 3,
+            "expected_version": 1,
+            "replacement_asset_id": "NEW_AUDIO_ASSET_ID"
+          }
+        ],
+        "properties": {
+          "audio_asset_id": {
+            "description": "Exact take currently attached to the selected line; a different take returns 409.",
+            "minLength": 1,
+            "title": "Audio Asset Id",
+            "type": "string"
+          },
+          "audio_source": {
+            "description": "How the replacement take was created.",
+            "enum": ["recorded", "uploaded", "generated"],
+            "title": "Audio Source",
+            "type": "string"
+          },
+          "audio_text": {
+            "description": "Script text captured with the new take.",
+            "maxLength": 100000,
+            "title": "Audio Text",
+            "type": "string"
+          },
+          "expected_revision": {
+            "description": "Last confirmed project revision; conflicts reject atomically.",
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "expected_version": {
+            "description": "Confirmed asset metadata version. Stale version returns 409; reload and reconcile.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "replacement_asset_id": {
+            "description": "Probed replacement audio; must differ from audio_asset_id.",
+            "minLength": 1,
+            "title": "Replacement Asset Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "expected_revision",
+          "audio_asset_id",
+          "replacement_asset_id",
+          "audio_text",
+          "audio_source"
+        ],
+        "title": "ReplaceScriptAudioRequest",
         "type": "object"
       },
       "RestoreRevisionOperation": {
@@ -20440,6 +20501,122 @@
           }
         ],
         "summary": "Remove Script Audio",
+        "tags": ["Composition"]
+      }
+    },
+    "/api/projects/{project_id}/script-lines/{line_id}/audio/replace": {
+      "post": {
+        "description": "Replace one script line's existing take with a validated audio asset at {expected_revision,expected_version,audio_asset_id,replacement_asset_id,audio_text,audio_source}. Atomically updates unambiguous whole-take timeline clips and scene audio, then retires the old take from this project's script history, render snapshot script metadata, and project media collection. Historical timeline references and other projects keep the old source file for undo; otherwise the exclusive original and sidecars are deleted with durable cleanup. A stale revision/version, changed line, invalid replacement or incompatible timeline edit rejects without changing the project or deleting the old source. The retired script take cannot be restored through undo. Returns the confirmed project and deletion/retention metrics. Use after a new take has been uploaded or synthesized; this is not a batch operation.",
+        "operationId": "replace_script_audio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceScriptAudioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveScriptAudioResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Replace Script Audio",
         "tags": ["Composition"]
       }
     },

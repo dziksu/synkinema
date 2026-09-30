@@ -4938,7 +4938,7 @@ export interface RemoveScriptAudioResult {
   project_ids: string[];
   /**
    * Retained Asset Id
-   * Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.
+   * Source retained because another collection, script line or historical timeline still uses it. Replacement removes this project's collection membership when no current reference needs it.
    */
   retained_asset_id: string | null;
 }
@@ -5078,6 +5078,45 @@ export interface ReorderTracksStep {
     track_ids: string[];
   };
   type: "reorder_tracks";
+}
+
+/** ReplaceScriptAudioRequest */
+export interface ReplaceScriptAudioRequest {
+  /**
+   * Audio Asset Id
+   * Exact take currently attached to the selected line; a different take returns 409.
+   * @minLength 1
+   */
+  audio_asset_id: string;
+  /**
+   * Audio Source
+   * How the replacement take was created.
+   */
+  audio_source: "recorded" | "uploaded" | "generated";
+  /**
+   * Audio Text
+   * Script text captured with the new take.
+   * @maxLength 100000
+   */
+  audio_text: string;
+  /**
+   * Expected Revision
+   * Last confirmed project revision; conflicts reject atomically.
+   * @min 1
+   */
+  expected_revision: number;
+  /**
+   * Expected Version
+   * Confirmed asset metadata version. Stale version returns 409; reload and reconcile.
+   * @min 1
+   */
+  expected_version: number;
+  /**
+   * Replacement Asset Id
+   * Probed replacement audio; must differ from audio_asset_id.
+   * @minLength 1
+   */
+  replacement_asset_id: string;
 }
 
 /** Copy an existing historical snapshot into a NEW current revision. History is preserved, revision never decreases. Assets and render jobs are not rolled back. Repeated current_revision-1 is not multi-step undo: choose the actual target from list_revisions/history. */
@@ -8937,6 +8976,31 @@ export class Api<
     ) =>
       this.request<RenderJob, ApiError>({
         path: `/api/jobs/${jobId}/wait`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Replace one script line's existing take with a validated audio asset at {expected_revision,expected_version,audio_asset_id,replacement_asset_id,audio_text,audio_source}. Atomically updates unambiguous whole-take timeline clips and scene audio, then retires the old take from this project's script history, render snapshot script metadata, and project media collection. Historical timeline references and other projects keep the old source file for undo; otherwise the exclusive original and sidecars are deleted with durable cleanup. A stale revision/version, changed line, invalid replacement or incompatible timeline edit rejects without changing the project or deleting the old source. The retired script take cannot be restored through undo. Returns the confirmed project and deletion/retention metrics. Use after a new take has been uploaded or synthesized; this is not a batch operation.
+     *
+     * @tags Composition
+     * @name ReplaceScriptAudio
+     * @summary Replace Script Audio
+     * @request POST:/api/projects/{project_id}/script-lines/{line_id}/audio/replace
+     * @secure
+     */
+    replaceScriptAudio: (
+      projectId: string,
+      lineId: string,
+      data: ReplaceScriptAudioRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<RemoveScriptAudioResult, ApiError>({
+        path: `/api/projects/${projectId}/script-lines/${lineId}/audio/replace`,
         method: "POST",
         body: data,
         secure: true,

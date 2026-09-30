@@ -53,6 +53,198 @@ def remove(client, p, a, **changes):
     )
 
 
+def replacement_take(client, project_id):
+    stream = io.BytesIO()
+    with wave.open(stream, "wb") as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(16000)
+        audio.writeframes(b"\x02\x00" * 16000)
+    return client.post(
+        "/api/assets",
+        files={"file": ("new-take.wav", stream.getvalue(), "audio/wav")},
+        data={"project_id": project_id},
+    ).json()
+
+
+def replace(client, project, old, new, **changes):
+    return client.post(
+        f"/api/projects/{project['id']}/script-lines/one/audio/replace",
+        json={
+            "expected_revision": project["revision"],
+            "expected_version": old["version"],
+            "audio_asset_id": old["id"],
+            "replacement_asset_id": new["id"],
+            "audio_text": "Fresh words.",
+            "audio_source": "recorded",
+            **changes,
+        },
+    )
+
+
+def test_replacement_retains_new_take_and_deletes_exclusive_predecessor(tmp_path):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        new = replacement_take(client, project["id"])
+        old_path, new_path = tmp_path / old["path"], tmp_path / new["path"]
+        old_sidecar = tmp_path / "cache" / f"{old['id']}-waveform.png"
+        old_sidecar.write_bytes(b"waveform")
+        result = replace(client, project, old, new)
+        assert result.status_code == 200, result.text
+        payload = result.json()
+        assert payload["asset_ids"] == [old["id"]]
+        assert payload["retained_asset_id"] is None
+        assert not old_path.exists() and not old_sidecar.exists() and new_path.exists()
+        updated = payload["project"]
+        assert updated["script_lines"][0]["audio_asset_id"] == new["id"]
+        assert updated["script_lines"][0]["audio_text"] == "Fresh words."
+        assert updated["revision"] == project["revision"] + 1
+        assert [a["id"] for a in client.get(f"/api/assets?project_id={project['id']}").json()] == [new["id"]]
+        historical = client.get(f"/api/projects/{project['id']}?revision=2").json()
+        assert historical["script_lines"][0]["audio_asset_id"] is None
+        restored = client.post(
+            f"/api/projects/{project['id']}/operations",
+            json={
+                "expected_revision": updated["revision"],
+                "type": "restore_revision",
+                "payload": {"revision": 2},
+            },
+        )
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["script_lines"][0]["audio_asset_id"] is None
+
+
+@pytest.mark.parametrize(
+    "changes", [{"expected_revision": 1}, {"expected_version": 99}, {"audio_asset_id": "other"}]
+)
+def test_failed_replacement_keeps_previous_take_and_project(tmp_path, changes):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        new = replacement_take(client, project["id"])
+        assert replace(client, project, old, new, **changes).status_code == 409
+        assert (tmp_path / old["path"]).exists()
+        assert client.get(f"/api/projects/{project['id']}").json() == project
+
+
+def test_replacement_hides_old_take_but_keeps_historical_timeline_source(tmp_path):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        voice = next(track for track in project["tracks"] if track["kind"] == "voiceover")
+        placed = client.post(
+            f"/api/projects/{project['id']}/operations",
+            json={
+                "expected_revision": project["revision"],
+                "type": "add_clip",
+                "payload": {
+                    "track_id": voice["id"],
+                    "clip": {"asset_id": old["id"], "duration_ms": 1000},
+                },
+            },
+        )
+        assert placed.status_code == 200, placed.text
+        project = placed.json()
+        new = replacement_take(client, project["id"])
+        result = replace(client, project, old, new)
+        assert result.status_code == 200, result.text
+        payload = result.json()
+        assert payload["asset_ids"] == [] and payload["retained_asset_id"] == old["id"]
+        assert (tmp_path / old["path"]).exists()
+        current_voice = next(track for track in payload["project"]["tracks"] if track["kind"] == "voiceover")
+        assert current_voice["clips"][0]["asset_id"] == new["id"]
+        assert [a["id"] for a in client.get(f"/api/assets?project_id={project['id']}").json()] == [new["id"]]
+        historical = client.get(f"/api/projects/{project['id']}?revision=3").json()
+        historical_voice = next(track for track in historical["tracks"] if track["kind"] == "voiceover")
+        assert historical_voice["clips"][0]["asset_id"] == old["id"]
+        restored = client.post(
+            f"/api/projects/{project['id']}/operations",
+            json={
+                "expected_revision": payload["project"]["revision"],
+                "type": "restore_revision",
+                "payload": {"revision": 3},
+            },
+        )
+        assert restored.status_code == 200, restored.text
+        restored_voice = next(track for track in restored.json()["tracks"] if track["kind"] == "voiceover")
+        assert restored_voice["clips"][0]["asset_id"] == old["id"]
+
+
+def test_replacement_preserves_a_shared_source_for_other_projects(tmp_path):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        clone = client.post(
+            f"/api/projects/{project['id']}/clone",
+            json={"name": "Other project", "revision": project["revision"]},
+        )
+        assert clone.status_code in (200, 201), clone.text
+        clone = clone.json()
+        new = replacement_take(client, project["id"])
+        result = replace(client, project, old, new)
+        assert result.status_code == 200, result.text
+        assert result.json()["retained_asset_id"] == old["id"]
+        assert (tmp_path / old["path"]).exists()
+        assert (
+            client.get(f"/api/projects/{clone['id']}").json()["script_lines"][0]["audio_asset_id"]
+            == old["id"]
+        )
+        assert old["id"] not in [
+            item["id"] for item in client.get(f"/api/assets?project_id={project['id']}").json()
+        ]
+
+
+def test_replacement_keeps_a_source_used_by_an_independent_scene(tmp_path):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        other = client.post("/api/projects", json={"name": "Scene project"}).json()
+        scene = client.post(
+            f"/api/projects/{other['id']}/operations",
+            json={
+                "expected_revision": other["revision"],
+                "type": "update_project",
+                "payload": {
+                    "scenes": [
+                        {
+                            "id": "independent",
+                            "title": "Scene narration",
+                            "narration": "Other use",
+                            "voice_asset_id": old["id"],
+                        }
+                    ]
+                },
+            },
+        )
+        assert scene.status_code == 200, scene.text
+        new = replacement_take(client, project["id"])
+        result = replace(client, project, old, new)
+        assert result.status_code == 200, result.text
+        assert result.json()["retained_asset_id"] == old["id"]
+        assert (tmp_path / old["path"]).exists()
+        assert client.get(f"/api/projects/{other['id']}").json()["scenes"][0]["voice_asset_id"] == old["id"]
+
+
+def test_incompatible_timeline_replacement_preserves_old_take_atomically(tmp_path):
+    with TestClient(create_app(tmp_path, start_worker=False)) as client:
+        project, old = setup_take(client)
+        voice = next(track for track in project["tracks"] if track["kind"] == "voiceover")
+        placed = client.post(
+            f"/api/projects/{project['id']}/operations",
+            json={
+                "expected_revision": project["revision"],
+                "type": "add_clip",
+                "payload": {
+                    "track_id": voice["id"],
+                    "clip": {"asset_id": old["id"], "source_in_ms": 100, "duration_ms": 800},
+                },
+            },
+        )
+        assert placed.status_code == 200, placed.text
+        project = placed.json()
+        new = replacement_take(client, project["id"])
+        result = replace(client, project, old, new)
+        assert result.status_code == 422, result.text
+        assert client.get(f"/api/projects/{project['id']}").json() == project
+        assert (tmp_path / old["path"]).exists()
+
+
 def test_remove_deletes_source_sidecars_and_scrubs_only_take_history(tmp_path):
     with TestClient(create_app(tmp_path, start_worker=False)) as client:
         p, a = setup_take(client)

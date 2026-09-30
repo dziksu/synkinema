@@ -164,7 +164,7 @@ export function useEditorController() {
       void query.invalidateQueries({ queryKey: ["jobs"] });
       setExportOpen(false);
       setNotice(tr("Export added to the queue"));
-      void updateSearch({ editorTab: "exports" });
+      void updateSearch({ editorTab: "exports", editorFocus: undefined });
     },
     onError: (e) => setNotice(e.message),
   });

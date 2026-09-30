@@ -301,8 +301,21 @@ synkinema --url http://localhost:43817 edit PROJECT_ID script-edit.json
 (`expected_revision`, `type`, `payload`), without the `project_id`/`operation`
 wrapper. These are the same revision-guarded REST operations as Studio. Successful
 writes appear after Studio's next poll; unsaved local drafts are preserved for
-explicit reconciliation. Audio takes do not add timeline clips or captions.
-Arrange them separately with `add_clip` using each asset's measured duration.
+explicit reconciliation. Attaching or generating an audio take does not
+automatically add timeline clips. In Studio, a ready Script take can be placed
+from Script studio or Project media with **Add to timeline** or **Add with
+subtitles**. The latter creates a voiceover clip and one aligned caption for the
+captured `audio_text` in a revision-guarded batch. An existing untrimmed take
+can receive or synchronize its caption without duplicating audio. Agents can
+arrange clips separately with `add_clip` using each asset's measured duration.
+
+When replacing an existing line take, use REST
+`POST /api/projects/{project_id}/script-lines/{line_id}/audio/replace` after the
+new audio asset is ready. Send the confirmed project revision, old asset ID and
+version, replacement asset ID, captured `audio_text`, and `audio_source`.
+The server updates eligible whole-take timeline clips and retires the old
+script source atomically. Historical timeline clips and other collections keep
+the old file for undo; otherwise its exclusive bytes are deleted.
 
 **Remove audio** in Studio uses MCP `remove_script_audio(project_id, line_id,
 request={expected_revision,expected_version,audio_asset_id})`, also available as

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RouteTabs } from "@/components/route-tabs";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { i18n, operationLabel, tr } from "@/lib/i18n";
 import {
   ArrowDownToLine,
@@ -8,6 +9,8 @@ import {
   Check,
   Clapperboard,
   LoaderCircle,
+  Maximize2,
+  Minimize2,
   Radio,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -41,8 +44,35 @@ export function EditorWorkbench({
     edit,
     projectJobs,
   } = controller;
+  const { search, updateSearch } = useWorkspaceNavigation();
+  const focusMode =
+    search.editorFocus === "focus" && tab !== "exports" && tab !== "history";
   const commentForm = useForm({ defaultValues: { comment: "" } });
   if (!project) return null;
+  const sectionTabs: Parameters<typeof RouteTabs>[0]["items"] = [
+    { value: "timeline", label: tr("Edit"), search: { editorTab: undefined } },
+    { value: "script", label: tr("Script"), search: { editorTab: "script" } },
+    { value: "audio", label: tr("Audio"), search: { editorTab: "audio" } },
+    {
+      value: "exports",
+      label: (
+        <>
+          {tr("Exports")}
+          {projectJobs.length > 0 && (
+            <span className="rounded bg-muted px-1.5 text-xs">
+              {projectJobs.length}
+            </span>
+          )}
+        </>
+      ),
+      search: { editorTab: "exports" },
+    },
+    {
+      value: "history",
+      label: tr("History"),
+      search: { editorTab: "history" },
+    },
+  ];
   return (
     <>
       <header className="project-header">
@@ -123,47 +153,37 @@ export function EditorWorkbench({
         <RouteTabs
           label={tr("Project sections")}
           value={tab}
-          items={[
-            {
-              value: "timeline",
-              label: tr("Edit"),
-              search: { editorTab: undefined },
-            },
-            {
-              value: "script",
-              label: tr("Script"),
-              search: { editorTab: "script" },
-            },
-            {
-              value: "audio",
-              label: tr("Audio"),
-              search: { editorTab: "audio" },
-            },
-            {
-              value: "exports",
-              label: (
-                <>
-                  {tr("Exports")}
-                  {projectJobs.length > 0 && (
-                    <span className="rounded bg-muted px-1.5 text-xs">
-                      {projectJobs.length}
-                    </span>
-                  )}
-                </>
-              ),
-              search: { editorTab: "exports" },
-            },
-            {
-              value: "history",
-              label: tr("History"),
-              search: { editorTab: "history" },
-            },
-          ]}
+          items={focusMode ? sectionTabs.slice(0, 3) : sectionTabs}
         />
-        <span>
-          {project.profile.width} × {project.profile.height} <i />{" "}
-          {project.profile.fps} FPS <i /> {project.profile.kind.toUpperCase()}
-        </span>
+        <div className="editor-tab-actions">
+          {!focusMode && (
+            <span className="editor-project-profile">
+              {project.profile.width} × {project.profile.height} <i />{" "}
+              {project.profile.fps} FPS <i />{" "}
+              {project.profile.kind.toUpperCase()}
+            </span>
+          )}
+          <Button
+            variant={focusMode ? "secondary" : "ghost"}
+            size="sm"
+            className="editor-focus-toggle"
+            aria-label={tr(focusMode ? "Exit focus mode" : "Focus mode")}
+            aria-pressed={focusMode}
+            title={tr(focusMode ? "Exit focus mode" : "Focus mode")}
+            onClick={() =>
+              void updateSearch({
+                editorFocus: focusMode ? undefined : "focus",
+                editorTab:
+                  tab === "exports" || tab === "history"
+                    ? undefined
+                    : search.editorTab,
+              })
+            }
+          >
+            {focusMode ? <Minimize2 /> : <Maximize2 />}
+            <span>{tr(focusMode ? "Exit focus mode" : "Focus mode")}</span>
+          </Button>
+        </div>
       </div>
       {tab === "timeline" ? (
         <EditorTimeline controller={controller} />
