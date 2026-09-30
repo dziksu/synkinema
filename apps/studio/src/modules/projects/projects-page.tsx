@@ -73,53 +73,53 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
       ? [...filtered].sort((a, b) => a.name.localeCompare(b.name))
       : projectsByCreatedAt(filtered);
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-7 p-6 lg:p-9">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mb-2 text-xs font-medium uppercase tracking-[.18em] text-muted-foreground">
+    <div className="projects-page mx-auto w-full max-w-[1600px] space-y-7 p-5 lg:p-9">
+      <section className="projects-hero">
+        <div className="projects-hero-copy">
+          <div className="projects-hero-eyebrow">
+            <span className="projects-hero-spark" aria-hidden="true" />
             {tr("Your creative workspace")}
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {tr("Every story starts here.")}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <h1>{tr("Every story starts here.")}</h1>
+          <p>
             {tr("Pick up where you left off, or make room for your next idea.")}
           </p>
+          <Button size="lg" onClick={() => setCreating(true)}>
+            <Plus />
+            {tr("New project")}
+          </Button>
         </div>
-        <Button size="lg" onClick={() => setCreating(true)}>
-          <Plus />
-          {tr("New project")}
-        </Button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          { label: tr("Projects"), value: projects.data.length, icon: Film },
-          {
-            label: tr("Editorial channels"),
-            value: channels.data?.filter((c) => !c.archived).length,
-            icon: Radio,
-          },
-          {
-            label: tr("Active exports"),
-            value: jobs.data?.filter((j) =>
-              ["running", "queued"].includes(j.status),
-            ).length,
-            icon: Clapperboard,
-          },
-        ].map((metric) => (
-          <Card key={metric.label} className="shadow-none">
-            <CardContent className="flex items-center justify-between py-1">
+        <div className="projects-metrics">
+          {[
+            { label: tr("Projects"), value: projects.data.length, icon: Film },
+            {
+              label: tr("Editorial channels"),
+              value: channels.data?.filter((c) => !c.archived).length,
+              icon: Radio,
+            },
+            {
+              label: tr("Active exports"),
+              value: jobs.data?.filter((j) =>
+                ["running", "queued"].includes(j.status),
+              ).length,
+              icon: Clapperboard,
+            },
+          ].map((metric, index) => (
+            <div
+              className={`projects-metric projects-metric-${index}`}
+              key={metric.label}
+            >
+              <span className="projects-metric-icon">
+                <metric.icon aria-hidden="true" />
+              </span>
               <div>
-                <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums">
-                  {metric.value ?? "—"}
-                </p>
+                <p>{metric.label}</p>
+                <strong>{metric.value ?? "—"}</strong>
               </div>
-              <metric.icon className="size-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      </section>
       {(assets.error || channels.error || jobs.error) && (
         <ErrorState
           error={(assets.error || channels.error || jobs.error)!}
@@ -130,7 +130,7 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
           }}
         />
       )}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="projects-toolbar flex flex-wrap items-center gap-3">
         <h2 className="mr-auto text-base font-semibold">
           {tr("All projects")}{" "}
           <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -199,8 +199,8 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
         <div
           className={
             search.view === "grid"
-              ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-              : "grid gap-3"
+              ? "projects-results grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+              : "projects-results grid gap-3"
           }
         >
           {visible.map((project) => {
@@ -208,7 +208,7 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
             return (
               <Card
                 key={project.id}
-                className={`group overflow-hidden py-0 shadow-none transition-shadow hover:shadow-md ${search.view === "list" ? "flex-row items-center gap-0" : "gap-0"}`}
+                className={`project-tile group overflow-hidden py-0 ${search.view === "list" ? "flex-row items-center gap-0" : "gap-0"}`}
                 aria-busy={pending}
               >
                 <Link
@@ -226,7 +226,7 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
                   />
                   <Badge
                     variant="secondary"
-                    className="absolute bottom-3 left-3 bg-background/90 text-[10px]"
+                    className="project-resolution absolute bottom-3 left-3 text-[10px]"
                   >
                     {project.profile.width} × {project.profile.height}
                   </Badge>
@@ -234,7 +234,7 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
                     <ArrowUpRight className="size-4" />
                   </span>
                 </Link>
-                <CardContent className="flex min-w-0 flex-1 items-start gap-2 p-4">
+                <CardContent className="project-tile-content flex min-w-0 flex-1 items-start gap-2 p-4">
                   <div className="min-w-0 flex-1">
                     <Link
                       to="/projects/$projectId"
@@ -292,7 +292,7 @@ export function ProjectsPage({ search }: { search: ProjectSearch }) {
           })}
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border bg-muted/30 p-5">
+      <div className="projects-agent-note flex flex-wrap items-center gap-4 rounded-xl border p-5">
         <div className="flex-1">
           <h3 className="text-sm font-medium">{tr("Create with an agent.")}</h3>
           <p className="mt-1 text-xs text-muted-foreground">

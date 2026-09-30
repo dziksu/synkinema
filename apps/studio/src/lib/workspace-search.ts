@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const workspaceSearchSchema = z.object({
+  editorFocus: z.literal("focus").optional().catch(undefined),
   editorTab: z
     .enum(["timeline", "script", "audio", "exports", "history"])
     .optional()

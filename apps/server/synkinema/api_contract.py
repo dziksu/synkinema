@@ -402,11 +402,35 @@ class RemoveScriptAudioRequest(AssetVersion):
     )
 
 
+class ReplaceScriptAudioRequest(RemoveScriptAudioRequest):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "expected_revision": 3,
+                    "expected_version": 1,
+                    "audio_asset_id": "OLD_AUDIO_ASSET_ID",
+                    "replacement_asset_id": "NEW_AUDIO_ASSET_ID",
+                    "audio_text": "The recorded narration.",
+                    "audio_source": "recorded",
+                }
+            ]
+        }
+    )
+    replacement_asset_id: str = Field(
+        min_length=1, description="Probed replacement audio; must differ from audio_asset_id."
+    )
+    audio_text: str = Field(max_length=100000, description="Script text captured with the new take.")
+    audio_source: Literal["recorded", "uploaded", "generated"] = Field(
+        description="How the replacement take was created."
+    )
+
+
 class RemoveScriptAudioResult(DeletionResult):
     project: ProjectSnapshot
     retained_asset_id: str | None = Field(
         None,
-        description="Source retained only because another collection/project/history still uses it. Removed from this project's collection regardless.",
+        description="Source retained because another collection, script line or historical timeline still uses it. Replacement removes this project's collection membership when no current reference needs it.",
     )
 
 

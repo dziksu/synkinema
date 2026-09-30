@@ -158,7 +158,12 @@ invented to change output settings. See [export formats](EXPORT_FORMATS.md).
 `audio_asset_id` / `audio_source` / `audio_text` snapshot. The existing
 `update_project` operation replaces the list, validates real audio assets, and
 synchronizes the legacy `script` string. A changed script-only write clears line
-associations; old projects with only plain text stay readable. Initial attachment does not create timeline clips. Replacing a line take updates
+associations; old projects with only plain text stay readable. Initial attachment
+does not create timeline clips. Studio's explicit Script and Project media actions
+place a ready take on a voiceover track, optionally with one aligned text clip
+containing its captured `audio_text`, in one revision-guarded edit batch. When
+the take is already on the timeline, the subtitle action adds or synchronizes
+the caption without duplicating the audio. Replacing a line take updates
 its unambiguous whole-take voiceover clips and scene audio references atomically,
 preserving starts/speed/gain and measuring the new duration. Split/trimmed or
 shared-line takes require explicit clip edits; overlaps reject without ripple.
@@ -176,6 +181,16 @@ Recording requests microphone access only on Record, negotiates a supported MIME
 type, releases tracks on stop/cancel/unmount (including late permission replies),
 and offers a local preview before upload. Upload probing decodes audio without
 container duration, including browser live WebM, to measure its real duration.
+
+`POST /api/projects/{id}/script-lines/{line_id}/audio/replace` uses the same
+revision/version guarded project write queue after the new audio has been probed.
+It replaces the line and unambiguous whole-take timeline references in one
+transaction, then retires the old take from script history and project media.
+Exclusive old files are deleted through the durable cleanup outbox. Historical
+timeline clips and other collections retain their source for undo, while the old
+file stays out of the current project's media grid. Invalid replacements leave
+the previous take and project untouched. A cached synthesis result with the
+same asset ID remains attached without retiring its own source.
 
 `DELETE /api/projects/{id}/script-lines/{line_id}/audio` is an explicit destructive
 lifecycle action, serialized through the same project write queue with confirmed

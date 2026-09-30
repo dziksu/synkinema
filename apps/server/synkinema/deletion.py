@@ -2,6 +2,7 @@
 
 import json
 from contextlib import asynccontextmanager
+from copy import deepcopy
 
 from sqlalchemy import text
 
@@ -223,6 +224,152 @@ class Deletion:
                 "project": self.service.summary(project),
                 "asset_ids": [] if retained else [aid],
                 "retained_asset_id": aid if retained else None,
+                "project_ids": [],
+                "job_ids": [],
+                **self.store.cleanup_files(),
+            }
+
+    async def replace_script_audio(self, project_id, line_id, request):
+        """Attach a validated take, then retire its predecessor in one transaction."""
+        from .renderer import validate_timeline
+        from .script_audio import replace_script_audio
+        from .timeline import validate_lane_edits
+
+        old_id = request.audio_asset_id
+        new_id = request.replacement_asset_id
+        if old_id == new_id:
+            raise ValueError("Replacement audio must differ from the current take")
+
+        def retire(document, current=False):
+            matched = False
+            for item in document.get("script_lines", []):
+                if item["id"] == line_id and item.get("audio_asset_id") == old_id:
+                    item.update(audio_asset_id=None, audio_text=None, audio_source=None)
+                    matched = True
+            if not matched and not current:
+                return
+            if not any(item.get("audio_asset_id") == old_id for item in document.get("script_lines", [])):
+                for scene in document.get("scenes", []):
+                    if scene.get("voice_asset_id") == old_id:
+                        scene["voice_asset_id"] = None
+                document["asset_ids"] = [value for value in document.get("asset_ids", []) if value != old_id]
+
+        def scene_uses(conn):
+            for (raw,) in conn.execute(
+                text("SELECT document FROM projects UNION ALL SELECT document FROM revisions")
+            ):
+                if any(scene.get("voice_asset_id") == old_id for scene in json.loads(raw).get("scenes", [])):
+                    return True
+            for (raw,) in conn.execute(text("SELECT document FROM jobs")):
+                if any(
+                    scene.get("voice_asset_id") == old_id
+                    for scene in json.loads(raw)["snapshot"].get("scenes", [])
+                ):
+                    return True
+            return False
+
+        async with self.guard():
+            with self.store.transaction() as conn:
+                row = conn.execute(
+                    text("SELECT document,revision FROM projects WHERE id=:id"), {"id": project_id}
+                ).first()
+                if not row:
+                    raise KeyError("Project not found")
+                if row[1] != request.expected_revision:
+                    raise Conflict(
+                        f"Expected revision {request.expected_revision}; current revision is {row[1]}. Reload before replacing audio."
+                    )
+                document = json.loads(row[0])
+                previous = Project.model_validate(document)
+                line = next(
+                    (item for item in document.get("script_lines", []) if item["id"] == line_id), None
+                )
+                if line is None:
+                    raise KeyError("Script line not found")
+                if line.get("audio_asset_id") != old_id:
+                    raise Conflict("This line's audio changed. Reload before replacing it.")
+                old_asset = self.service.read_asset(conn, old_id, request.expected_version)
+                replacement = self.service.read_asset(conn, new_id)
+                if (
+                    replacement["kind"] != "audio"
+                    or not replacement.get("has_audio")
+                    or not replacement.get("duration_ms")
+                ):
+                    raise ValueError("Replacement requires a probed audio asset with a duration")
+                previous_lines = deepcopy(document["script_lines"])
+                line.update(
+                    audio_asset_id=new_id,
+                    audio_text=request.audio_text,
+                    audio_source=request.audio_source,
+                )
+                replace_script_audio(self.service, document, previous_lines)
+                retire(document, current=True)
+                document["revision"] = row[1] + 1
+                project = Project.model_validate(document)
+                self.service.validate_channel(project.channel_id, conn)
+                self.service.validate_assets(project)
+                validate_timeline(project)
+                validate_lane_edits(project, previous)
+
+                revisions = [
+                    (r[0], json.loads(r[1]))
+                    for r in conn.execute(
+                        text("SELECT revision,document FROM revisions WHERE project_id=:id"),
+                        {"id": project_id},
+                    )
+                ]
+                jobs = [
+                    (r[0], json.loads(r[1]))
+                    for r in conn.execute(
+                        text("SELECT id,document FROM jobs WHERE project_id=:id"), {"id": project_id}
+                    )
+                ]
+                for rev, historical in revisions:
+                    retire(historical)
+                    conn.execute(
+                        text("UPDATE revisions SET document=:doc WHERE project_id=:id AND revision=:rev"),
+                        {"id": project_id, "rev": rev, "doc": json.dumps(historical)},
+                    )
+                for jid, job in jobs:
+                    retire(job["snapshot"])
+                    conn.execute(
+                        text("UPDATE jobs SET document=:doc WHERE id=:id"),
+                        {"id": jid, "doc": json.dumps(job)},
+                    )
+                params = {
+                    "id": project_id,
+                    "rev": project.revision,
+                    "doc": project.model_dump_json(),
+                    "time": now(),
+                }
+                conn.execute(
+                    text("UPDATE projects SET revision=:rev,document=:doc,updated_at=:time WHERE id=:id"),
+                    params,
+                )
+                conn.execute(
+                    text("INSERT INTO revisions VALUES(:id,:rev,:doc,'replace_script_audio',:time)"),
+                    params,
+                )
+                if old_id not in asset_ids(document):
+                    old_asset.setdefault("locations", {}).pop(project_id, None)
+                uses = self.service.usage_in(conn, old_id)
+                retained = bool(old_asset["locations"] or uses or scene_uses(conn))
+                if retained:
+                    for use in uses:
+                        if use["project_id"] != project_id:
+                            old_asset["locations"].setdefault(use["project_id"], "")
+                    self.service.save_asset(conn, old_asset)
+                else:
+                    files = {old_asset["path"], f"cache/{old_id}.jpg"} | {
+                        str(p.relative_to(self.store.root))
+                        for p in self.store.path("cache").glob(f"{old_id}-*")
+                    }
+                    self.schedule(conn, files)
+                    conn.execute(text("DELETE FROM assets WHERE id=:id"), {"id": old_id})
+            return {
+                "project": self.service.summary(project),
+                "asset_ids": [] if retained else [old_id],
+                "retained_asset_id": old_id if retained else None,
                 "project_ids": [],
                 "job_ids": [],
                 **self.store.cleanup_files(),

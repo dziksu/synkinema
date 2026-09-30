@@ -24,10 +24,38 @@ export function projectThumbnailSources(project: Project, assets: Asset[]) {
   return [...new Set(sources)];
 }
 
-function ThumbnailImage({ sources }: { sources: string[] }) {
+function ThumbnailImage({
+  sources,
+  project,
+}: {
+  sources: string[];
+  project: Project;
+}) {
   const [failed, setFailed] = useState<string[]>([]);
   const src = sources.find((source) => !failed.includes(source));
-  if (!src) return <Film size={64} aria-hidden="true" />;
+  if (!src) {
+    const tint =
+      [...project.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 4;
+    const initials = project.name
+      .split(/[\s—•-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+    return (
+      <div
+        className={`project-poster project-poster-${tint}`}
+        aria-hidden="true"
+      >
+        <span className="project-poster-reel">
+          <Film />
+        </span>
+        <span className="project-poster-initials">{initials}</span>
+        <span className="project-poster-title">{project.name}</span>
+      </div>
+    );
+  }
   return (
     <img
       key={src}
@@ -48,5 +76,11 @@ export default function ProjectThumbnail({
   assets: Asset[];
 }) {
   const sources = projectThumbnailSources(project, assets);
-  return <ThumbnailImage key={JSON.stringify(sources)} sources={sources} />;
+  return (
+    <ThumbnailImage
+      key={JSON.stringify(sources)}
+      sources={sources}
+      project={project}
+    />
+  );
 }

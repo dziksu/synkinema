@@ -161,7 +161,7 @@ export function EditorTimeline({
       <EditorTop sourceOpen={!!sourceAsset}>
         <section className="asset-panel">
           <div className="panel-heading">
-            <h2>{tr("Project media")}</h2>
+            <h2>{tr("Media")}</h2>
             <IconButton label={tr("Import media")} onClick={dropzone.open}>
               <Plus size={18} />
             </IconButton>
@@ -190,6 +190,14 @@ export function EditorTimeline({
             libraryAssets={libraryAssets}
             activeId={sourceAsset?.id}
             onAdd={addAsset}
+            onAddNarration={(asset, lineId, withCaptions) =>
+              edit("insert_script_take", {
+                line_id: lineId,
+                asset_id: asset.id,
+                with_captions: withCaptions,
+                start_ms: useStudio.getState().time,
+              })
+            }
             onPreview={(a) => {
               state.set({ playing: false });
               setSourceAsset(a);
@@ -197,6 +205,10 @@ export function EditorTimeline({
             onImport={dropzone.open}
             onDestination={setMediaDestination}
             onError={setNotice}
+            onRemoved={(ids) => {
+              if (sourceAsset && ids.includes(sourceAsset.id))
+                setSourceAsset(null);
+            }}
           />
         </section>
         <section className="viewer">

@@ -4,19 +4,29 @@ import { writes } from "@/api/mutations";
 import { reads } from "@/api/queries";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { tr, useLocale } from "@/lib/i18n";
 import type { Asset, Project } from "@/lib/types";
+import { scriptTakeStatus } from "@/modules/script/scriptTimeline";
 import AssetCard from "@/modules/media/AssetCard";
 import FolderRemoval from "@/modules/media/FolderRemoval";
+import MediaDeleteDialog from "@/modules/media/MediaDeleteDialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   Folder,
   FolderPlus,
+  LoaderCircle,
   Pencil,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -28,20 +38,24 @@ export default function MediaBrowser({
   projectAssets,
   libraryAssets,
   onAdd,
+  onAddNarration,
   onPreview,
   onImport,
   onDestination,
   onError,
+  onRemoved,
   activeId,
 }: {
   project?: Project;
   projectAssets: Asset[];
   libraryAssets: Asset[];
   onAdd: (asset: Asset) => void;
+  onAddNarration: (asset: Asset, lineId: string, withCaptions: boolean) => void;
   onPreview: (asset: Asset) => void;
   onImport: () => void;
   onDestination: (d: MediaDestination) => void;
   onError: (message: string) => void;
+  onRemoved?: (ids: string[]) => void;
   /** Asset open in the preview monitor. */
   activeId?: string;
 }) {
@@ -87,10 +101,24 @@ export default function MediaBrowser({
   const [search, setSearch] = useState("");
   const kind = navigation.mediaKind ?? "all";
   const [editing, setEditing] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Asset[]>();
+  const [moveFolder, setMoveFolder] = useState("");
+  const [newFolderName, setNewFolderName] = useState("");
+  const [feedback, setFeedback] = useState("");
   useEffect(() => {
     setEditing(null);
     setFoldersOpen(false);
   }, [tab]);
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedIds([]);
+    setMoveOpen(false);
+    setRemoveOpen(false);
+  }, [tab, folder, kind, search]);
   const folderForm = useForm({ defaultValues: { name: "" } });
   const name = folderForm.watch("name");
   const setName = (value: string) =>
@@ -112,6 +140,12 @@ export default function MediaBrowser({
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
+  const selectedAssets = assets.filter((asset) =>
+    selectedIds.includes(asset.id),
+  );
+  const visibleSelected = filtered.filter((asset) =>
+    selectedIds.includes(asset.id),
+  );
   const folderMutation = useMutation({
     ...writes.folder(query),
     onSuccess: (f) => {
@@ -124,6 +158,99 @@ export default function MediaBrowser({
     ...writes.location(query),
     onError: (e) => onError(e.message),
   });
+  const batch = useMutation(writes.mediaBatch(query));
+  const removeMembership = useMutation(writes.removeMediaMembership(query));
+  const createMoveFolder = useMutation(writes.folder(query));
+  const busy =
+    location.isPending ||
+    batch.isPending ||
+    removeMembership.isPending ||
+    createMoveFolder.isPending;
+  const clearSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds([]);
+  };
+  const toggleSelection = (id: string) => {
+    setFeedback("");
+    setSelectionMode(true);
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else if (selectedIds.length >= 100) {
+      setFeedback(tr("Select up to 100 media files at a time."));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+  const selectVisible = () => {
+    setSelectionMode(true);
+    setSelectedIds((current) =>
+      [...new Set([...current, ...filtered.map((asset) => asset.id)])].slice(
+        0,
+        100,
+      ),
+    );
+    if (filtered.length > 100)
+      setFeedback(tr("Selected the first 100 media files in this view."));
+  };
+  const moveSelected = async () => {
+    setFeedback("");
+    try {
+      await batch.mutateAsync({
+        asset_ids: selectedAssets.map((asset) => asset.id),
+        action: "locate",
+        destination: {
+          project_id: projectId,
+          folder_id: moveFolder || undefined,
+        },
+      });
+      const count = selectedAssets.length;
+      setMoveOpen(false);
+      clearSelection();
+      setFolder(moveFolder);
+      setFeedback(tr("Moved {{count}} media files to this folder.", { count }));
+    } catch {
+      /* Mutation error is shown in the dialog. */
+    }
+  };
+  const removeSelected = async () => {
+    setFeedback("");
+    let removed = 0;
+    for (const asset of selectedAssets) {
+      try {
+        await removeMembership.mutateAsync({
+          assetId: asset.id,
+          request: {
+            project_id: projectId,
+            expected_version: asset.version,
+          },
+        });
+        removed += 1;
+        setSelectedIds((current) => current.filter((id) => id !== asset.id));
+        onRemoved?.([asset.id]);
+      } catch (error) {
+        setFeedback(
+          tr(
+            "Removed {{count}} files. Remaining selection was kept. {{error}}",
+            {
+              count: removed,
+              error: (error as Error).message,
+            },
+          ),
+        );
+        return;
+      }
+    }
+    setRemoveOpen(false);
+    clearSelection();
+    setFeedback(
+      tr(
+        "Removed {{count}} media files from this collection. Originals remain on disk.",
+        {
+          count: removed,
+        },
+      ),
+    );
+  };
   const move = (assetId: string, folderId: string) =>
     !folderId.startsWith("pending:") &&
     location.mutate({
@@ -349,17 +476,115 @@ export default function MediaBrowser({
         ))}
       </div>
       {error && <p role="alert">{error.message}</p>}
+      <div className="media-select-header">
+        <span>
+          {selectionMode
+            ? tr("{{count}} selected", { count: selectedAssets.length })
+            : tr("{{count}} media files", { count: filtered.length })}
+        </span>
+        <div>
+          <button
+            type="button"
+            disabled={
+              !filtered.length ||
+              busy ||
+              visibleSelected.length === filtered.length
+            }
+            onClick={selectVisible}
+          >
+            {tr("Select all")}
+          </button>
+          {selectionMode && (
+            <button type="button" disabled={busy} onClick={clearSelection}>
+              <X size={13} /> {tr("Clear")}
+            </button>
+          )}
+        </div>
+      </div>
+      {selectionMode && selectedAssets.length > 0 && (
+        <div className="media-bulk-actions">
+          <Button
+            variant="outline"
+            className="button"
+            disabled={busy}
+            aria-label={tr("Move to folder")}
+            title={tr("Move to folder")}
+            onClick={() => {
+              batch.reset();
+              createMoveFolder.reset();
+              setMoveFolder(folder);
+              setNewFolderName("");
+              setMoveOpen(true);
+            }}
+          >
+            <Folder size={14} /> {tr("Move")}
+          </Button>
+          <Button
+            variant="outline"
+            className="button"
+            disabled={busy}
+            aria-label={
+              projectId ? tr("Remove from project") : tr("Remove from library")
+            }
+            title={
+              projectId ? tr("Remove from project") : tr("Remove from library")
+            }
+            onClick={() => {
+              removeMembership.reset();
+              setRemoveOpen(true);
+            }}
+          >
+            <Trash2 size={14} />
+            {tr("Remove")}
+          </Button>
+          <button
+            type="button"
+            className="media-delete-link"
+            disabled={busy}
+            onClick={() => setDeleting(selectedAssets)}
+          >
+            {tr("Delete from disk")}
+          </button>
+        </div>
+      )}
+      {feedback && (
+        <p className="media-action-feedback" role="status">
+          {feedback}
+        </p>
+      )}
       <div className="asset-scroll">
         <div className="media-tile-grid">
-          {filtered.map((a) => (
-            <AssetCard
-              key={a.id}
-              asset={a}
-              active={a.id === activeId}
-              onAdd={() => onAdd(a)}
-              onPreview={() => onPreview(a)}
-            />
-          ))}
+          {filtered.map((a) => {
+            const line = project?.script_lines.find(
+              (item) => item.audio_asset_id === a.id,
+            );
+            const status =
+              line && project ? scriptTakeStatus(project, line) : undefined;
+            return (
+              <AssetCard
+                key={a.id}
+                asset={a}
+                active={a.id === activeId}
+                selectionMode={selectionMode}
+                selected={selectedIds.includes(a.id)}
+                onSelect={() => toggleSelection(a.id)}
+                onAdd={() =>
+                  line ? onAddNarration(a, line.id, false) : onAdd(a)
+                }
+                narration={
+                  line && status
+                    ? {
+                        status,
+                        canCaption:
+                          !!line.audio_text && line.audio_text.length <= 2000,
+                        onAddCaptions: () => onAddNarration(a, line.id, true),
+                      }
+                    : undefined
+                }
+                onPreview={() => onPreview(a)}
+              />
+            );
+          })}
         </div>
         {!filtered.length && (
           <div className="empty small">
@@ -382,6 +607,191 @@ export default function MediaBrowser({
           onDone={() => {
             setRemovingFolder(undefined);
             setFolder("");
+          }}
+        />
+      )}
+      <Dialog
+        open={moveOpen}
+        onOpenChange={(open) => {
+          if (!open && !busy) setMoveOpen(false);
+        }}
+      >
+        <DialogContent className="media-action-dialog">
+          <DialogTitle>{tr("Move selected media")}</DialogTitle>
+          <DialogDescription>
+            {tr(
+              "Choose a folder in this collection. Files stay available in other collections and on disk.",
+            )}
+          </DialogDescription>
+          <div
+            className="media-move-options"
+            role="radiogroup"
+            aria-label={tr("Destination folder")}
+          >
+            {[{ id: "", name: tr("Collection root") }, ...folders].map(
+              (item) => (
+                <label key={item.id}>
+                  <input
+                    type="radio"
+                    name="media-destination"
+                    value={item.id}
+                    checked={moveFolder === item.id}
+                    disabled={busy || item.id.startsWith("pending:")}
+                    onChange={() => setMoveFolder(item.id)}
+                  />
+                  <Folder size={15} />
+                  <span>{item.name}</span>
+                  <small>
+                    {
+                      assets.filter(
+                        (asset) => (asset.locations?.[scope] || "") === item.id,
+                      ).length
+                    }
+                  </small>
+                </label>
+              ),
+            )}
+          </div>
+          {selectedAssets.every(
+            (asset) => (asset.locations?.[scope] || "") === moveFolder,
+          ) && (
+            <p className="media-action-feedback">
+              {tr("Choose or create another folder to move these files.")}
+            </p>
+          )}
+          <div className="media-new-folder">
+            <Input
+              aria-label={tr("New folder name")}
+              placeholder={tr("New folder name")}
+              value={newFolderName}
+              maxLength={100}
+              disabled={busy}
+              onChange={(e) => setNewFolderName(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!newFolderName.trim() || busy}
+              onClick={async () => {
+                try {
+                  const created = await createMoveFolder.mutateAsync({
+                    name: newFolderName.trim(),
+                    projectId,
+                  });
+                  setMoveFolder(created.id);
+                  setNewFolderName("");
+                } catch {
+                  /* Mutation error is shown below. */
+                }
+              }}
+            >
+              {createMoveFolder.isPending ? (
+                <LoaderCircle size={15} className="spin" />
+              ) : (
+                <FolderPlus size={15} />
+              )}
+              {tr("Create")}
+            </Button>
+          </div>
+          {(batch.error || createMoveFolder.error) && (
+            <p role="alert" className="error-banner">
+              {(batch.error || createMoveFolder.error)?.message}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setMoveOpen(false)}
+            >
+              {tr("Cancel")}
+            </Button>
+            <Button
+              disabled={
+                busy ||
+                !selectedAssets.length ||
+                selectedAssets.every(
+                  (asset) => (asset.locations?.[scope] || "") === moveFolder,
+                )
+              }
+              onClick={() => void moveSelected()}
+            >
+              {batch.isPending ? (
+                <LoaderCircle size={15} className="spin" />
+              ) : (
+                <Folder size={15} />
+              )}
+              {tr("Move {{count}} files", { count: selectedAssets.length })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={removeOpen}
+        onOpenChange={(open) => {
+          if (!open && !busy) setRemoveOpen(false);
+        }}
+      >
+        <DialogContent className="media-action-dialog">
+          <DialogTitle>
+            {projectId
+              ? tr("Remove from this project?")
+              : tr("Remove from shared library?")}
+          </DialogTitle>
+          <DialogDescription>
+            {projectId
+              ? tr(
+                  "Original files stay on disk. Media used by this project cannot be removed until its timeline clips and project references are removed.",
+                )
+              : tr(
+                  "Original files stay on disk. Projects already using shared media keep access through their private collections.",
+                )}{" "}
+            {tr(
+              "If this is a file's last collection, use Delete from disk instead.",
+            )}
+          </DialogDescription>
+          <ul className="media-selected-list">
+            {selectedAssets.map((asset) => (
+              <li key={asset.id}>{asset.name}</li>
+            ))}
+          </ul>
+          {(removeMembership.error || feedback) && (
+            <p role="alert" className="error-banner">
+              {feedback || removeMembership.error?.message}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setRemoveOpen(false)}
+            >
+              {tr("Cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busy || !selectedAssets.length}
+              onClick={() => void removeSelected()}
+            >
+              {removeMembership.isPending ? (
+                <LoaderCircle size={15} className="spin" />
+              ) : (
+                <Trash2 size={15} />
+              )}
+              {tr("Remove {{count}} files", { count: selectedAssets.length })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {deleting && (
+        <MediaDeleteDialog
+          assets={deleting}
+          onClose={() => setDeleting(undefined)}
+          onDone={(message) => {
+            onRemoved?.(deleting.map((asset) => asset.id));
+            setDeleting(undefined);
+            clearSelection();
+            setFeedback(message);
           }}
         />
       )}

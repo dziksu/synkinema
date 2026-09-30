@@ -4,6 +4,7 @@ import type {
   ProjectSnapshot as Project,
   RemoveScriptAudioRequest,
   RemoveScriptAudioResult,
+  ReplaceScriptAudioRequest,
 } from "@/api/generated/client";
 import { reconcileDeletion } from "@/api/mutations";
 import {
@@ -53,7 +54,12 @@ export type ProjectEdit = {
     lineId: string;
     request: Omit<RemoveScriptAudioRequest, "expected_revision">;
   };
+  replaceAudio?: {
+    lineId: string;
+    request: Omit<ReplaceScriptAudioRequest, "expected_revision">;
+  };
   removalResult?: RemoveScriptAudioResult;
+  replacementResult?: RemoveScriptAudioResult;
 };
 type Context = {
   transaction: OptimisticContext;
@@ -160,9 +166,17 @@ export const projectWrites = (client: QueryClient) =>
                 { ...edit.removeAudio.request, expected_revision: revision },
               )
             : undefined;
+          const replacement = edit.replaceAudio
+            ? await http.api.replaceScriptAudio(
+                edit.projectId,
+                edit.replaceAudio.lineId,
+                { ...edit.replaceAudio.request, expected_revision: revision },
+              )
+            : undefined;
           edit.removalResult = removal;
+          edit.replacementResult = replacement;
           const project =
-            removal?.project ??
+            (removal ?? replacement)?.project ??
             (plan.batch || plan.steps.length !== 1
               ? (
                   await http.api.batch(edit.projectId, {
@@ -184,7 +198,8 @@ export const projectWrites = (client: QueryClient) =>
     },
     onSettled: async (project, _error, edit, context) => {
       const state = session(client, edit.projectId);
-      if (project && edit.removalResult) {
+      const audioCleanup = edit.removalResult ?? edit.replacementResult;
+      if (project && audioCleanup) {
         // Removed takes are intentionally absent from historical script reads.
         // Discard pinned snapshots before undo can restore a cached association.
         const historical = {
@@ -196,7 +211,7 @@ export const projectWrites = (client: QueryClient) =>
         await client.cancelQueries(historical);
         client.removeQueries(historical);
         await client.cancelQueries({ queryKey: ["assets"] });
-        await reconcileDeletion(client, edit.removalResult);
+        await reconcileDeletion(client, audioCleanup);
         await client.invalidateQueries({ queryKey: ["jobs"] });
       }
       if (context) {

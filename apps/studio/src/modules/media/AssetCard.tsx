@@ -2,7 +2,8 @@ import { tr, useLocale } from "@/lib/i18n";
 import type { Asset } from "@/lib/types";
 import { useStudio } from "@/modules/editor/store";
 import { usableAsset } from "@/modules/editor/timeline/timelineMath";
-import { Film, Image, Music2, Plus } from "lucide-react";
+import { scriptTakeStatus } from "@/modules/script/scriptTimeline";
+import { Captions, Check, Film, Image, Music2, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function sourceLink(source: string): string | undefined {
@@ -31,11 +32,23 @@ export default function AssetCard({
   onAdd,
   onPreview,
   active = false,
+  selectionMode = false,
+  selected = false,
+  onSelect,
+  narration,
 }: {
   asset: Asset;
   onAdd: () => void;
   onPreview?: () => void;
   active?: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+  narration?: {
+    status: ReturnType<typeof scriptTakeStatus>;
+    canCaption: boolean;
+    onAddCaptions: () => void;
+  };
 }) {
   useLocale();
   const usable = usableAsset(asset);
@@ -46,10 +59,11 @@ export default function AssetCard({
     asset.kind === "video" ? Film : asset.kind === "audio" ? Music2 : Image;
   return (
     <article
-      className={`media-tile ${active ? "active" : ""} ${usable ? "" : "unusable"}`}
+      className={`media-tile ${active ? "active" : ""} ${selected ? "selected" : ""} ${usable ? "" : "unusable"}`}
       onPointerEnter={() => {
         clearTimeout(timer.current);
-        timer.current = setTimeout(() => setHover(true), 250);
+        if (!selectionMode)
+          timer.current = setTimeout(() => setHover(true), 250);
       }}
       onPointerLeave={() => {
         clearTimeout(timer.current);
@@ -59,14 +73,22 @@ export default function AssetCard({
       <button
         type="button"
         className="media-tile-preview"
-        aria-label={tr("Preview {{name}}", { name: asset.name })}
-        title={
-          usable
-            ? tr("Click to preview · drag onto the timeline")
-            : tr("Media is shorter than the minimum clip duration of 100 ms")
+        aria-label={
+          selectionMode
+            ? selected
+              ? tr("Deselect {{name}}", { name: asset.name })
+              : tr("Select {{name}}", { name: asset.name })
+            : tr("Preview {{name}}", { name: asset.name })
         }
-        onClick={onPreview}
-        draggable={usable}
+        title={
+          selectionMode
+            ? tr("Click to select media")
+            : usable
+              ? tr("Click to preview · drag onto the timeline")
+              : tr("Media is shorter than the minimum clip duration of 100 ms")
+        }
+        onClick={selectionMode ? onSelect : onPreview}
+        draggable={usable && !selectionMode}
         onDragStart={(e) => {
           setHover(false);
           e.dataTransfer.setData("application/synkinema-asset", asset.id);
@@ -111,19 +133,81 @@ export default function AssetCard({
         </span>
         <span className="media-tile-duration">{assetDuration(asset)}</span>
       </button>
-      <button
-        type="button"
-        className="media-tile-add"
-        disabled={!usable}
-        aria-label={tr("Insert {{name}} at playhead", { name: asset.name })}
-        title={tr("Insert at playhead")}
-        onClick={onAdd}
-      >
-        <Plus size={14} />
-      </button>
+      {onSelect && (
+        <button
+          type="button"
+          className="media-tile-select"
+          aria-label={
+            selected
+              ? tr("Deselect {{name}}", { name: asset.name })
+              : tr("Select {{name}}", { name: asset.name })
+          }
+          aria-pressed={selected}
+          title={selected ? tr("Deselect media") : tr("Select media")}
+          onClick={onSelect}
+        >
+          {selected && <Check size={13} strokeWidth={3} />}
+        </button>
+      )}
+      {!selectionMode && (
+        <button
+          type="button"
+          className="media-tile-add"
+          disabled={
+            !usable || !!narration?.status.clip || !!narration?.status.ambiguous
+          }
+          aria-label={
+            narration
+              ? tr("Add narration {{name}} at playhead", { name: asset.name })
+              : tr("Insert {{name}} at playhead", { name: asset.name })
+          }
+          title={
+            narration?.status.clip
+              ? tr("Narration is already on the timeline")
+              : tr("Insert at playhead")
+          }
+          onClick={onAdd}
+        >
+          <Plus size={14} />
+        </button>
+      )}
       <span className="media-tile-name" title={asset.name}>
         {asset.name}
       </span>
+      {!selectionMode &&
+        narration &&
+        (narration.status.ambiguous ? (
+          <span className="media-tile-caption-status">
+            {tr("Used multiple times")}
+          </span>
+        ) : narration.status.captionsSynced ? (
+          <span className="media-tile-caption-status">
+            <Captions size={12} /> {tr("Audio + subtitles")}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="media-tile-caption-action"
+            disabled={!usable || !narration.canCaption}
+            title={
+              narration.canCaption
+                ? narration.status.clip
+                  ? tr("Add or synchronize subtitles for this narration")
+                  : tr(
+                      "Place narration and a matching subtitle clip on the timeline",
+                    )
+                : tr("Split long script lines before adding subtitles")
+            }
+            onClick={narration.onAddCaptions}
+          >
+            <Captions size={12} />
+            {narration.status.clip
+              ? narration.status.caption
+                ? tr("Sync subtitles")
+                : tr("Add subtitles")
+              : tr("Audio + subtitles")}
+          </button>
+        ))}
     </article>
   );
 }

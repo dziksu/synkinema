@@ -11,7 +11,7 @@ export default function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4 px-6 py-8 lg:px-9">
+    <header className="workspace-page-header flex flex-wrap items-start justify-between gap-4 px-6 py-8 lg:px-9">
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-[.18em] text-muted-foreground">
           {eyebrow}
