@@ -326,8 +326,8 @@ export function ChannelWorkspace({
                             : ""}
                         </small>
                         {p.project_id &&
-                          detail.projects.some(
-                            (linked) => linked.id === p.project_id,
+                          !detail.archived_project_ids.includes(
+                            p.project_id,
                           ) && (
                             <Button
                               variant="ghost"
@@ -390,13 +390,23 @@ export function ChannelWorkspace({
                         )}
                       </td>
                       <td>
-                        <Button
-                          variant="outline"
-                          className="button channel-edit-record"
-                          onClick={() => setPublication(p)}
-                        >
-                          {tr("Edit record")}
-                        </Button>
+                        {p.project_id &&
+                        detail.archived_project_ids.includes(p.project_id) ? (
+                          <span
+                            className="channel-archived-project"
+                            role="status"
+                          >
+                            {tr("Project archived")}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="button channel-edit-record"
+                            onClick={() => setPublication(p)}
+                          >
+                            {tr("Edit record")}
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -446,10 +456,7 @@ export function ChannelWorkspace({
                   {tr("{{score}}/100", { score: r.score })}
                 </strong>
                 <div>
-                  <h4>
-                    {detail.projects.find((p) => p.id === r.project_id)?.name ||
-                      r.project_id}
-                  </h4>
+                  <h4>{r.project_name || tr("Archived project")}</h4>
                   <small>
                     r{r.project_revision} · {r.author} ·{" "}
                     {new Date(r.created_at).toLocaleString()}

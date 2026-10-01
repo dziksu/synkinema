@@ -5945,6 +5945,12 @@
     padding: 8px 9px;
     font-size: 11px;
   }
+  .channel-archived-project {
+    display: inline-block;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.5;
+  }
   .channel-engagement span {
     display: block;
     white-space: nowrap;

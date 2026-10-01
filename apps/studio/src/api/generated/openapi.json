@@ -2227,6 +2227,14 @@
       "ChannelDetail": {
         "additionalProperties": false,
         "properties": {
+          "archived_project_ids": {
+            "description": "Referenced project IDs that no longer exist in the workspace. Historical channel records remain available.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Archived Project Ids",
+            "type": "array"
+          },
           "channel": {
             "$ref": "#/components/schemas/Channel"
           },
@@ -2252,7 +2260,13 @@
             "type": "array"
           }
         },
-        "required": ["channel", "projects", "publications", "reviews"],
+        "required": [
+          "channel",
+          "projects",
+          "publications",
+          "reviews",
+          "archived_project_ids"
+        ],
         "title": "ChannelDetail",
         "type": "object"
       },
@@ -2775,6 +2789,18 @@
             "title": "Project Id",
             "type": "string"
           },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Project name captured with this review, retained after project deletion.",
+            "title": "Project Name"
+          },
           "project_revision": {
             "minimum": 1.0,
             "title": "Project Revision",
@@ -2808,6 +2834,7 @@
           "improvements",
           "id",
           "created_at",
+          "project_name",
           "score"
         ],
         "title": "ChannelReview",
@@ -7987,6 +8014,18 @@
             "description": "Optional currently linked project; historical publication remains if later unlinked or deleted.",
             "title": "Project Id"
           },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Project name captured with this publication, retained after project deletion.",
+            "title": "Project Name"
+          },
           "project_revision": {
             "anyOf": [
               {
@@ -8070,6 +8109,7 @@
           "evidence",
           "id",
           "recorded_at",
+          "project_name",
           "source_usage"
         ],
         "title": "Publication",
