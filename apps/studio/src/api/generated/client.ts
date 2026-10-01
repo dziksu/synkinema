@@ -1287,6 +1287,11 @@ export interface ChannelContext {
 
 /** ChannelDetail */
 export interface ChannelDetail {
+  /**
+   * Archived Project Ids
+   * Referenced project IDs that no longer exist in the workspace. Historical channel records remain available.
+   */
+  archived_project_ids: string[];
   channel: Channel;
   /** Projects */
   projects: ChannelProject[];
@@ -1589,6 +1594,11 @@ export interface ChannelReview {
   pacing: number;
   /** Project Id */
   project_id: string;
+  /**
+   * Project Name
+   * Project name captured with this review, retained after project deletion.
+   */
+  project_name: string | null;
   /**
    * Project Revision
    * @min 1
@@ -4660,6 +4670,11 @@ export interface Publication {
    * Optional currently linked project; historical publication remains if later unlinked or deleted.
    */
   project_id: string | null;
+  /**
+   * Project Name
+   * Project name captured with this publication, retained after project deletion.
+   */
+  project_name: string | null;
   /**
    * Project Revision
    * Exact linked project revision published. On first published record, omitted means current revision; metric-only updates retain the frozen revision and source usage.

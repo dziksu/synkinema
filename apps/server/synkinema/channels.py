@@ -217,6 +217,10 @@ class PublicationInput(Model):
 class Publication(PublicationInput):
     id: str
     recorded_at: str
+    project_name: str | None = Field(
+        None,
+        description="Project name captured with this publication, retained after project deletion.",
+    )
     source_usage: list[FootageUse] = Field(
         default_factory=list,
         description="Frozen source intervals captured from the published project revision, retained after project deletion.",
@@ -257,6 +261,10 @@ class ChannelReviewInput(Model):
 class ChannelReview(ChannelReviewInput):
     id: str
     created_at: str
+    project_name: str | None = Field(
+        None,
+        description="Project name captured with this review, retained after project deletion.",
+    )
     score: float = Field(
         ge=0,
         le=100,
@@ -279,6 +287,10 @@ class ChannelDetail(Model):
     projects: list[ChannelProject]
     publications: list[Publication]
     reviews: list[ChannelReview]
+    archived_project_ids: list[str] = Field(
+        default_factory=list,
+        description="Referenced project IDs that no longer exist in the workspace. Historical channel records remain available.",
+    )
 
 
 class Channels:
@@ -474,14 +486,79 @@ class Channels:
                 id=channel_id,
             )
         ]
+        publications = [
+            Publication.model_validate(r) for r in self.channel_records(channel_id, "publication")
+        ]
+        reviews = [ChannelReview.model_validate(r) for r in self.channel_records(channel_id, "review")]
+        referenced_ids = {
+            project_id for record in (*publications, *reviews) if (project_id := record.project_id)
+        }
+        available_names = {project.id: project.name for project in projects}
+        for project_id in referenced_ids - available_names.keys():
+            rows = self.store.rows("SELECT document FROM projects WHERE id=:id", id=project_id)
+            if rows:
+                available_names[project_id] = Project.model_validate_json(rows[0]["document"]).name
+
+        # Older records predate project-name snapshots. Frozen source usage is
+        # the strongest surviving evidence; a publication title is a readable
+        # fallback when the deleted project's original name is unrecoverable.
+        historical_names = {}
+        publication_titles = {}
+        for publication in publications:
+            if not publication.project_id:
+                continue
+            if publication.project_name:
+                historical_names.setdefault(publication.project_id, publication.project_name)
+            for use in publication.source_usage:
+                if use.project_name:
+                    historical_names.setdefault(publication.project_id, use.project_name)
+            publication_titles.setdefault(publication.project_id, publication.title)
+
+        reviews = [
+            review.model_copy(
+                update={
+                    "project_name": review.project_name
+                    or available_names.get(review.project_id)
+                    or historical_names.get(review.project_id)
+                    or publication_titles.get(review.project_id)
+                }
+            )
+            for review in reviews
+        ]
+        publications.sort(
+            key=lambda record: (
+                record.published_at.timestamp() if record.published_at else float("-inf"),
+                record.recorded_at,
+                record.id,
+            ),
+            reverse=True,
+        )
+        published_by_project = {}
+        published_by_revision = {}
+        for publication in publications:
+            if publication.project_id and publication.status == "published" and publication.published_at:
+                published_by_project.setdefault(publication.project_id, publication.published_at)
+                published_by_revision.setdefault(
+                    (publication.project_id, publication.project_revision), publication.published_at
+                )
+
+        def review_sort_key(review):
+            published_at = published_by_revision.get(
+                (review.project_id, review.project_revision)
+            ) or published_by_project.get(review.project_id)
+            reviewed_at = datetime.fromisoformat(review.created_at).timestamp()
+            return (published_at.timestamp() if published_at else reviewed_at, reviewed_at, review.id)
+
+        reviews.sort(key=review_sort_key, reverse=True)
         return ChannelDetail(
             channel=channel,
             projects=[
                 ChannelProject(id=p.id, name=p.name, revision=p.revision, duration_ms=p.duration_ms)
                 for p in projects
             ],
-            publications=self.channel_records(channel_id, "publication"),
-            reviews=self.channel_records(channel_id, "review"),
+            publications=publications,
+            reviews=reviews,
+            archived_project_ids=sorted(referenced_ids - available_names.keys()),
         )
 
     def _linked_project(self, conn, channel_id, project_id):
@@ -524,10 +601,28 @@ class Channels:
                 project = self.get(request.project_id, revision)
                 revision = project.revision
                 captured = project_footage(self, project)
+            project_name = (
+                existing.get("project_name")
+                if existing and existing.get("project_id") == request.project_id
+                else None
+            )
+            if request.project_id and not project_name:
+                row = conn.execute(
+                    text("SELECT document FROM projects WHERE id=:id"), {"id": request.project_id}
+                ).first()
+                if row:
+                    project_name = json.loads(row[0])["name"]
+                elif captured:
+                    project_name = (
+                        captured[0].get("project_name")
+                        if isinstance(captured[0], dict)
+                        else captured[0].project_name
+                    )
             record = Publication(
                 **request.model_dump(exclude={"expected_version", "publication_id", "project_revision"}),
                 project_revision=revision,
                 source_usage=captured,
+                project_name=project_name,
                 id=record_id,
                 recorded_at=now(),
             )
@@ -550,6 +645,11 @@ class Channels:
     def record_channel_review(self, channel_id, request: ChannelReviewWrite):
         def action(conn, channel):
             self._linked_project(conn, channel_id, request.project_id)
+            project_name = json.loads(
+                conn.execute(
+                    text("SELECT document FROM projects WHERE id=:id"), {"id": request.project_id}
+                ).one()[0]
+            )["name"]
             if not conn.execute(
                 text("SELECT revision FROM revisions WHERE project_id=:id AND revision=:rev"),
                 {"id": request.project_id, "rev": request.project_revision},
@@ -557,7 +657,11 @@ class Channels:
                 raise KeyError("Project revision not found")
             score = sum(getattr(request, k) for k in ("hook", "pacing", "clarity", "cta", "channel_fit")) * 2
             record = ChannelReview(
-                **request.model_dump(exclude={"expected_version"}), id=uid(), created_at=now(), score=score
+                **request.model_dump(exclude={"expected_version"}),
+                id=uid(),
+                created_at=now(),
+                project_name=project_name,
+                score=score,
             )
             conn.execute(
                 text("INSERT INTO channel_records VALUES(:id,:channel,'review',:doc,:time)"),

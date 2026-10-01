@@ -196,6 +196,188 @@ def test_manual_publication_metrics_and_evidence_reviews(api):
     assert service.channel(cid).version == 4
 
 
+def test_channel_history_sorts_by_event_time_and_keeps_deleted_project_names(api):
+    client, service = api
+    channel = create_channel(client)
+    cid = channel["id"]
+    project = client.post("/api/projects", json={"name": "Readable project name", "channel_id": cid}).json()
+    publications_url = f"/api/channels/{cid}/publications"
+    for version, title, published_at in (
+        (1, "Later in the day", "2026-09-26T17:00:00+02:00"),
+        (2, "Earlier in the day", "2026-09-26T12:00:00+02:00"),
+    ):
+        response = client.post(
+            publications_url,
+            json={
+                "expected_version": version,
+                "project_id": project["id"],
+                "title": title,
+                "platform": "youtube",
+                "url": f"https://youtube.com/shorts/{version}",
+                "published_at": published_at,
+            },
+        )
+        assert response.status_code == 200, response.text
+    reviews_url = f"/api/channels/{cid}/reviews"
+    review = {
+        "project_id": project["id"],
+        "project_revision": 1,
+        "author": "QA",
+        "hook": 8,
+        "pacing": 8,
+        "clarity": 8,
+        "cta": 8,
+        "channel_fit": 8,
+        "evidence": "QA review",
+        "improvements": "Keep testing",
+    }
+    for version in (3, 4):
+        response = client.post(reviews_url, json={**review, "expected_version": version})
+        assert response.status_code == 200, response.text
+    reviews = response.json()["reviews"]
+    # Reverse their recorded order while keeping the same calendar day.
+    for record, created_at in zip(
+        reviews,
+        ("2026-09-26T09:00:00+02:00", "2026-09-26T18:00:00+02:00"),
+        strict=True,
+    ):
+        service.store.execute(
+            "UPDATE channel_records SET document=json_set(document, '$.created_at', :created_at) WHERE id=:id",
+            created_at=created_at,
+            id=record["id"],
+        )
+    detail = client.get(f"/api/channels/{cid}").json()
+    assert [p["title"] for p in detail["publications"]] == ["Later in the day", "Earlier in the day"]
+    assert [r["created_at"] for r in detail["reviews"]] == [
+        "2026-09-26T18:00:00+02:00",
+        "2026-09-26T09:00:00+02:00",
+    ]
+    assert all(record["project_name"] == "Readable project name" for record in detail["reviews"])
+
+    deleted = client.request("DELETE", f"/api/projects/{project['id']}", json={"expected_revision": 1})
+    assert deleted.status_code == 200, deleted.text
+    detail = client.get(f"/api/channels/{cid}").json()
+    assert detail["archived_project_ids"] == [project["id"]]
+    assert all(record["project_name"] == "Readable project name" for record in detail["reviews"])
+    assert all(record["project_name"] == "Readable project name" for record in detail["publications"])
+
+
+def test_reviews_follow_publication_time_even_when_reviewed_in_reverse_order(api):
+    client, _service = api
+    channel = create_channel(client)
+    cid = channel["id"]
+    latest = client.post("/api/projects", json={"name": "Published later", "channel_id": cid}).json()
+    earlier = client.post("/api/projects", json={"name": "Published earlier", "channel_id": cid}).json()
+    for version, project, published_at in (
+        (1, latest, "2026-09-26T18:00:00+02:00"),
+        (2, earlier, "2026-09-26T10:00:00+02:00"),
+    ):
+        response = client.post(
+            f"/api/channels/{cid}/publications",
+            json={
+                "expected_version": version,
+                "project_id": project["id"],
+                "project_revision": 1,
+                "title": project["name"],
+                "platform": "youtube",
+                "url": f"https://youtube.com/shorts/{version}",
+                "published_at": published_at,
+            },
+        )
+        assert response.status_code == 200, response.text
+    for version, project in ((3, latest), (4, earlier)):
+        response = client.post(
+            f"/api/channels/{cid}/reviews",
+            json={
+                "expected_version": version,
+                "project_id": project["id"],
+                "project_revision": 1,
+                "author": "QA",
+                "hook": 8,
+                "pacing": 8,
+                "clarity": 8,
+                "cta": 8,
+                "channel_fit": 8,
+                "evidence": "Compared published videos",
+                "improvements": "Keep testing",
+            },
+        )
+        assert response.status_code == 200, response.text
+    assert [review["project_id"] for review in response.json()["reviews"]] == [
+        latest["id"],
+        earlier["id"],
+    ]
+
+
+@pytest.mark.parametrize("with_source_snapshot", [False, True])
+def test_legacy_deleted_review_uses_publication_name_instead_of_id(api, with_source_snapshot):
+    client, service = api
+    channel = create_channel(client)
+    cid = channel["id"]
+    project = client.post("/api/projects", json={"name": "Historical project", "channel_id": cid}).json()
+    publication = client.post(
+        f"/api/channels/{cid}/publications",
+        json={
+            "expected_version": 1,
+            "project_id": project["id"],
+            "title": "Public video title",
+            "platform": "youtube",
+            "url": "https://youtube.com/shorts/legacy",
+        },
+    )
+    assert publication.status_code == 200, publication.text
+    review = client.post(
+        f"/api/channels/{cid}/reviews",
+        json={
+            "expected_version": 2,
+            "project_id": project["id"],
+            "project_revision": 1,
+            "author": "QA",
+            "hook": 8,
+            "pacing": 8,
+            "clarity": 8,
+            "cta": 8,
+            "channel_fit": 8,
+            "evidence": "QA review",
+            "improvements": "Keep testing",
+        },
+    )
+    assert review.status_code == 200, review.text
+    if with_source_snapshot:
+        source_use = {
+            "project_id": project["id"],
+            "project_name": "Historical project",
+            "revision": 1,
+            "asset_id": "historical-asset",
+            "checksum": "historical-checksum",
+            "source_key": "historical-source",
+            "from_ms": 0,
+            "to_ms": 1000,
+            "timeline_from_ms": 0,
+            "timeline_to_ms": 1000,
+            "clip_ids": ["historical-clip"],
+        }
+        service.store.execute(
+            "UPDATE channel_records SET document=json_set(document, '$.source_usage', json(:usage)) "
+            "WHERE channel_id=:id AND kind='publication'",
+            usage=json.dumps([source_use]),
+            id=cid,
+        )
+    service.store.execute(
+        "UPDATE channel_records SET document=json_remove(document, '$.project_name') WHERE channel_id=:id",
+        id=cid,
+    )
+    assert (
+        client.request("DELETE", f"/api/projects/{project['id']}", json={"expected_revision": 1}).status_code
+        == 200
+    )
+    detail = client.get(f"/api/channels/{cid}").json()
+    assert detail["reviews"][0]["project_name"] == (
+        "Historical project" if with_source_snapshot else "Public video title"
+    )
+    assert detail["reviews"][0]["project_name"] != project["id"]
+
+
 def test_channel_validation_persistence_and_concurrent_writers(api):
     client, service = api
     assert client.post("/api/channels", json={"name": " "}).status_code == 422

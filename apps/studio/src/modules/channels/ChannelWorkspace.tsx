@@ -18,6 +18,28 @@ import { useState } from "react";
 import { ChannelForm } from "./ChannelForm";
 import { PublicationForm } from "./PublicationForm";
 import { ReviewForm } from "./ReviewForm";
+
+function reviewPublicationLabel(
+  review: ChannelDetail["reviews"][number],
+  publications: Publication[],
+) {
+  const related = publications.filter(
+    (publication) =>
+      publication.project_id === review.project_id &&
+      publication.status === "published" &&
+      publication.published_at,
+  );
+  const publication =
+    related.find(
+      (candidate) => candidate.project_revision === review.project_revision,
+    ) ?? related[0];
+  return publication?.published_at
+    ? ` · ${tr("Published {{date}}", {
+        date: new Date(publication.published_at).toLocaleString(),
+      })}`
+    : "";
+}
+
 export function ChannelWorkspace({
   editing,
   onEditingChange,
@@ -326,8 +348,8 @@ export function ChannelWorkspace({
                             : ""}
                         </small>
                         {p.project_id &&
-                          detail.projects.some(
-                            (linked) => linked.id === p.project_id,
+                          !detail.archived_project_ids.includes(
+                            p.project_id,
                           ) && (
                             <Button
                               variant="ghost"
@@ -390,13 +412,23 @@ export function ChannelWorkspace({
                         )}
                       </td>
                       <td>
-                        <Button
-                          variant="outline"
-                          className="button channel-edit-record"
-                          onClick={() => setPublication(p)}
-                        >
-                          {tr("Edit record")}
-                        </Button>
+                        {p.project_id &&
+                        detail.archived_project_ids.includes(p.project_id) ? (
+                          <span
+                            className="channel-archived-project"
+                            role="status"
+                          >
+                            {tr("Project archived")}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="button channel-edit-record"
+                            onClick={() => setPublication(p)}
+                          >
+                            {tr("Edit record")}
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -446,13 +478,13 @@ export function ChannelWorkspace({
                   {tr("{{score}}/100", { score: r.score })}
                 </strong>
                 <div>
-                  <h4>
-                    {detail.projects.find((p) => p.id === r.project_id)?.name ||
-                      r.project_id}
-                  </h4>
+                  <h4>{r.project_name || tr("Archived project")}</h4>
                   <small>
-                    r{r.project_revision} · {r.author} ·{" "}
-                    {new Date(r.created_at).toLocaleString()}
+                    r{r.project_revision} · {r.author}
+                    {reviewPublicationLabel(r, detail.publications)} ·{" "}
+                    {tr("Reviewed {{date}}", {
+                      date: new Date(r.created_at).toLocaleString(),
+                    })}
                   </small>
                 </div>
               </div>
