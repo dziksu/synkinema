@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed in a reviewed release pull request.
 
+## [1.6.1](https://github.com/dziksu/synkinema/compare/v1.6.0...v1.6.1) (2026-10-01)
+
+### Bug Fixes
+
+* **channels:** order reviews by video publication time ([1f4dc5c](https://github.com/dziksu/synkinema/commit/1f4dc5c14096d8236212f61f9124d8757c219397))
+* **channels:** sort history and preserve archived project names ([9064c5e](https://github.com/dziksu/synkinema/commit/9064c5e6b015e926657e3eb5b9ebf21b76f1e75a))
+
 ## [1.6.0](https://github.com/dziksu/synkinema/compare/v1.5.0...v1.6.0) (2026-09-26)
 
 ### Features
