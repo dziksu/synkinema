@@ -533,10 +533,23 @@ class Channels:
             ),
             reverse=True,
         )
-        reviews.sort(
-            key=lambda record: (datetime.fromisoformat(record.created_at).timestamp(), record.id),
-            reverse=True,
-        )
+        published_by_project = {}
+        published_by_revision = {}
+        for publication in publications:
+            if publication.project_id and publication.status == "published" and publication.published_at:
+                published_by_project.setdefault(publication.project_id, publication.published_at)
+                published_by_revision.setdefault(
+                    (publication.project_id, publication.project_revision), publication.published_at
+                )
+
+        def review_sort_key(review):
+            published_at = published_by_revision.get(
+                (review.project_id, review.project_revision)
+            ) or published_by_project.get(review.project_id)
+            reviewed_at = datetime.fromisoformat(review.created_at).timestamp()
+            return (published_at.timestamp() if published_at else reviewed_at, reviewed_at, review.id)
+
+        reviews.sort(key=review_sort_key, reverse=True)
         return ChannelDetail(
             channel=channel,
             projects=[

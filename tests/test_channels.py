@@ -262,6 +262,53 @@ def test_channel_history_sorts_by_event_time_and_keeps_deleted_project_names(api
     assert all(record["project_name"] == "Readable project name" for record in detail["publications"])
 
 
+def test_reviews_follow_publication_time_even_when_reviewed_in_reverse_order(api):
+    client, _service = api
+    channel = create_channel(client)
+    cid = channel["id"]
+    latest = client.post("/api/projects", json={"name": "Published later", "channel_id": cid}).json()
+    earlier = client.post("/api/projects", json={"name": "Published earlier", "channel_id": cid}).json()
+    for version, project, published_at in (
+        (1, latest, "2026-09-26T18:00:00+02:00"),
+        (2, earlier, "2026-09-26T10:00:00+02:00"),
+    ):
+        response = client.post(
+            f"/api/channels/{cid}/publications",
+            json={
+                "expected_version": version,
+                "project_id": project["id"],
+                "project_revision": 1,
+                "title": project["name"],
+                "platform": "youtube",
+                "url": f"https://youtube.com/shorts/{version}",
+                "published_at": published_at,
+            },
+        )
+        assert response.status_code == 200, response.text
+    for version, project in ((3, latest), (4, earlier)):
+        response = client.post(
+            f"/api/channels/{cid}/reviews",
+            json={
+                "expected_version": version,
+                "project_id": project["id"],
+                "project_revision": 1,
+                "author": "QA",
+                "hook": 8,
+                "pacing": 8,
+                "clarity": 8,
+                "cta": 8,
+                "channel_fit": 8,
+                "evidence": "Compared published videos",
+                "improvements": "Keep testing",
+            },
+        )
+        assert response.status_code == 200, response.text
+    assert [review["project_id"] for review in response.json()["reviews"]] == [
+        latest["id"],
+        earlier["id"],
+    ]
+
+
 @pytest.mark.parametrize("with_source_snapshot", [False, True])
 def test_legacy_deleted_review_uses_publication_name_instead_of_id(api, with_source_snapshot):
     client, service = api
