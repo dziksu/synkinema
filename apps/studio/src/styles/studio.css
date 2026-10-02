@@ -65,10 +65,16 @@
     height: 17px;
   }
   .workspace-recent-group {
-    margin: 6px 12px 0;
-    width: auto;
+    margin: 6px 0 0;
     padding: 18px 0 8px;
+  }
+  .workspace-recent-group::before {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    left: 12px;
     border-top: 1px solid var(--sidebar-border);
+    content: "";
   }
   .workspace-recent-group [data-sidebar="menu"] {
     gap: 2px;
