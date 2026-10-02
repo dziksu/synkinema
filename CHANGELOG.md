@@ -3,7 +3,13 @@
 All notable changes to this project are documented in this file.
 
 Release notes are generated from Conventional Commits by semantic-release and
-committed in a reviewed release pull request.
+committed through a release pull request after required checks pass.
+
+## [1.6.2](https://github.com/dziksu/synkinema/compare/v1.6.1...v1.6.2) (2026-10-02)
+
+### Bug Fixes
+
+* **studio:** align recent projects with sidebar navigation ([5ac0086](https://github.com/dziksu/synkinema/commit/5ac00864e8525fe555f9da7e77c34fc18010b0fc))
 
 ## [1.6.1](https://github.com/dziksu/synkinema/compare/v1.6.0...v1.6.1) (2026-10-01)
 
