@@ -9,8 +9,9 @@ It is adapted to Python/React/npm, not Bun.
 Synkinema uses only the built-in `GITHUB_TOKEN`. After all checks pass, it uses
 semantic-release to calculate the next version and opens or updates a
 release-metadata PR. That PR contains the generated `CHANGELOG.md`, matching
-application/package versions and regenerated API metadata. It is never auto-merged
-or committed onto protected `main`. Merging the reviewed PR creates the version tag,
+application/package versions and regenerated API metadata. With the repository
+rules below, the bot queues an automatic squash merge after dispatching the required
+checks. A passing PR merges into protected `main` and creates the version tag,
 GitHub Release and GHCR image. The source changelog is therefore the canonical,
 version-by-version release record.
 
@@ -37,24 +38,35 @@ by `make check` or `npm run release:check`.
    custom secret is required. Tag rules must allow the workflow to create `v*` tags.
    No branch bypass is needed.
 5. Add the remote and push only when ready. A releasable push to `main` runs the
-   complete verification pipeline, then opens a release PR. Merging that PR runs the
-   release pipeline and publishes the version. With no previous stable tag,
-   semantic-release selects **1.0.0**.
+   complete verification pipeline, then opens a release PR. Once the required
+   checks pass, automatic merge runs the release pipeline and publishes the
+   version. With no previous stable tag, semantic-release selects **1.0.0**.
 6. After the first GHCR publication, check the package's visibility. New packages
    can default to private; make it public in GitHub Packages if anonymous pulls
    are intended. Public examples work only after this setting and publication.
 
-Repository settings cannot be applied by files in this checkout. After the first
-run, protect `main`, require pull requests and successful checks, disable force
-pushes, and prefer squash merging with the PR title as the default commit message.
-The generated `chore/release` title should be retained for traceability. After
-merge, the workflow verifies the committed version metadata before publication;
-it does not rely on the merge strategy or title alone. Its CI is dispatched
-explicitly, so it does not depend on the approval state of a `GITHUB_TOKEN`-
-created pull-request event. Use these check names:
+Repository settings cannot be applied by files in this checkout. Before enabling
+automatic release merging, create an **active branch ruleset** for `main` that
+requires pull requests and successful checks, blocks force pushes and deletion,
+and has no bypass. Enable **Allow auto-merge**, allow squash merging, set the
+squash commit subject to the PR title, and disable merge commits and rebase
+merging. The generated `chore/release` title should be retained for traceability.
+The ruleset must require all five checks below; the workflow verifies those active
+rules through the GitHub API before it can queue auto-merge. Requiring a human
+review or CODEOWNERS approval also applies to the bot PR and therefore pauses
+automatic publication until a maintainer approves it. Do not enable merge queue
+without adding `merge_group` support to CI. GitHub Free supports these branch
+rules and auto-merge in public repositories; private repositories need a plan
+that includes them. Until those settings are available, the release PR stays open
+for manual merge after the checks pass; the workflow emits a warning. After merge,
+the workflow verifies the committed version
+metadata before publication; it does not rely on the merge strategy or title
+alone. The release PR's CI and title check are dispatched explicitly, so they
+do not depend on approval of the `GITHUB_TOKEN`-created PR workflows. Use these
+check names:
 **Verify code and API contract**, **Studio tests and build**,
 **Container (linux/amd64)**, **Container (linux/arm64)** and
-**Conventional PR title**. Require the last one for PRs only. CodeQL runs separately
+**Conventional PR title**. CodeQL runs separately
 for public repositories; private repositories need
 GitHub Code Security and the `ENABLE_CODEQL=true` repository variable.
 Enable private vulnerability reporting in Settings → Security for the advisory
@@ -68,8 +80,8 @@ link in `SECURITY.md`. Dependabot uses the checked-in configuration automaticall
 | Studio | Independent React tests, TypeScript check and production Vite build, even if Python tests fail |
 | Containers | Native Linux amd64/arm64 builds; real FFmpeg render, MCP handshake, non-root/version checks, live HTTP/UI smoke test |
 | Release PR | Runs only after Verify, Studio and both container builds succeed on `main` in a non-fork repository; semantic-release calculates the next version and creates or updates `chore/release` |
-| Release metadata | The PR updates `CHANGELOG.md`, root and Studio manifests/lockfiles, Python and Docker defaults, then regenerates and commits the OpenAPI schema/client; it receives an explicitly dispatched CI run |
-| Semantic release | Runs only after that reviewed PR is merged; verifies the committed metadata, creates `vX.Y.Z` and GitHub release notes/assets |
+| Release metadata | The PR updates `CHANGELOG.md`, root and Studio manifests/lockfiles, Python and Docker defaults, then regenerates and commits the OpenAPI schema/client; CI and title checks are dispatched explicitly, and auto-merge waits for the active ruleset's required checks |
+| Semantic release | Runs only after the release PR is merged; verifies the committed metadata, creates `vX.Y.Z` and GitHub release notes/assets |
 | Publish image | Called directly with the tested release-PR merge SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
 | CodeQL | Separate Python/JavaScript security analysis on PRs, main and weekly |
 | PR title | Validates Conventional Commit syntax without evaluating the title as code |
@@ -112,10 +124,14 @@ lockfiles; base-image and OS security updates are intentional rebuild inputs.
 
 - **Verification/build failure:** fix it and push the change. The release PR is not
   opened when a required verification job fails, and its separately dispatched CI
-  must be green before merge.
+  must be green before automatic merge.
 - **Release PR cannot be created or updated:** enable GitHub Actions permission to
   create pull requests and confirm the workflow token scopes in repository or
   organization settings. The workflow never falls back to committing on `main`.
+- **Release PR remains open:** check the five required statuses, the active `main`
+  ruleset and repository auto-merge option. The release job skips auto-merge if the
+  option or required rules are absent; it never merges an unprotected branch merely
+  because CI was dispatched. A required human review must be provided separately.
 - **Image publication fails after the release exists:** rerun the failed image
   job, or rerun the workflow for the same commit. The release runner reuses only
   a single stable tag pointing at that exact SHA. It never chooses an unrelated

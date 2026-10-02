@@ -2,8 +2,15 @@ name: PR title
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Release pull request number to verify
+        required: true
+        type: string
 permissions:
   contents: read
+  pull-requests: read
 jobs:
   title:
     name: Conventional PR title
@@ -18,3 +25,5 @@ jobs:
           node-version-file: .nvmrc
       # Read the title as event data, never interpolate it into a shell command.
       - run: npm run pr:check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

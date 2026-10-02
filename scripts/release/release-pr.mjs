@@ -7,7 +7,7 @@ const changelogPreamble = `# Changelog
 All notable changes to this project are documented in this file.
 
 Release notes are generated from Conventional Commits by semantic-release and
-committed in a reviewed release pull request.`;
+committed through a release pull request after required checks pass.`;
 
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
