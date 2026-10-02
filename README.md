@@ -314,10 +314,11 @@ collaboration. Cache size is not automatically capped. See [Roadmap](ROADMAP.md)
 ## Releases and license
 
 Conventional Commits on `main` drive semantic-release after the code checks and
-both container smoke tests pass. It opens or updates a reviewed release PR with the
-generated changelog and matching application versions. Merging that PR publishes the
-version tag, GitHub release notes and GHCR image. No npm or PyPI package is
-published.
+both container smoke tests pass. It opens or updates a release PR with the
+generated changelog and matching application versions. With the documented
+repository rules and auto-merge enabled, passing required checks automatically
+squash-merge that PR. The merge publishes the version tag, GitHub release notes
+and GHCR image. No npm or PyPI package is published.
 
 [Release and first-push guide](docs/RELEASING.md) · [Changelog](CHANGELOG.md) ·
 [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)

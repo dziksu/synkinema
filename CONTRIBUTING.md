@@ -81,8 +81,9 @@ preset is pinned to 9.x for compatibility with the release-notes generator; upgr
 that toolchain as a group and keep the notes-generation regression test passing.
 
 Release preparation is restricted to the verified GitHub Actions `main` run. A
-releasable change opens or updates a reviewed release PR with generated notes and
-version metadata; merging that PR publishes the release. `npm run release` refuses
+releasable change opens or updates a release PR with generated notes and
+version metadata; required checks gate its automatic squash merge and publication.
+`npm run release` refuses
 local execution. Use `npm run release:check` to inspect committed changes locally;
 it excludes uncommitted work and never accesses a remote. See
 [RELEASING.md](docs/RELEASING.md) for first-push setup and recovery.

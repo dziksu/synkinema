@@ -191,6 +191,7 @@ jobs:
           SYNKINEMA_RELEASE_PLAN="${{ steps.plan.outputs.plan }}" npm run release:prepare-pr
           npm --prefix apps/studio run api:generate
       - name: Create or update the release pull request
+        id: release_pr
         if: steps.plan.outputs.version != ''
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
@@ -205,7 +206,8 @@ jobs:
 
             This PR updates `CHANGELOG.md`, both application package manifests and
             lockfiles, the Python server version, Docker defaults and generated API
-            metadata. Merge it to publish the already planned semantic release.
+            metadata. Required checks gate its automatic squash merge; the merge
+            publishes the already planned semantic release.
           author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           add-paths: |
@@ -219,10 +221,32 @@ jobs:
             apps/studio/src/api/generated/client.ts
             apps/studio/src/api/generated/openapi.json
       - name: Run CI against the release pull request branch
-        if: steps.plan.outputs.version != ''
+        if: steps.release_pr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run ci.yml --ref chore/release
+      - name: Check the generated pull request title
+        if: steps.release_pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PR_NUMBER: ${{ steps.release_pr.outputs.pull-request-number }}
+        run: gh workflow run pr-title.yml --ref chore/release -f pull_request_number="$RELEASE_PR_NUMBER"
+      - name: Queue automatic squash merge after required checks
+        if: steps.release_pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PR_NUMBER: ${{ steps.release_pr.outputs.pull-request-number }}
+        run: |
+          if [[ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .allow_auto_merge)" != "true" ]]; then
+            echo "::warning::Repository auto-merge is unavailable; merge the release PR after checks pass."
+            exit 0
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" > "$RUNNER_TEMP/main-rules.json"
+          if ! node scripts/release/assert-merge-guards.mjs "$RUNNER_TEMP/main-rules.json"; then
+            echo "::warning::Main lacks the required release rules; merge the release PR manually after checks pass."
+            exit 0
+          fi
+          gh pr merge "$RELEASE_PR_NUMBER" --auto --squash --delete-branch
   release:
     name: Semantic release
     needs: release-plan
