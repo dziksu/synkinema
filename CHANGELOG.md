@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.7.0](https://github.com/dziksu/synkinema/compare/v1.6.2...v1.7.0) (2026-10-05)
+
+### Features
+
+* **chat:** add native CLI chat and local Docker installer ([#74](https://github.com/dziksu/synkinema/issues/74)) ([f8c0799](https://github.com/dziksu/synkinema/commit/f8c0799bd4f1a3be2f8b7c8b37095d998a837102))
+
 ## [1.6.2](https://github.com/dziksu/synkinema/compare/v1.6.1...v1.6.2) (2026-10-02)
 
 ### Bug Fixes
