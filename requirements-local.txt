@@ -28,7 +28,7 @@ pydantic-settings==2.15.0
 pyinstaller==6.22.3
 pyinstaller-hooks-contrib==2026.8
 PyJWT==2.14.0
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 python-multipart==0.0.32
 referencing==0.37.0
 rpds-py==2026.6.3
