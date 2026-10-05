@@ -154,9 +154,14 @@ jobs:
         run: SYNKINEMA_RELEASE_PLAN="${{ steps.plan.outputs.plan }}" npm run release:ready
   local-helper:
     name: Verify local agent launcher
+    # GitHub validates the optional publish job even when publish is false.
+    # The called workflow keeps build jobs at contents: read.
+    permissions:
+      contents: write
     uses: ./.github/workflows/local-helper.yml
     with:
       ref: ${{ github.sha }}
+      publish: false
   release-pr:
     name: Prepare release pull request
     needs: release-plan
