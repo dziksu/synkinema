@@ -7,14 +7,11 @@ from pathlib import Path
 from sqlalchemy import text
 
 from .channels import Channels
+from .errors import Conflict
 from .library import Library, default_folder
 from .media import make_thumbnail, probe
 from .models import BatchRequest, Clip, Operation, Project, RenderRequest, Track, Transition, uid
 from .storage import Store, now
-
-
-class Conflict(Exception):
-    pass
 
 
 class Service(Library, Channels):

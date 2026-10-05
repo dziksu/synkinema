@@ -40,6 +40,8 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 
+export { chatWrites } from "@/api/chatMutations";
+
 type Change<T> = (old: T[] | undefined) => T[];
 const replace = <T extends { id: string }>(items: T[] | undefined, value: T) =>
   (items || []).map((item) => (item.id === value.id ? value : item));

@@ -1,3 +1,9 @@
+import {
+  DialogBody,
+  DialogFooter,
+  DialogForm,
+  DialogHeader,
+} from "@/components/ui/dialog";
 import { Link } from "@tanstack/react-router";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { WorkspaceSearch } from "@/lib/workspace-search";
@@ -792,7 +798,7 @@ export default function MediaLibrary({
         >
           <>
             <DialogContent showCloseButton={false} className="modal">
-              <div className="modal-title">
+              <DialogHeader className="flex-row items-center justify-between">
                 <DialogTitle>
                   {folderDialog.mode === "delete"
                     ? tr("Delete folder?")
@@ -811,17 +817,8 @@ export default function MediaLibrary({
                     <X size={20} />
                   </Button>
                 </DialogClose>
-              </div>
-              <DialogDescription>
-                {folderDialog.mode === "delete"
-                  ? tr(
-                      "All files in this folder move to the shared library root. No media is deleted.",
-                    )
-                  : tr(
-                      "Give this shared folder a clear name so it is easy to find.",
-                    )}
-              </DialogDescription>
-              <form
+              </DialogHeader>
+              <DialogForm
                 onSubmit={folderForm.handleSubmit(async ({ name }) => {
                   try {
                     if (folderDialog.mode === "delete") {
@@ -842,27 +839,38 @@ export default function MediaLibrary({
                   }
                 })}
               >
-                <label className="field media-folder-field">
-                  {tr("Folder name")}
-                  <Input
-                    required
-                    autoFocus
-                    value={folderName}
-                    maxLength={100}
-                    disabled={busy || folderDialog.mode === "delete"}
-                    onChange={(e) =>
-                      folderForm.setValue("name", e.target.value, {
-                        shouldDirty: true,
-                      })
-                    }
-                  />
-                </label>
-                {(saveFolder.error || deleteFolder.error) && (
-                  <p role="alert" className="error-banner">
-                    {(saveFolder.error || deleteFolder.error)?.message}
-                  </p>
-                )}
-                <div className="dialog-actions">
+                <DialogBody>
+                  <DialogDescription>
+                    {folderDialog.mode === "delete"
+                      ? tr(
+                          "All files in this folder move to the shared library root. No media is deleted.",
+                        )
+                      : tr(
+                          "Give this shared folder a clear name so it is easy to find.",
+                        )}
+                  </DialogDescription>
+                  <label className="field media-folder-field">
+                    {tr("Folder name")}
+                    <Input
+                      required
+                      autoFocus
+                      value={folderName}
+                      maxLength={100}
+                      disabled={busy || folderDialog.mode === "delete"}
+                      onChange={(e) =>
+                        folderForm.setValue("name", e.target.value, {
+                          shouldDirty: true,
+                        })
+                      }
+                    />
+                  </label>
+                  {(saveFolder.error || deleteFolder.error) && (
+                    <p role="alert" className="error-banner">
+                      {(saveFolder.error || deleteFolder.error)?.message}
+                    </p>
+                  )}
+                </DialogBody>
+                <DialogFooter>
                   <Button
                     variant="outline"
                     className="button"
@@ -881,8 +889,8 @@ export default function MediaLibrary({
                       ? tr("Delete folder, keep files")
                       : tr("Save folder")}
                   </Button>
-                </div>
-              </form>
+                </DialogFooter>
+              </DialogForm>
             </DialogContent>
           </>
         </DialogRoot>
@@ -896,7 +904,7 @@ export default function MediaLibrary({
         >
           <>
             <DialogContent showCloseButton={false} className="modal">
-              <div className="modal-title">
+              <DialogHeader className="flex-row items-center justify-between">
                 <DialogTitle>
                   {batchDialog === "locate"
                     ? tr("Move or share selected media")
@@ -913,14 +921,8 @@ export default function MediaLibrary({
                     <X size={20} />
                   </Button>
                 </DialogClose>
-              </div>
-              <DialogDescription>
-                {tr(
-                  "Apply to {{count}} selected files. Existing project references are preserved.",
-                  { count: chosen.length },
-                )}
-              </DialogDescription>
-              <form
+              </DialogHeader>
+              <DialogForm
                 onSubmit={batchForm.handleSubmit(() => {
                   void changeBatch(
                     batchDialog === "locate"
@@ -937,70 +939,78 @@ export default function MediaLibrary({
                   );
                 })}
               >
-                <div className="media-batch-fields">
-                  {batchDialog === "locate" ? (
-                    <label className="field">
-                      {tr("Shared library folder")}
-                      <NativeSelect
-                        value={batchFolder}
-                        onChange={(e) => setBatchFolder(e.target.value)}
-                        disabled={busy}
-                      >
-                        <option value="">{tr("Collection root")}</option>
-                        {(folders.data || []).map((f) => (
-                          <option
-                            key={f.id}
-                            value={f.id}
-                            disabled={f.id.startsWith("pending:")}
-                          >
-                            {f.name}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                      <small>
-                        {tr(
-                          "Private files become shared. Other collections keep their memberships.",
-                        )}
-                      </small>
-                    </label>
-                  ) : (
-                    <>
+                <DialogBody>
+                  <DialogDescription>
+                    {tr(
+                      "Apply to {{count}} selected files. Existing project references are preserved.",
+                      { count: chosen.length },
+                    )}
+                  </DialogDescription>
+                  <div className="media-batch-fields">
+                    {batchDialog === "locate" ? (
                       <label className="field">
-                        {tr("Tag action")}
+                        {tr("Shared library folder")}
                         <NativeSelect
-                          value={batchDialog}
-                          onChange={(e) =>
-                            setBatchDialog(
-                              e.target.value as "add_tags" | "remove_tags",
-                            )
-                          }
+                          value={batchFolder}
+                          onChange={(e) => setBatchFolder(e.target.value)}
                           disabled={busy}
                         >
-                          <option value="add_tags">{tr("Add tags")}</option>
-                          <option value="remove_tags">
-                            {tr("Remove tags")}
-                          </option>
+                          <option value="">{tr("Collection root")}</option>
+                          {(folders.data || []).map((f) => (
+                            <option
+                              key={f.id}
+                              value={f.id}
+                              disabled={f.id.startsWith("pending:")}
+                            >
+                              {f.name}
+                            </option>
+                          ))}
                         </NativeSelect>
+                        <small>
+                          {tr(
+                            "Private files become shared. Other collections keep their memberships.",
+                          )}
+                        </small>
                       </label>
-                      <TagInput
-                        tags={batchTags}
-                        onChange={setBatchTags}
-                        disabled={busy}
-                      />
-                      <p className="muted">
-                        {tr(
-                          "Only these tags change. Other tags stay as they are.",
-                        )}
-                      </p>
-                    </>
+                    ) : (
+                      <>
+                        <label className="field">
+                          {tr("Tag action")}
+                          <NativeSelect
+                            value={batchDialog}
+                            onChange={(e) =>
+                              setBatchDialog(
+                                e.target.value as "add_tags" | "remove_tags",
+                              )
+                            }
+                            disabled={busy}
+                          >
+                            <option value="add_tags">{tr("Add tags")}</option>
+                            <option value="remove_tags">
+                              {tr("Remove tags")}
+                            </option>
+                          </NativeSelect>
+                        </label>
+                        <TagInput
+                          tags={batchTags}
+                          onChange={setBatchTags}
+                          disabled={busy}
+                        />
+                        <p className="muted">
+                          {tr(
+                            "Only these tags change. Other tags stay as they are.",
+                          )}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {batch.error && (
+                    <p role="alert" className="error-banner">
+                      {batch.error.message}
+                    </p>
                   )}
-                </div>
-                {batch.error && (
-                  <p role="alert" className="error-banner">
-                    {batch.error.message}
-                  </p>
-                )}
-                <div className="dialog-actions">
+                </DialogBody>
+                <DialogFooter>
                   <Button
                     variant="outline"
                     className="button"
@@ -1022,8 +1032,8 @@ export default function MediaLibrary({
                     <Check size={16} />
                     {tr("Apply changes")}
                   </Button>
-                </div>
-              </form>
+                </DialogFooter>
+              </DialogForm>
             </DialogContent>
           </>
         </DialogRoot>

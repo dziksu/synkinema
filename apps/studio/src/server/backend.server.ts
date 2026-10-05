@@ -1,8 +1,9 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
+import { getRequestHeaders, getRequestIP } from "@tanstack/react-start/server";
 import { Readable } from "node:stream";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { request as upstreamRequest, type Dispatcher } from "undici";
+import { localChatPeer } from "./local-chat-access";
 
 const hopHeaders = [
   "connection",
@@ -41,6 +42,14 @@ export const backendFetch = createServerOnlyFn(
           ? input.href
           : input.url;
     const local = new URL(requestUrl, "http://studio.local");
+    if (local.pathname.startsWith("/api/agent-chat/")) {
+      const peer = getRequestIP({ xForwardedFor: false });
+      if (!localChatPeer(peer))
+        return Response.json(
+          { detail: "Agent chat requires a local connection" },
+          { status: 403 },
+        );
+    }
     if (
       !/^\/(api|media|mcp)(\/|$)/.test(local.pathname) &&
       !["/redoc", "/docs/oauth2-redirect"].includes(local.pathname)

@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { RouteTabs } from "@/components/route-tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { writes } from "@/api/mutations";
@@ -34,7 +35,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
 const metadata = (a: Asset) => ({
   name: a.name,
@@ -53,6 +54,7 @@ export default function MediaManager({
 }) {
   useLocale();
   const client = useQueryClient();
+  const metadataFormId = useId();
   const [base, setBase] = useState(asset);
   const [draft, setDraft, form] = useFormDraft(metadata(asset));
   const { search } = useWorkspaceNavigation();
@@ -155,7 +157,7 @@ export default function MediaManager({
             }}
             onPointerDownOutside={(e) => e.preventDefault()}
           >
-            <div className="modal-title">
+            <DialogHeader className="flex-row items-center justify-between">
               <div>
                 <DialogTitle>{tr("Manage media")}</DialogTitle>
                 <DialogDescription>
@@ -174,8 +176,8 @@ export default function MediaManager({
               >
                 <X size={20} />
               </Button>
-            </div>
-            <div className="media-manager-layout">
+            </DialogHeader>
+            <DialogBody className="media-manager-layout space-y-0">
               <div className="media-manager-preview">
                 <div className="media-original">
                   {asset.kind === "image" ? (
@@ -261,7 +263,10 @@ export default function MediaManager({
                   </p>
                 )}
                 {tab === "details" ? (
-                  <form onSubmit={form.handleSubmit(submit)}>
+                  <form
+                    id={metadataFormId}
+                    onSubmit={form.handleSubmit(submit)}
+                  >
                     <label className="field">
                       {tr("Media name")}
                       <Input
@@ -304,18 +309,6 @@ export default function MediaManager({
                         }
                       />
                     </label>
-                    <Button
-                      variant="default"
-                      className="button primary"
-                      disabled={busy || !dirty || !draft.name.trim()}
-                    >
-                      {save.isPending ? (
-                        <LoaderCircle size={16} className="spin" />
-                      ) : (
-                        <Check size={16} />
-                      )}
-                      {save.isPending ? tr("Saving…") : tr("Save details")}
-                    </Button>
                   </form>
                 ) : (
                   <div className="media-sharing">
@@ -501,15 +494,6 @@ export default function MediaManager({
                   </div>
                 )}
                 <div className="media-delete-zone">
-                  <Button
-                    variant="destructive"
-                    className="button danger-outline"
-                    disabled={busy || !usage.data?.can_delete || !!usage.error}
-                    onClick={() => setDeleting(true)}
-                  >
-                    <Trash2 size={15} />
-                    {tr("Delete from disk")}
-                  </Button>
                   <small>
                     {usage.data && !usage.data.can_delete
                       ? tr(
@@ -521,7 +505,31 @@ export default function MediaManager({
                   </small>
                 </div>
               </div>
-            </div>
+            </DialogBody>
+            <DialogFooter className="sm:justify-between">
+              <Button
+                variant="destructive"
+                disabled={busy || !usage.data?.can_delete || !!usage.error}
+                onClick={() => setDeleting(true)}
+              >
+                <Trash2 size={15} />
+                {tr("Delete from disk")}
+              </Button>
+              {tab === "details" && (
+                <Button
+                  type="submit"
+                  form={metadataFormId}
+                  disabled={busy || !dirty || !draft.name.trim()}
+                >
+                  {save.isPending ? (
+                    <LoaderCircle size={16} className="spin" />
+                  ) : (
+                    <Check size={16} />
+                  )}
+                  {save.isPending ? tr("Saving…") : tr("Save details")}
+                </Button>
+              )}
+            </DialogFooter>
           </DialogContent>
         </>
       </DialogRoot>

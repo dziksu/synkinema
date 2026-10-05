@@ -1,3 +1,9 @@
+import {
+  DialogBody,
+  DialogFooter,
+  DialogForm,
+  DialogHeader,
+} from "@/components/ui/dialog";
 import { writes } from "@/api/mutations";
 import { projectWrites } from "@/api/projectMutations";
 import { keys } from "@/api/queries";
@@ -155,7 +161,7 @@ export default function ProjectManager({
             if (busy) e.preventDefault();
           }}
         >
-          <div className="modal-title">
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>{tr("Edit project")}</DialogTitle>
             <DialogClose asChild>
               <Button
@@ -168,48 +174,47 @@ export default function ProjectManager({
                 <X size={20} />
               </Button>
             </DialogClose>
-          </div>
-          <DialogDescription>
-            {tr(
-              "Update the name and creative brief. Your timeline and media stay in place.",
-            )}
-          </DialogDescription>
-          <form
-            className="project-edit-form"
-            onSubmit={form.handleSubmit(save)}
-          >
-            <label className="field">
-              {tr("Project name")}
-              <Input
-                required
-                maxLength={200}
-                autoFocus
-                value={name}
+          </DialogHeader>
+          <DialogForm onSubmit={form.handleSubmit(save)}>
+            <DialogBody>
+              <DialogDescription>
+                {tr(
+                  "Update the name and creative brief. Your timeline and media stay in place.",
+                )}
+              </DialogDescription>
+              <label className="field">
+                {tr("Project name")}
+                <Input
+                  required
+                  maxLength={200}
+                  autoFocus
+                  value={name}
+                  disabled={busy}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                {tr("Creative brief")}
+                <Textarea
+                  maxLength={20000}
+                  rows={5}
+                  value={brief}
+                  disabled={busy}
+                  onChange={(e) => setBrief(e.target.value)}
+                />
+              </label>
+              {edit.error && (
+                <p role="alert" className="error-banner">
+                  {edit.error.message}
+                </p>
+              )}
+              <ChannelSelect
+                value={channelId}
+                onChange={setChannelId}
                 disabled={busy}
-                onChange={(e) => setName(e.target.value)}
               />
-            </label>
-            <label className="field">
-              {tr("Creative brief")}
-              <Textarea
-                maxLength={20000}
-                rows={5}
-                value={brief}
-                disabled={busy}
-                onChange={(e) => setBrief(e.target.value)}
-              />
-            </label>
-            {edit.error && (
-              <p role="alert" className="error-banner">
-                {edit.error.message}
-              </p>
-            )}
-            <ChannelSelect
-              value={channelId}
-              onChange={setChannelId}
-              disabled={busy}
-            />
-            <div className="dialog-actions">
+            </DialogBody>
+            <DialogFooter>
               <Button
                 variant="outline"
                 type="button"
@@ -231,8 +236,8 @@ export default function ProjectManager({
                 )}
                 {busy ? tr("Saving…") : tr("Save changes")}
               </Button>
-            </div>
-          </form>
+            </DialogFooter>
+          </DialogForm>
         </DialogContent>
       </>
     </DialogRoot>

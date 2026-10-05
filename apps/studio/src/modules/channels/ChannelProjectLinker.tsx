@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import type { Channel, ProjectSnapshot } from "@/api/generated/client";
 import { projectWrites } from "@/api/projectMutations";
 import { reads } from "@/api/queries";
@@ -97,7 +98,7 @@ export default function ChannelProjectLinker({
             if (busy) e.preventDefault();
           }}
         >
-          <header>
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>{tr("Link existing project")}</DialogTitle>
             <DialogClose
               className="icon-button"
@@ -106,92 +107,94 @@ export default function ChannelProjectLinker({
             >
               <X size={18} />
             </DialogClose>
-          </header>
-          <DialogDescription>
-            {tr(
-              "Choose a project for {{channel}}. Its timeline and media will stay unchanged.",
-              { channel: channel.name },
-            )}
-          </DialogDescription>
-          <label className="field">
-            {tr("Search projects")}
-            <SearchField
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={tr("Search projects")}
-              disabled={busy}
-            />
-          </label>
-          {projects.isPending && <p>{tr("Loading…")}</p>}
-          {projects.error && (
-            <div role="alert">
-              <p>{projects.error.message}</p>
-              <Button
-                variant="outline"
-                className="button"
-                onClick={() => void projects.refetch()}
-              >
-                {tr("Try again")}
-              </Button>
-            </div>
-          )}
-          <div
-            className="channel-project-options"
-            role="group"
-            aria-label={tr("Available projects")}
-          >
-            {candidates.map((p) => (
-              <button
-                className="channel-project-option"
-                key={p.id}
-                aria-pressed={selected?.id === p.id}
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {tr(
+                "Choose a project for {{channel}}. Its timeline and media will stay unchanged.",
+                { channel: channel.name },
+              )}
+            </DialogDescription>
+            <label className="field">
+              {tr("Search projects")}
+              <SearchField
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={tr("Search projects")}
                 disabled={busy}
-                onClick={() => {
-                  setSelected(p);
-                  setError("");
-                }}
-              >
-                <strong>{p.name}</strong>
-                <span>
-                  {p.channel_id
-                    ? tr("Currently linked to {{channel}}", {
-                        channel:
-                          p.channel_context?.channel.name || p.channel_id,
-                      })
-                    : tr("Independent project (no channel)")}
-                </span>
-              </button>
-            ))}
-            {!projects.isPending && !projects.error && !candidates.length && (
-              <p>{tr("No matching unlinked projects")}</p>
+              />
+            </label>
+            {projects.isPending && <p>{tr("Loading…")}</p>}
+            {projects.error && (
+              <div role="alert">
+                <p>{projects.error.message}</p>
+                <Button
+                  variant="outline"
+                  className="button"
+                  onClick={() => void projects.refetch()}
+                >
+                  {tr("Try again")}
+                </Button>
+              </div>
             )}
-          </div>
-          {selected && (
-            <div className="channel-link-confirm">
-              <strong>{selected.name}</strong>
-              <p>
-                {selected.channel_id && selected.channel_id !== channel.id
-                  ? tr(
-                      "This project will move from {{source}} to {{target}}. It can belong to only one channel.",
-                      {
-                        source:
-                          selected.channel_context?.channel.name ||
-                          selected.channel_id,
-                        target: channel.name,
-                      },
-                    )
-                  : tr("This project will use the rules of {{channel}}.", {
-                      channel: channel.name,
-                    })}
-              </p>
+            <div
+              className="channel-project-options"
+              role="group"
+              aria-label={tr("Available projects")}
+            >
+              {candidates.map((p) => (
+                <button
+                  className="channel-project-option"
+                  key={p.id}
+                  aria-pressed={selected?.id === p.id}
+                  disabled={busy}
+                  onClick={() => {
+                    setSelected(p);
+                    setError("");
+                  }}
+                >
+                  <strong>{p.name}</strong>
+                  <span>
+                    {p.channel_id
+                      ? tr("Currently linked to {{channel}}", {
+                          channel:
+                            p.channel_context?.channel.name || p.channel_id,
+                        })
+                      : tr("Independent project (no channel)")}
+                  </span>
+                </button>
+              ))}
+              {!projects.isPending && !projects.error && !candidates.length && (
+                <p>{tr("No matching unlinked projects")}</p>
+              )}
             </div>
-          )}
-          {error && (
-            <p role="alert" className="error-banner">
-              {error}
-            </p>
-          )}
-          <footer className="dialog-actions">
+            {selected && (
+              <div className="channel-link-confirm">
+                <strong>{selected.name}</strong>
+                <p>
+                  {selected.channel_id && selected.channel_id !== channel.id
+                    ? tr(
+                        "This project will move from {{source}} to {{target}}. It can belong to only one channel.",
+                        {
+                          source:
+                            selected.channel_context?.channel.name ||
+                            selected.channel_id,
+                          target: channel.name,
+                        },
+                      )
+                    : tr("This project will use the rules of {{channel}}.", {
+                        channel: channel.name,
+                      })}
+                </p>
+              </div>
+            )}
+            {error && (
+              <p role="alert" className="error-banner">
+                {error}
+              </p>
+            )}
+          </DialogBody>
+          <DialogFooter>
             <Button
               variant="outline"
               className="button"
@@ -217,7 +220,7 @@ export default function ChannelProjectLinker({
                   ? tr("Move project to this channel")
                   : tr("Link project")}
             </Button>
-          </footer>
+          </DialogFooter>
         </DialogContent>
       </>
     </DialogRoot>

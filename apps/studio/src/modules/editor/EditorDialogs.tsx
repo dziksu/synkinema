@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { tr } from "@/lib/i18n";
 import ElementPicker from "@/modules/editor/ElementPicker";
 import { CaptionStyles } from "@/modules/editor/preview/CanvasTools";
@@ -62,31 +63,33 @@ export function EditorDialogs({
         onOpenChange={setCaptionOpen}
         title={tr("Add caption")}
       >
-        <CaptionStyles value={captionStyle} onChange={setCaptionStyle} />
-        <Button
-          variant="default"
-          className="button primary wide"
-          onClick={() => {
-            insertCaption();
-            setCaptionOpen(false);
-          }}
-        >
-          {tr("Add caption")}
-        </Button>
+        <DialogBody>
+          <CaptionStyles value={captionStyle} onChange={setCaptionStyle} />
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            variant="default"
+            className="button primary wide"
+            onClick={() => {
+              insertCaption();
+              setCaptionOpen(false);
+            }}
+          >
+            {tr("Add caption")}
+          </Button>
+        </DialogFooter>
       </Modal>
       <Modal
         open={exportOpen}
         onOpenChange={setExportOpen}
         title={tr("Your story is ready to export")}
       >
-        <p className="muted">
-          {tr("{{name}} · revision {{revision}}", {
-            name: project?.name,
-            revision: project?.revision,
-          })}
-        </p>
         {project && (
           <ExportSettings
+            description={tr("{{name}} · revision {{revision}}", {
+              name: project.name,
+              revision: project.revision,
+            })}
             key={project.id}
             project={project}
             busy={render.isPending || operation.isPending}
@@ -99,13 +102,15 @@ export function EditorDialogs({
         onOpenChange={() => setInspection(null)}
         title={tr("Render inspection")}
       >
-        {inspection && (
-          <img
-            className="inspection-image"
-            src={inspection}
-            alt={tr("Actual rendered video frames")}
-          />
-        )}
+        <DialogBody>
+          {inspection && (
+            <img
+              className="inspection-image"
+              src={inspection}
+              alt={tr("Actual rendered video frames")}
+            />
+          )}
+        </DialogBody>
       </Modal>
     </>
   );

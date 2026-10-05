@@ -9,6 +9,7 @@ services:
     environment:
       SYNKINEMA_FFMPEG_THREADS: "4"
       SYNKINEMA_ALLOWED_HOSTS: "${SYNKINEMA_ALLOWED_HOSTS:-}"
+      SYNKINEMA_PUBLISHED_BIND_HOST: "${SYNKINEMA_BIND_HOST:-127.0.0.1}"
     restart: unless-stopped
     init: true
     stop_grace_period: 15s

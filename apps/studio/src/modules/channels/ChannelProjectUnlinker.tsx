@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { projectWrites } from "@/api/projectMutations";
 import { reads } from "@/api/queries";
 import { Button } from "@/components/ui/button";
@@ -84,15 +85,19 @@ export default function ChannelProjectUnlinker({
             if (busy) e.preventDefault();
           }}
         >
-          <DialogTitle>{tr("Unlink project")}</DialogTitle>
-          <DialogDescription>
-            {tr(
-              "Unlink {{project}} from this channel? The project, timeline and media will stay intact. Existing publications and reviews will remain in the channel history.",
-              { project: project.name },
-            )}
-          </DialogDescription>
-          {error && <p role="alert">{error}</p>}
-          <div className="channel-actions">
+          <DialogHeader>
+            <DialogTitle>{tr("Unlink project")}</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {tr(
+                "Unlink {{project}} from this channel? The project, timeline and media will stay intact. Existing publications and reviews will remain in the channel history.",
+                { project: project.name },
+              )}
+            </DialogDescription>
+            {error && <p role="alert">{error}</p>}
+          </DialogBody>
+          <DialogFooter>
             <DialogClose className="button" disabled={busy}>
               {tr("Cancel")}
             </DialogClose>
@@ -104,7 +109,7 @@ export default function ChannelProjectUnlinker({
             >
               {busy ? tr("Unlinking…") : tr("Confirm unlink")}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </>
     </DialogRoot>

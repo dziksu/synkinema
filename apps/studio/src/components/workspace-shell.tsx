@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/sidebar";
 import { tr } from "@/lib/i18n";
 import { appVersion } from "@/lib/version";
+import { AgentChatDock } from "@/modules/chat/AgentChatDock";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
+  ClientOnly,
   Outlet,
   useRouterState,
   useSearch,
@@ -185,6 +187,9 @@ export function WorkspaceShell() {
           <Outlet />
         </main>
       </SidebarInset>
+      <ClientOnly>
+        <AgentChatDock />
+      </ClientOnly>
     </SidebarProvider>
   );
 }

@@ -412,6 +412,354 @@ export interface AddTrackStep {
   type: "add_track";
 }
 
+/** AgentChat */
+export interface AgentChat {
+  /** Archived */
+  archived: boolean;
+  /** Created At */
+  created_at: string;
+  /** Directory */
+  directory: string;
+  /** Id */
+  id: string;
+  /** Messages */
+  messages: AgentMessage[];
+  /** Mode */
+  mode: "ask" | "edit";
+  /** Project Id */
+  project_id: string | null;
+  /** Project Name */
+  project_name: string | null;
+  /** Provider */
+  provider: "codex" | "claude" | "copilot";
+  /** Running */
+  running: boolean;
+  /** Title */
+  title: string;
+  /** Updated At */
+  updated_at: string;
+  /**
+   * Version
+   * Monotonic chat snapshot version, independent of project revision.
+   * @min 1
+   */
+  version: number;
+}
+
+/** AgentChatCreate */
+export interface AgentChatCreate {
+  context?: AgentContextInput | null;
+  /**
+   * Directory
+   * @maxLength 2000
+   * @default ""
+   */
+  directory?: string;
+  /** Project Id */
+  project_id?: string | null;
+  /** Provider */
+  provider?: "codex" | "claude" | "copilot" | null;
+}
+
+/** AgentChatDeleted */
+export interface AgentChatDeleted {
+  /** Chat Id */
+  chat_id: string;
+  /**
+   * Deleted
+   * @default true
+   */
+  deleted: true;
+}
+
+/** AgentChatOrder */
+export interface AgentChatOrder {
+  /**
+   * Chat Ids
+   * @maxItems 10000
+   * @minItems 1
+   */
+  chat_ids: string[];
+}
+
+/** AgentChatSummary */
+export interface AgentChatSummary {
+  /** Archived */
+  archived: boolean;
+  /** Created At */
+  created_at: string;
+  /** Directory */
+  directory: string;
+  /** Id */
+  id: string;
+  /** Mode */
+  mode: "ask" | "edit";
+  /** Project Id */
+  project_id: string | null;
+  /** Project Name */
+  project_name: string | null;
+  /** Provider */
+  provider: "codex" | "claude" | "copilot";
+  /** Running */
+  running: boolean;
+  /** Title */
+  title: string;
+  /** Updated At */
+  updated_at: string;
+  /**
+   * Version
+   * Monotonic chat snapshot version, independent of project revision.
+   * @min 1
+   */
+  version: number;
+}
+
+/** AgentChatUpdate */
+export interface AgentChatUpdate {
+  /** Archived */
+  archived?: boolean | null;
+  /** Directory */
+  directory?: string | null;
+  /**
+   * Expected Version
+   * Confirmed chat version; busy chats reject all updates.
+   * @min 1
+   */
+  expected_version: number;
+  /** Mode */
+  mode?: "ask" | "edit" | null;
+  /** Provider */
+  provider?: "codex" | "claude" | "copilot" | null;
+  /** Title */
+  title?: string | null;
+}
+
+/** AgentContext */
+export interface AgentContextInput {
+  /**
+   * Label
+   * @maxLength 500
+   * @default ""
+   */
+  label?: string;
+  /**
+   * Target Id
+   * @minLength 1
+   * @maxLength 200
+   */
+  target_id: string;
+  /** Type */
+  type: "project" | "track" | "clip" | "script_line" | "asset";
+}
+
+/** AgentContext */
+export interface AgentContextOutput {
+  /**
+   * Label
+   * @maxLength 500
+   * @default ""
+   */
+  label: string;
+  /**
+   * Target Id
+   * @minLength 1
+   * @maxLength 200
+   */
+  target_id: string;
+  /** Type */
+  type: "project" | "track" | "clip" | "script_line" | "asset";
+}
+
+/** AgentMessage */
+export interface AgentMessage {
+  /** Applied Revisions */
+  applied_revisions: number[];
+  context: AgentContextOutput | null;
+  /** Created At */
+  created_at: string;
+  /**
+   * Error
+   * @default ""
+   */
+  error: string;
+  /** Id */
+  id: string;
+  /**
+   * Progress
+   * @default ""
+   */
+  progress: string;
+  /** Provider */
+  provider: "codex" | "claude" | "copilot";
+  /**
+   * Reasoning
+   * @default ""
+   */
+  reasoning: string;
+  /**
+   * Request Id
+   * @default ""
+   */
+  request_id: string;
+  /** Role */
+  role: "user" | "assistant";
+  /** Status */
+  status: "running" | "complete" | "failed" | "cancelled";
+  /** Text */
+  text: string;
+}
+
+/** AgentModel */
+export interface AgentModel {
+  /** Display Name */
+  display_name: string;
+  /** Id */
+  id: string;
+  /** Is Default */
+  is_default: boolean;
+  /** Reasoning Efforts */
+  reasoning_efforts: string[];
+}
+
+/** AgentProviderSettings */
+export interface AgentProviderSettingsInput {
+  /**
+   * Executable
+   * @minLength 1
+   * @maxLength 2000
+   */
+  executable: string;
+  /**
+   * Model
+   * @maxLength 200
+   * @default ""
+   */
+  model?: string;
+  /**
+   * Reasoning Effort
+   * @default "default"
+   */
+  reasoning_effort?:
+    | "default"
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | "max"
+    | "ultra";
+}
+
+/** AgentProviderSettings */
+export interface AgentProviderSettingsOutput {
+  /**
+   * Executable
+   * @minLength 1
+   * @maxLength 2000
+   */
+  executable: string;
+  /**
+   * Model
+   * @maxLength 200
+   * @default ""
+   */
+  model: string;
+  /**
+   * Reasoning Effort
+   * @default "default"
+   */
+  reasoning_effort:
+    | "default"
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | "max"
+    | "ultra";
+}
+
+/** AgentProviders */
+export interface AgentProvidersInput {
+  claude?: AgentProviderSettingsInput;
+  codex?: AgentProviderSettingsInput;
+  copilot?: AgentProviderSettingsInput;
+}
+
+/** AgentProviders */
+export interface AgentProvidersOutput {
+  claude: AgentProviderSettingsOutput;
+  codex: AgentProviderSettingsOutput;
+  copilot: AgentProviderSettingsOutput;
+}
+
+/** AgentSend */
+export interface AgentSend {
+  context?: AgentContextInput | null;
+  /**
+   * Request Id
+   * Unique request ID. Reusing it with identical input returns the existing turn without executing again.
+   * @minLength 1
+   * @maxLength 200
+   */
+  request_id: string;
+  /**
+   * Text
+   * @minLength 1
+   * @maxLength 20000
+   */
+  text: string;
+}
+
+/** AgentSettings */
+export interface AgentSettingsInput {
+  /**
+   * Default Provider
+   * @default "codex"
+   */
+  default_provider?: "codex" | "claude" | "copilot";
+  providers?: AgentProvidersInput;
+}
+
+/** AgentSettings */
+export interface AgentSettingsOutput {
+  /**
+   * Default Provider
+   * @default "codex"
+   */
+  default_provider: "codex" | "claude" | "copilot";
+  providers: AgentProvidersOutput;
+}
+
+/** AgentSettingsSnapshot */
+export interface AgentSettingsSnapshot {
+  /** Availability */
+  availability: Record<string, boolean>;
+  /** Enabled */
+  enabled: boolean;
+  /** Read Only */
+  read_only: boolean;
+  settings: AgentSettingsOutput;
+  /**
+   * Version
+   * @min 1
+   */
+  version: number;
+}
+
+/** AgentSettingsUpdate */
+export interface AgentSettingsUpdate {
+  /**
+   * Expected Version
+   * Confirmed settings version; conflicts reject.
+   * @min 1
+   */
+  expected_version: number;
+  settings: AgentSettingsInput;
+}
+
 /** Animation */
 export interface AnimationInput {
   /**
@@ -7651,6 +7999,78 @@ export class Api<
 > extends HttpClient<SecurityDataType> {
   api = {
     /**
+     * @description Read the complete persistent conversation snapshot, including partial assistant text, public reasoning summaries, errors and applied project revisions. Poll with Query while running; reconnect does not stop CLI execution.
+     *
+     * @tags Local agent chat
+     * @name AgentChat
+     * @summary Agent Chat
+     * @request GET:/api/agent-chat/chats/{chat_id}
+     * @secure
+     */
+    agentChat: (chatId: string, params: RequestParams = {}) =>
+      this.request<AgentChat, ApiError>({
+        path: `/api/agent-chat/chats/${chatId}`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Read the configured Codex CLI's paginated model/list catalog with an 8 second timeout and bounded output. Does not start a thread, inference or consume a model turn.
+     *
+     * @tags Local agent chat
+     * @name AgentChatModels
+     * @summary Agent Chat Models
+     * @request GET:/api/agent-chat/codex/models
+     * @secure
+     */
+    agentChatModels: (params: RequestParams = {}) =>
+      this.request<AgentModel[], ApiError>({
+        path: `/api/agent-chat/codex/models`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Read ordered local conversation summaries including immutable project scope, archive state, running state and monotonic chat version. Message history is read separately.
+     *
+     * @tags Local agent chat
+     * @name AgentChats
+     * @summary Agent Chats
+     * @request GET:/api/agent-chat/chats
+     * @secure
+     */
+    agentChats: (params: RequestParams = {}) =>
+      this.request<AgentChatSummary[], ApiError>({
+        path: `/api/agent-chat/chats`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Read local agent configuration, executable availability, enabled/read-only policy and confirmed settings version. Availability checks the executable, not login or model entitlement.
+     *
+     * @tags Local agent chat
+     * @name AgentChatSettings
+     * @summary Agent Chat Settings
+     * @request GET:/api/agent-chat/settings
+     * @secure
+     */
+    agentChatSettings: (params: RequestParams = {}) =>
+      this.request<AgentSettingsSnapshot, ApiError>({
+        path: `/api/agent-chat/settings`,
+        method: "GET",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Read one existing asset by ID with media metadata, has_audio/duration, source/license, tags and relative URLs. Does not decode media. Unknown ID: 404.
      *
      * @tags Composition
@@ -8069,6 +8489,26 @@ export class Api<
       }),
 
     /**
+     * @description Create a persistent conversation for one existing project or General. Project scope cannot subsequently change. New conversations start in Ask; optional context is resolved against that project.
+     *
+     * @tags Local agent chat
+     * @name CreateAgentChat
+     * @summary Create Agent Chat
+     * @request POST:/api/agent-chat/chats
+     * @secure
+     */
+    createAgentChat: (data: AgentChatCreate, params: RequestParams = {}) =>
+      this.request<AgentChat, ApiError>({
+        path: `/api/agent-chat/chats`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Create a named folder in the library or one project. Case-insensitive duplicate names in the same collection are rejected.
      *
      * @tags Composition
@@ -8104,6 +8544,35 @@ export class Api<
         body: data,
         secure: true,
         type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Delete an idle conversation and its message history with the confirmed chat version. Does not delete media or roll back project edits; running conversations reject deletion.
+     *
+     * @tags Local agent chat
+     * @name DeleteAgentChat
+     * @summary Delete Agent Chat
+     * @request DELETE:/api/agent-chat/chats/{chat_id}
+     * @secure
+     */
+    deleteAgentChat: (
+      chatId: string,
+      query: {
+        /**
+         * Expected Version
+         * @min 1
+         */
+        expected_version: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<AgentChatDeleted, ApiError>({
+        path: `/api/agent-chat/chats/${chatId}`,
+        method: "DELETE",
+        query: query,
+        secure: true,
         format: "json",
         ...params,
       }),
@@ -8491,6 +8960,26 @@ export class Api<
         method: "GET",
         query: query,
         secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Reorder the supplied unique conversation IDs within their existing slots, preserving the positions of all omitted conversations. Does not edit projects or delete history.
+     *
+     * @tags Local agent chat
+     * @name OrderAgentChats
+     * @summary Order Agent Chats
+     * @request PUT:/api/agent-chat/chats/order
+     * @secure
+     */
+    orderAgentChats: (data: AgentChatOrder, params: RequestParams = {}) =>
+      this.request<AgentChatSummary[], ApiError>({
+        path: `/api/agent-chat/chats/order`,
+        method: "PUT",
+        body: data,
+        secure: true,
+        type: "application/json",
         format: "json",
         ...params,
       }),
@@ -9114,6 +9603,30 @@ export class Api<
       }),
 
     /**
+     * @description Accept one local CLI turn with a deduplicated request ID and optional project object reference. Returns 202 with a running snapshot; provider errors arrive in the persisted assistant message. Maximum 3 active turns and 1 per conversation.
+     *
+     * @tags Local agent chat
+     * @name SendAgentMessage
+     * @summary Send Agent Message
+     * @request POST:/api/agent-chat/chats/{chat_id}/messages
+     * @secure
+     */
+    sendAgentMessage: (
+      chatId: string,
+      data: AgentSend,
+      params: RequestParams = {},
+    ) =>
+      this.request<AgentChat, ApiError>({
+        path: `/api/agent-chat/chats/${chatId}/messages`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Synchronously inspect 1-24 frames via timestamps_ms and optional pinned revision. Optional job_id selects the exact completed export and determines revision. Times stay project-absolute inside the export range. Null/empty timestamps uses default points filtered to the range, or its midpoint if none remain. Invalid jobs or missing files fail without fallback. Returns revision/timestamps_ms/url/server path for actual contact sheet. May render/cache a full preview; inspect pixels instead of only metadata.
      *
      * @tags Composition
@@ -9280,6 +9793,24 @@ export class Api<
       }),
 
     /**
+     * @description Revoke the active turn's project MCP capability and terminate its CLI process group. Preserve partial text and already committed revisions; stopping is not project rollback. Final status may arrive after this acknowledgement.
+     *
+     * @tags Local agent chat
+     * @name StopAgentChat
+     * @summary Stop Agent Chat
+     * @request POST:/api/agent-chat/chats/{chat_id}/stop
+     * @secure
+     */
+    stopAgentChat: (chatId: string, params: RequestParams = {}) =>
+      this.request<AgentChat, ApiError>({
+        path: `/api/agent-chat/chats/${chatId}/stop`,
+        method: "POST",
+        secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Replace all asset tags with a JSON array (not an object). Max 50 strings, each <=100 characters; sorted/deduplicated. Returns Asset. No project revision change. Read and merge first when appending tags.
      *
      * @tags Composition
@@ -9291,6 +9822,53 @@ export class Api<
     tags: (assetId: string, data: string[], params: RequestParams = {}) =>
       this.request<Asset, ApiError>({
         path: `/api/assets/${assetId}/tags`,
+        method: "PUT",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Rename/archive/restore a conversation or change provider, Ask/Edit mode or source directory with its confirmed version. Running conversations reject updates; General and read-only policy reject Edit.
+     *
+     * @tags Local agent chat
+     * @name UpdateAgentChat
+     * @summary Update Agent Chat
+     * @request PATCH:/api/agent-chat/chats/{chat_id}
+     * @secure
+     */
+    updateAgentChat: (
+      chatId: string,
+      data: AgentChatUpdate,
+      params: RequestParams = {},
+    ) =>
+      this.request<AgentChat, ApiError>({
+        path: `/api/agent-chat/chats/${chatId}`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: "application/json",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Save provider executables, model IDs and Codex reasoning effort with a confirmed settings version. Changes apply to future turns; existing CLI processes keep their captured settings.
+     *
+     * @tags Local agent chat
+     * @name UpdateAgentChatSettings
+     * @summary Update Agent Chat Settings
+     * @request PUT:/api/agent-chat/settings
+     * @secure
+     */
+    updateAgentChatSettings: (
+      data: AgentSettingsUpdate,
+      params: RequestParams = {},
+    ) =>
+      this.request<AgentSettingsSnapshot, ApiError>({
+        path: `/api/agent-chat/settings`,
         method: "PUT",
         body: data,
         secure: true,

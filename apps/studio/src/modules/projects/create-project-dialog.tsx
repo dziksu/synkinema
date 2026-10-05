@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogForm } from "@/components/ui/dialog";
 import { writes } from "@/api/mutations";
 import { reads } from "@/api/queries";
 import { Modal } from "@/components/modal";
@@ -98,96 +99,100 @@ function CreateProjectForm({
     }
   });
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        {tr("Choose a canvas, give it a name, and start shaping your story.")}
-      </p>
-      <Controller
-        name="name"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="project-name">{tr("Project name")}</FieldLabel>
-            <Input
-              {...field}
-              id="project-name"
-              autoFocus
-              required
-              maxLength={200}
-              aria-invalid={fieldState.invalid}
-              placeholder={tr("What story will you tell?")}
-            />
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
-      <Controller
-        name="format"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="project-format">
-              {tr("Canvas format")}
-            </FieldLabel>
-            <NativeSelect
-              {...field}
-              id="project-format"
-              disabled={!presets.data}
-            >
-              <>
-                {presets.data?.presets.map((p) => (
-                  <NativeSelectOption key={p.id} value={p.id}>
-                    {p.name} · {p.width} × {p.height}
-                  </NativeSelectOption>
-                ))}
-              </>
-            </NativeSelect>
-            <FieldDescription>
-              {tr(
-                "Export formats can be changed later without changing your timeline.",
-              )}
-            </FieldDescription>
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
-      <Controller
-        name="channel"
-        control={form.control}
-        render={({ field }) => (
-          <Field>
-            <FieldLabel htmlFor="project-channel">
-              {tr("Editorial channel")}
-            </FieldLabel>
-            <NativeSelect
-              {...field}
-              id="project-channel"
-              disabled={channels.isPending || channels.isError}
-            >
-              <NativeSelectOption value="">
-                {tr("Independent project (no channel)")}
-              </NativeSelectOption>
-              {channels.data
-                ?.filter((c) => !c.archived || c.id === channelId)
-                .map((c) => (
-                  <NativeSelectOption key={c.id} value={c.id}>
-                    {c.name}
-                  </NativeSelectOption>
-                ))}
-            </NativeSelect>
-          </Field>
-        )}
-      />
-      {(presets.error || channels.error || create.error) && (
-        <ErrorState
-          error={(presets.error || channels.error || create.error)!}
-          retry={() => {
-            void presets.refetch();
-            void channels.refetch();
-          }}
+    <DialogForm onSubmit={submit}>
+      <DialogBody>
+        <p className="text-sm text-muted-foreground">
+          {tr("Choose a canvas, give it a name, and start shaping your story.")}
+        </p>
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="project-name">
+                {tr("Project name")}
+              </FieldLabel>
+              <Input
+                {...field}
+                id="project-name"
+                autoFocus
+                required
+                maxLength={200}
+                aria-invalid={fieldState.invalid}
+                placeholder={tr("What story will you tell?")}
+              />
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
         />
-      )}
-      <div className="flex justify-end gap-2 border-t pt-4">
+        <Controller
+          name="format"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="project-format">
+                {tr("Canvas format")}
+              </FieldLabel>
+              <NativeSelect
+                {...field}
+                id="project-format"
+                disabled={!presets.data}
+              >
+                <>
+                  {presets.data?.presets.map((p) => (
+                    <NativeSelectOption key={p.id} value={p.id}>
+                      {p.name} · {p.width} × {p.height}
+                    </NativeSelectOption>
+                  ))}
+                </>
+              </NativeSelect>
+              <FieldDescription>
+                {tr(
+                  "Export formats can be changed later without changing your timeline.",
+                )}
+              </FieldDescription>
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
+        />
+        <Controller
+          name="channel"
+          control={form.control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor="project-channel">
+                {tr("Editorial channel")}
+              </FieldLabel>
+              <NativeSelect
+                {...field}
+                id="project-channel"
+                disabled={channels.isPending || channels.isError}
+              >
+                <NativeSelectOption value="">
+                  {tr("Independent project (no channel)")}
+                </NativeSelectOption>
+                {channels.data
+                  ?.filter((c) => !c.archived || c.id === channelId)
+                  .map((c) => (
+                    <NativeSelectOption key={c.id} value={c.id}>
+                      {c.name}
+                    </NativeSelectOption>
+                  ))}
+              </NativeSelect>
+            </Field>
+          )}
+        />
+        {(presets.error || channels.error || create.error) && (
+          <ErrorState
+            error={(presets.error || channels.error || create.error)!}
+            retry={() => {
+              void presets.refetch();
+              void channels.refetch();
+            }}
+          />
+        )}
+      </DialogBody>
+      <DialogFooter>
         <Button
           type="button"
           variant="outline"
@@ -207,7 +212,7 @@ function CreateProjectForm({
           )}
           {tr("Create project")}
         </Button>
-      </div>
-    </form>
+      </DialogFooter>
+    </DialogForm>
   );
 }

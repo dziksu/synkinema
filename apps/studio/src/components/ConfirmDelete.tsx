@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   DialogClose,
@@ -43,7 +44,7 @@ export default function ConfirmDelete({
             if (pending) e.preventDefault();
           }}
         >
-          <div className="modal-title">
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>{title}</DialogTitle>
             <DialogClose asChild>
               <Button
@@ -56,16 +57,18 @@ export default function ConfirmDelete({
                 <X size={20} />
               </Button>
             </DialogClose>
-          </div>
-          <DialogDescription asChild>
-            <div className="deletion-description">{children}</div>
-          </DialogDescription>
-          {error && (
-            <p className="error-banner" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="dialog-actions">
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription asChild>
+              <div className="deletion-description">{children}</div>
+            </DialogDescription>
+            {error && (
+              <p className="error-banner" role="alert">
+                {error}
+              </p>
+            )}
+          </DialogBody>
+          <DialogFooter>
             <Button
               variant="outline"
               className="button"
@@ -87,7 +90,7 @@ export default function ConfirmDelete({
               )}
               {pending ? tr("Deleting files…") : tr("Delete permanently")}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </>
     </DialogRoot>

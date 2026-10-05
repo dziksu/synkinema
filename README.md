@@ -4,36 +4,78 @@
 
 **Local video editing for people and agents.**
 
-Build a reel by hand, through an AI client, or with both working on the same
-project. Synkinema combines a desktop video editor with a headless FFmpeg engine,
-REST API, MCP server and CLI. Your projects, media, revisions and exports stay on
-your machine. No account is required.
+Build a reel by hand, chat with a local CLI agent inside Studio, or connect an AI
+client through MCP—all on the same project. Synkinema combines a desktop video
+editor with a headless FFmpeg engine, REST API, MCP server and CLI. Your projects,
+media, revisions and exports stay on your machine. Manual editing requires no
+account; AI agents use your provider's login.
 
 ## One project. Your edit. Your agent.
 
-Start a project in Studio, shape the cut by hand, then bring in an AI client
-through MCP. You and your agent work on the same local project and editable
-timeline; revision history and undo keep every change under your control.
+Start a project in Studio, shape the cut by hand, then open **Agent chat** or bring
+in an AI client through MCP. You and your agent work on the same local project and
+editable timeline; revision history and undo keep every change under your control.
 
 <p align="center">
-  <a href="assets/screenshots/timeline.png"><img src="assets/screenshots/timeline.png" alt="Synkinema Studio showing project media, a portrait preview, and a populated multi-track timeline" width="100%"></a>
+  <a href="assets/screenshots/timeline-dark.jpg"><img src="assets/screenshots/timeline-dark.jpg" alt="Synkinema Studio's dark focus mode showing project media, a portrait preview, and a populated multi-track timeline" width="100%"></a>
 </p>
 
-<p align="center"><em>Media, preview and a multi-track edit—together in one local workspace.</em></p>
+<p align="center"><em>Media, preview and a multi-track edit—together in Studio's focus mode.</em></p>
 
 | Start with a real project | Bring an agent into the same workspace |
 | --- | --- |
-| <a href="assets/screenshots/projects.png"><img src="assets/screenshots/projects.png" alt="Synkinema Projects screen with a gallery of video projects"></a><br><strong>Keep every production in view.</strong><br>Create, browse and reopen projects without losing their context. | <a href="assets/screenshots/agent-workspace.png"><img src="assets/screenshots/agent-workspace.png" alt="Synkinema panel for connecting Codex and other AI agents through MCP"></a><br><strong>One project, two ways to edit.</strong><br>Connect Codex or another MCP client so it can create and refine the same projects you use in Studio. |
+| <a href="assets/screenshots/projects-dark.jpg"><img src="assets/screenshots/projects-dark.jpg" alt="Synkinema Projects in dark mode with a gallery of video projects"></a><br><strong>Keep every production in view.</strong><br>Create, browse and reopen projects without losing their context. | <a href="assets/screenshots/agent-workspace-dark.jpg"><img src="assets/screenshots/agent-workspace-dark.jpg" alt="Synkinema's dark mode guide for connecting Codex and other AI agents through MCP"></a><br><strong>One project, two ways to edit.</strong><br>Connect Codex or another MCP client so it can create and refine the same projects you use in Studio. |
 
 [![CI](https://github.com/dziksu/synkinema/actions/workflows/ci.yml/badge.svg)](https://github.com/dziksu/synkinema/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-d8fb76)](LICENSE)
 [![Releases](https://img.shields.io/github/v/release/dziksu/synkinema)](https://github.com/dziksu/synkinema/releases)
 
 [In action](#one-project-your-edit-your-agent) · [Quick start](#quick-start) · [Features](#what-you-can-make) ·
-[Connect an agent](#mcp-and-agents) · [Documentation](docs/README.md) ·
+[Agent chat](#in-app-agent-chat) · [Connect through MCP](#mcp-and-agents) · [Documentation](docs/README.md) ·
 [Development](#development) · [Contributing](CONTRIBUTING.md)
 
 ## Quick start
+
+### Docker with your local CLI agents
+
+To use the built-in chat with **Codex, Claude Code or Copilot installed and signed
+in on your computer**, install Docker and curl, then run:
+
+```sh
+curl -fsSL https://github.com/dziksu/synkinema/releases/latest/download/synkinema-local-install.sh | sh
+```
+
+The installer verifies SHA-256, installs a standalone launcher for macOS/Linux
+arm64/x64, and starts the matching Docker image. **No cloning, Python, Node.js or
+local FFmpeg installation is needed.** This command becomes available with the
+release containing the launcher assets; older releases do not include them.
+
+Open **[http://localhost:43817](http://localhost:43817)**, then **Agent chat →
+Agent settings**. The localhost gateway runs your native CLI with its existing
+login and proxies Studio/API/media to a private Docker backend on port 43818.
+Projects/media/exports stay in **`synkinema_synkinema-data`**; chat and settings
+live in **`~/.local/share/synkinema/chat`**. Existing Docker conversations are
+copied once, keeping the originals. CLI credentials are never mounted into Docker.
+
+Keep the terminal open. **Ctrl+C** stops the launcher, agents and its managed
+container while retaining projects, media and conversations. Start again with:
+
+```sh
+~/.local/share/synkinema/synkinema-local
+# In another terminal:
+~/.local/share/synkinema/synkinema-local status
+~/.local/share/synkinema/synkinema-local stop
+```
+
+For an existing Compose deployment, stop it with `docker compose stop synkinema`
+before starting this mode; retain its volume. The launcher refuses occupied ports,
+foreign containers and a volume already used by another running container.
+If your earlier `docker run` used `synkinema-data`, pass `--volume synkinema-data`.
+Use `--port 43819`, `--backend-port`, `--data-dir`, `--read-only` and `--no-open`
+as needed. To update, stop the launcher and rerun the installer; helper and image
+versions must match. See [local launcher details](docs/LOCAL_AGENT_CHAT.md#docker-with-agents-on-the-host).
+
+### Docker engine and external MCP clients
 
 With Docker installed and running, start the published image. **No cloning, Python,
 Node.js or local FFmpeg installation is needed:**
@@ -129,11 +171,57 @@ controls and audio. To work through an agent, follow the
 | Export | 16 [output presets](docs/EXPORT_FORMATS.md), 720p through 4K, portrait and landscape, up to 60 FPS, quality and fit/fill controls; H.264/AAC MP4 |
 | Quality review | Exact-export frames, full decode checks, loudness, independent speech recognition, caption bounds and delivery bundles with MP4/SRT/project/provenance |
 | Human + agent editing | Shared projects, revision guards, atomic batches, dry runs, history and undo across the UI and headless workflows |
+| In-app agent chat | Local Codex, Claude Code and Copilot CLIs; project-scoped Ask and Edit project modes, live replies, saved conversations, archive/restore and stop controls |
 
 The interface defaults to **English**; scripts, captions and project names can use
 other languages. Desktop mouse and keyboard workflows are the current focus.
-Your AI client supplies the reasoning and script writing. Synkinema supplies the
-editing tools, local media processing and durable production jobs.
+Your CLI agent or AI client supplies the reasoning and script writing. Synkinema
+supplies the editing tools, local media processing and durable production jobs.
+
+## In-app agent chat
+
+Open **Agent chat** in the bottom-right corner of Studio to talk to **Codex CLI,
+Claude Code or GitHub Copilot CLI** without leaving the editor. Start a general
+conversation or attach it to a project; a project conversation keeps its scope
+when you navigate elsewhere in the app.
+
+<p align="center">
+  <a href="assets/screenshots/local-agent-chat-dark.jpg"><img src="assets/screenshots/local-agent-chat-dark.jpg" alt="Synkinema Agent chat in dark mode showing a completed Codex CLI response after reading a demo project's duration and tracks" width="100%"></a>
+</p>
+
+<p align="center"><em>A real Codex CLI reply inside Studio, based on the demo project's actual timeline.</em></p>
+
+<p align="center">
+  <a href="assets/screenshots/local-agent-docker-dark.jpg"><img src="assets/screenshots/local-agent-docker-dark.jpg" alt="Native Codex CLI running through the local Docker launcher, with a confirmed project edit saved as revision 2" width="100%"></a>
+</p>
+
+<p align="center"><em>The local launcher keeps the engine in Docker while a host Codex CLI commits a real project edit through scoped MCP.</em></p>
+
+- **Ask** inspects project, script and timeline context without changing the project.
+- **Edit project** lets the agent apply atomic edits against a confirmed revision.
+  Changes appear in the same project history and support undo.
+- Replies and tool progress appear as the agent works. **Stop** cancels the running
+  turn; closing the panel keeps it running.
+- Conversations and agent settings are stored locally. Rename, archive or restore
+  chats from their options menu, and hold a conversation for **350 ms** to reorder it.
+
+To get started:
+
+1. Install and sign in to a supported CLI on your computer, then use the
+   [local Docker launcher](#docker-with-your-local-cli-agents) or the native development setup.
+2. Open **Agent chat → Agent settings** and check that the CLI is available. Set its
+   executable path if needed; for Codex, choose a model from **Available models**
+   or leave the model ID empty to use the CLI default.
+3. Select a project, create a conversation and start in **Ask**. Choose
+   **Edit project** when you want timeline changes.
+
+The CLI process runs locally; model requests normally use your provider account
+and its quota. Agent chat requires a local connection. The stock Docker image
+does not include agent CLIs or their login, and a CLI installed on your host is
+not automatically available inside the container. The local launcher handles
+this by running chat on your computer. See
+[local chat setup and behavior](docs/LOCAL_AGENT_CHAT.md) for provider settings,
+context, cancellation and access rules.
 
 ## MCP and agents
 

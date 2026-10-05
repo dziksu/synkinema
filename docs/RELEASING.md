@@ -83,6 +83,7 @@ link in `SECURITY.md`. Dependabot uses the checked-in configuration automaticall
 | Release metadata | The PR updates `CHANGELOG.md`, root and Studio manifests/lockfiles, Python and Docker defaults, then regenerates and commits the OpenAPI schema/client; CI and title checks are dispatched explicitly, and auto-merge waits for the active ruleset's required checks |
 | Semantic release | Runs only after the release PR is merged; verifies the committed metadata, creates `vX.Y.Z` and GitHub release notes/assets |
 | Publish image | Called directly with the tested release-PR merge SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
+| Local launcher | Native macOS/Linux arm64/x64 builds are checked in CI; after image publication, verify all four artifacts/tag/commit and upload the version-matched installer and SHA-256 manifest to that release |
 | CodeQL | Separate Python/JavaScript security analysis on PRs, main and weekly |
 | PR title | Validates Conventional Commit syntax without evaluating the title as code |
 
@@ -99,6 +100,16 @@ slow cache service cannot hold a successful publication open.
 Release assets include a version-pinned Compose file, the matching OpenAPI document,
 a source/version manifest and license notices. They are generated into ignored
 `.release/` during preparation; source files remain unchanged.
+
+`local-helper.yml` builds standalone PyInstaller executables using the small pinned
+`requirements-local.txt` dependency set. The builder stamps only a staged package.
+Each target records version/repository/commit and SHA-256; assembly rejects mixed,
+missing or modified artifacts. The existing exact-tag image guard runs again
+before upload. Launcher assets publish only after the matching image succeeds;
+an older release retry uploads to its own tag without changing `latest`.
+`make check` includes installer/gateway regression tests; the container CI smoke
+additionally launches a compiled host helper outside the checkout with a disposable
+volume and test CLI. Real account inference remains a separate local check.
 
 Stable tags are `vX.Y.Z`. Images receive `vX.Y.Z` and `sha-FULL_COMMIT_SHA`; the
 current latest release also receives `vX.Y` and `latest`. Re-running an old release

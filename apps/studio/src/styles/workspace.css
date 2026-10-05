@@ -1810,10 +1810,7 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 28px;
     --dialog-width: 620px;
-    max-height: 90vh;
-    overflow: auto;
     box-shadow: 0 24px 100px #000a;
   }
   .modal-title {
@@ -2358,9 +2355,6 @@
     .export-options {
       grid-template-columns: 1fr;
     }
-    .modal {
-      padding: 22px;
-    }
     .field-grid {
       gap: 8px;
     }
@@ -2426,6 +2420,7 @@
   }
   .editor-preview-dialog-header {
     display: flex;
+    flex-shrink: 0;
     min-height: 48px;
     align-items: center;
     justify-content: space-between;
@@ -4356,7 +4351,6 @@
   }
   .media-manager {
     --dialog-width: 1040px;
-    padding: 24px;
   }
   .media-manager .modal-title {
     margin-bottom: 20px;
@@ -4640,7 +4634,6 @@
     top: 126px;
     right: 24px;
     width: 250px;
-    padding: 20px;
     border-radius: 12px;
     border: 1px solid var(--border);
     background: var(--card);
@@ -4765,9 +4758,6 @@
   }
   .muted-track .audio-envelope {
     opacity: 0.4;
-  }
-  .timeline-track-dialog form {
-    margin-top: 20px;
   }
   .track-delete-section {
     border-top: 1px solid var(--border);
@@ -6283,8 +6273,7 @@
     box-shadow: 0 20px 80px #0008;
     --dialog-width: 680px;
     max-height: calc(100dvh - 48px);
-    overflow-y: auto;
-    padding: 28px;
+    overflow: hidden;
   }
   .channel-link-dialog > header {
     display: flex;

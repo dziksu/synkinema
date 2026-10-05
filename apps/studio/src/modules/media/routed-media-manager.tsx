@@ -1,3 +1,4 @@
+import { DialogBody, DialogHeader } from "@/components/ui/dialog";
 import { reads } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,17 +45,21 @@ export function RoutedMediaManager({
       }}
     >
       <DialogContent>
-        <DialogTitle>{tr("Manage media")}</DialogTitle>
-        <DialogDescription role={inventory.isPending ? "status" : "alert"}>
-          {inventory.isPending
-            ? tr("Loading media…")
-            : inventory.error?.message || tr("Media not found.")}
-        </DialogDescription>
-        {inventory.isError && (
-          <Button variant="outline" onClick={() => void inventory.refetch()}>
-            {tr("Try again")}
-          </Button>
-        )}
+        <DialogHeader>
+          <DialogTitle>{tr("Manage media")}</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <DialogDescription role={inventory.isPending ? "status" : "alert"}>
+            {inventory.isPending
+              ? tr("Loading media…")
+              : inventory.error?.message || tr("Media not found.")}
+          </DialogDescription>
+          {inventory.isError && (
+            <Button variant="outline" onClick={() => void inventory.refetch()}>
+              {tr("Try again")}
+            </Button>
+          )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

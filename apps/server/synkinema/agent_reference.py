@@ -5,6 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from .channel_routes import DESCRIPTIONS as CHANNEL_DESCRIPTIONS
+from .chat_contract import REST_DESCRIPTIONS as CHAT_DESCRIPTIONS
 from .models import BatchRequest, Clip, Operation, Project, Track, Transition
 from .production.reference import REST_DESCRIPTIONS as PRODUCTION_DESCRIPTIONS
 
@@ -308,6 +309,7 @@ def operation_reference(operation: str | None = None) -> dict:
 
 # Keyed by FastAPI route function name; tests require coverage for every /api route.
 REST_DESCRIPTIONS = {
+    **CHAT_DESCRIPTIONS,
     "remove_script_audio": "Remove a line's audio and its project media membership at {expected_revision,expected_version,audio_asset_id}. Atomically clears this line/take association from this project's current script, saved revisions and render snapshot script metadata; removes matching asset_ids inventory entries. Script text and timeline remain unchanged. The removed take cannot be restored through undo. Another line or any timeline in this project's current/history/render snapshots using this source blocks removal with 409. Other projects and shared library memberships retain the source; otherwise deletes original/sidecar files with durable cleanup. Returns the confirmed project, deleted asset_ids or retained_asset_id, and actual cleanup metrics. Stale project/asset versions or changed take reject without changes. pending_files means disk cleanup remains incomplete. Not a regular reversible edit operation or batch step.",
     "replace_script_audio": "Replace one script line's existing take with a validated audio asset at {expected_revision,expected_version,audio_asset_id,replacement_asset_id,audio_text,audio_source}. Atomically updates unambiguous whole-take timeline clips and scene audio, then retires the old take from this project's script history, render snapshot script metadata, and project media collection. Historical timeline references and other projects keep the old source file for undo; otherwise the exclusive original and sidecars are deleted with durable cleanup. A stale revision/version, changed line, invalid replacement or incompatible timeline edit rejects without changing the project or deleting the old source. The retired script take cannot be restored through undo. Returns the confirmed project and deletion/retention metrics. Use after a new take has been uploaded or synthesized; this is not a batch operation.",
     **CHANNEL_DESCRIPTIONS,

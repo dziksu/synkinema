@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { RouteTabs } from "@/components/route-tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { writes } from "@/api/mutations";
@@ -617,88 +618,93 @@ export default function MediaBrowser({
         }}
       >
         <DialogContent className="media-action-dialog">
-          <DialogTitle>{tr("Move selected media")}</DialogTitle>
-          <DialogDescription>
-            {tr(
-              "Choose a folder in this collection. Files stay available in other collections and on disk.",
-            )}
-          </DialogDescription>
-          <div
-            className="media-move-options"
-            role="radiogroup"
-            aria-label={tr("Destination folder")}
-          >
-            {[{ id: "", name: tr("Collection root") }, ...folders].map(
-              (item) => (
-                <label key={item.id}>
-                  <input
-                    type="radio"
-                    name="media-destination"
-                    value={item.id}
-                    checked={moveFolder === item.id}
-                    disabled={busy || item.id.startsWith("pending:")}
-                    onChange={() => setMoveFolder(item.id)}
-                  />
-                  <Folder size={15} />
-                  <span>{item.name}</span>
-                  <small>
-                    {
-                      assets.filter(
-                        (asset) => (asset.locations?.[scope] || "") === item.id,
-                      ).length
-                    }
-                  </small>
-                </label>
-              ),
-            )}
-          </div>
-          {selectedAssets.every(
-            (asset) => (asset.locations?.[scope] || "") === moveFolder,
-          ) && (
-            <p className="media-action-feedback">
-              {tr("Choose or create another folder to move these files.")}
-            </p>
-          )}
-          <div className="media-new-folder">
-            <Input
-              aria-label={tr("New folder name")}
-              placeholder={tr("New folder name")}
-              value={newFolderName}
-              maxLength={100}
-              disabled={busy}
-              onChange={(e) => setNewFolderName(e.target.value)}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!newFolderName.trim() || busy}
-              onClick={async () => {
-                try {
-                  const created = await createMoveFolder.mutateAsync({
-                    name: newFolderName.trim(),
-                    projectId,
-                  });
-                  setMoveFolder(created.id);
-                  setNewFolderName("");
-                } catch {
-                  /* Mutation error is shown below. */
-                }
-              }}
-            >
-              {createMoveFolder.isPending ? (
-                <LoaderCircle size={15} className="spin" />
-              ) : (
-                <FolderPlus size={15} />
+          <DialogHeader>
+            <DialogTitle>{tr("Move selected media")}</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {tr(
+                "Choose a folder in this collection. Files stay available in other collections and on disk.",
               )}
-              {tr("Create")}
-            </Button>
-          </div>
-          {(batch.error || createMoveFolder.error) && (
-            <p role="alert" className="error-banner">
-              {(batch.error || createMoveFolder.error)?.message}
-            </p>
-          )}
-          <div className="dialog-actions">
+            </DialogDescription>
+            <div
+              className="media-move-options"
+              role="radiogroup"
+              aria-label={tr("Destination folder")}
+            >
+              {[{ id: "", name: tr("Collection root") }, ...folders].map(
+                (item) => (
+                  <label key={item.id}>
+                    <input
+                      type="radio"
+                      name="media-destination"
+                      value={item.id}
+                      checked={moveFolder === item.id}
+                      disabled={busy || item.id.startsWith("pending:")}
+                      onChange={() => setMoveFolder(item.id)}
+                    />
+                    <Folder size={15} />
+                    <span>{item.name}</span>
+                    <small>
+                      {
+                        assets.filter(
+                          (asset) =>
+                            (asset.locations?.[scope] || "") === item.id,
+                        ).length
+                      }
+                    </small>
+                  </label>
+                ),
+              )}
+            </div>
+            {selectedAssets.every(
+              (asset) => (asset.locations?.[scope] || "") === moveFolder,
+            ) && (
+              <p className="media-action-feedback">
+                {tr("Choose or create another folder to move these files.")}
+              </p>
+            )}
+            <div className="media-new-folder">
+              <Input
+                aria-label={tr("New folder name")}
+                placeholder={tr("New folder name")}
+                value={newFolderName}
+                maxLength={100}
+                disabled={busy}
+                onChange={(e) => setNewFolderName(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!newFolderName.trim() || busy}
+                onClick={async () => {
+                  try {
+                    const created = await createMoveFolder.mutateAsync({
+                      name: newFolderName.trim(),
+                      projectId,
+                    });
+                    setMoveFolder(created.id);
+                    setNewFolderName("");
+                  } catch {
+                    /* Mutation error is shown below. */
+                  }
+                }}
+              >
+                {createMoveFolder.isPending ? (
+                  <LoaderCircle size={15} className="spin" />
+                ) : (
+                  <FolderPlus size={15} />
+                )}
+                {tr("Create")}
+              </Button>
+            </div>
+            {(batch.error || createMoveFolder.error) && (
+              <p role="alert" className="error-banner">
+                {(batch.error || createMoveFolder.error)?.message}
+              </p>
+            )}
+          </DialogBody>
+          <DialogFooter>
             <Button
               variant="outline"
               disabled={busy}
@@ -723,7 +729,7 @@ export default function MediaBrowser({
               )}
               {tr("Move {{count}} files", { count: selectedAssets.length })}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog
@@ -733,34 +739,38 @@ export default function MediaBrowser({
         }}
       >
         <DialogContent className="media-action-dialog">
-          <DialogTitle>
-            {projectId
-              ? tr("Remove from this project?")
-              : tr("Remove from shared library?")}
-          </DialogTitle>
-          <DialogDescription>
-            {projectId
-              ? tr(
-                  "Original files stay on disk. Media used by this project cannot be removed until its timeline clips and project references are removed.",
-                )
-              : tr(
-                  "Original files stay on disk. Projects already using shared media keep access through their private collections.",
-                )}{" "}
-            {tr(
-              "If this is a file's last collection, use Delete from disk instead.",
+          <DialogHeader>
+            <DialogTitle>
+              {projectId
+                ? tr("Remove from this project?")
+                : tr("Remove from shared library?")}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {projectId
+                ? tr(
+                    "Original files stay on disk. Media used by this project cannot be removed until its timeline clips and project references are removed.",
+                  )
+                : tr(
+                    "Original files stay on disk. Projects already using shared media keep access through their private collections.",
+                  )}{" "}
+              {tr(
+                "If this is a file's last collection, use Delete from disk instead.",
+              )}
+            </DialogDescription>
+            <ul className="media-selected-list">
+              {selectedAssets.map((asset) => (
+                <li key={asset.id}>{asset.name}</li>
+              ))}
+            </ul>
+            {(removeMembership.error || feedback) && (
+              <p role="alert" className="error-banner">
+                {feedback || removeMembership.error?.message}
+              </p>
             )}
-          </DialogDescription>
-          <ul className="media-selected-list">
-            {selectedAssets.map((asset) => (
-              <li key={asset.id}>{asset.name}</li>
-            ))}
-          </ul>
-          {(removeMembership.error || feedback) && (
-            <p role="alert" className="error-banner">
-              {feedback || removeMembership.error?.message}
-            </p>
-          )}
-          <div className="dialog-actions">
+          </DialogBody>
+          <DialogFooter>
             <Button
               variant="outline"
               disabled={busy}
@@ -780,7 +790,7 @@ export default function MediaBrowser({
               )}
               {tr("Remove {{count}} files", { count: selectedAssets.length })}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       {deleting && (
