@@ -597,6 +597,732 @@
         "required": ["type", "payload"],
         "type": "object"
       },
+      "AgentChat": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "directory": {
+            "title": "Directory",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AgentMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "mode": {
+            "enum": ["ask", "edit"],
+            "title": "Mode",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Name"
+          },
+          "provider": {
+            "enum": ["codex", "claude", "copilot"],
+            "title": "Provider",
+            "type": "string"
+          },
+          "running": {
+            "title": "Running",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "description": "Monotonic chat snapshot version, independent of project revision.",
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "project_id",
+          "project_name",
+          "provider",
+          "mode",
+          "directory",
+          "archived",
+          "running",
+          "version",
+          "created_at",
+          "updated_at",
+          "messages"
+        ],
+        "title": "AgentChat",
+        "type": "object"
+      },
+      "AgentChatCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentContext-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "directory": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Directory",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": ["codex", "claude", "copilot"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          }
+        },
+        "title": "AgentChatCreate",
+        "type": "object"
+      },
+      "AgentChatDeleted": {
+        "additionalProperties": false,
+        "properties": {
+          "chat_id": {
+            "title": "Chat Id",
+            "type": "string"
+          },
+          "deleted": {
+            "const": true,
+            "default": true,
+            "title": "Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": ["chat_id", "deleted"],
+        "title": "AgentChatDeleted",
+        "type": "object"
+      },
+      "AgentChatOrder": {
+        "additionalProperties": false,
+        "properties": {
+          "chat_ids": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Chat Ids",
+            "type": "array"
+          }
+        },
+        "required": ["chat_ids"],
+        "title": "AgentChatOrder",
+        "type": "object"
+      },
+      "AgentChatSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "directory": {
+            "title": "Directory",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": ["ask", "edit"],
+            "title": "Mode",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Name"
+          },
+          "provider": {
+            "enum": ["codex", "claude", "copilot"],
+            "title": "Provider",
+            "type": "string"
+          },
+          "running": {
+            "title": "Running",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "description": "Monotonic chat snapshot version, independent of project revision.",
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "project_id",
+          "project_name",
+          "provider",
+          "mode",
+          "directory",
+          "archived",
+          "running",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AgentChatSummary",
+        "type": "object"
+      },
+      "AgentChatUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "directory": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directory"
+          },
+          "expected_version": {
+            "description": "Confirmed chat version; busy chats reject all updates.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": ["ask", "edit"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": ["codex", "claude", "copilot"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": ["expected_version"],
+        "title": "AgentChatUpdate",
+        "type": "object"
+      },
+      "AgentContext-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Label",
+            "type": "string"
+          },
+          "target_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": ["project", "track", "clip", "script_line", "asset"],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "target_id"],
+        "title": "AgentContext",
+        "type": "object"
+      },
+      "AgentContext-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Label",
+            "type": "string"
+          },
+          "target_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": ["project", "track", "clip", "script_line", "asset"],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "target_id", "label"],
+        "title": "AgentContext",
+        "type": "object"
+      },
+      "AgentMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_revisions": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Applied Revisions",
+            "type": "array"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentContext-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "default": "",
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "progress": {
+            "default": "",
+            "title": "Progress",
+            "type": "string"
+          },
+          "provider": {
+            "enum": ["codex", "claude", "copilot"],
+            "title": "Provider",
+            "type": "string"
+          },
+          "reasoning": {
+            "default": "",
+            "title": "Reasoning",
+            "type": "string"
+          },
+          "request_id": {
+            "default": "",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": ["user", "assistant"],
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "enum": ["running", "complete", "failed", "cancelled"],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "text",
+          "provider",
+          "status",
+          "created_at",
+          "context",
+          "reasoning",
+          "progress",
+          "error",
+          "request_id",
+          "applied_revisions"
+        ],
+        "title": "AgentMessage",
+        "type": "object"
+      },
+      "AgentModel": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "reasoning_efforts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasoning Efforts",
+            "type": "array"
+          }
+        },
+        "required": ["id", "display_name", "is_default", "reasoning_efforts"],
+        "title": "AgentModel",
+        "type": "object"
+      },
+      "AgentProviderSettings-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "executable": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Executable",
+            "type": "string"
+          },
+          "model": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Model",
+            "type": "string"
+          },
+          "reasoning_effort": {
+            "default": "default",
+            "enum": [
+              "default",
+              "none",
+              "minimal",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max",
+              "ultra"
+            ],
+            "title": "Reasoning Effort",
+            "type": "string"
+          }
+        },
+        "required": ["executable"],
+        "title": "AgentProviderSettings",
+        "type": "object"
+      },
+      "AgentProviderSettings-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "executable": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Executable",
+            "type": "string"
+          },
+          "model": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Model",
+            "type": "string"
+          },
+          "reasoning_effort": {
+            "default": "default",
+            "enum": [
+              "default",
+              "none",
+              "minimal",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max",
+              "ultra"
+            ],
+            "title": "Reasoning Effort",
+            "type": "string"
+          }
+        },
+        "required": ["executable", "model", "reasoning_effort"],
+        "title": "AgentProviderSettings",
+        "type": "object"
+      },
+      "AgentProviders-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Input"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Input"
+          },
+          "copilot": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Input"
+          }
+        },
+        "title": "AgentProviders",
+        "type": "object"
+      },
+      "AgentProviders-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Output"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Output"
+          },
+          "copilot": {
+            "$ref": "#/components/schemas/AgentProviderSettings-Output"
+          }
+        },
+        "required": ["codex", "claude", "copilot"],
+        "title": "AgentProviders",
+        "type": "object"
+      },
+      "AgentSend": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentContext-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "description": "Unique request ID. Reusing it with identical input returns the existing turn without executing again.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["text", "request_id"],
+        "title": "AgentSend",
+        "type": "object"
+      },
+      "AgentSettings-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "default_provider": {
+            "default": "codex",
+            "enum": ["codex", "claude", "copilot"],
+            "title": "Default Provider",
+            "type": "string"
+          },
+          "providers": {
+            "$ref": "#/components/schemas/AgentProviders-Input"
+          }
+        },
+        "title": "AgentSettings",
+        "type": "object"
+      },
+      "AgentSettings-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "default_provider": {
+            "default": "codex",
+            "enum": ["codex", "claude", "copilot"],
+            "title": "Default Provider",
+            "type": "string"
+          },
+          "providers": {
+            "$ref": "#/components/schemas/AgentProviders-Output"
+          }
+        },
+        "required": ["default_provider", "providers"],
+        "title": "AgentSettings",
+        "type": "object"
+      },
+      "AgentSettingsSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Availability",
+            "type": "object"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "read_only": {
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AgentSettings-Output"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "settings",
+          "version",
+          "enabled",
+          "read_only",
+          "availability"
+        ],
+        "title": "AgentSettingsSnapshot",
+        "type": "object"
+      },
+      "AgentSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "description": "Confirmed settings version; conflicts reject.",
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AgentSettings-Input"
+          }
+        },
+        "required": ["expected_version", "settings"],
+        "title": "AgentSettingsUpdate",
+        "type": "object"
+      },
       "Animation-Input": {
         "additionalProperties": false,
         "properties": {
@@ -13126,6 +13852,1071 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/agent-chat/chats": {
+      "get": {
+        "description": "Read ordered local conversation summaries including immutable project scope, archive state, running state and monotonic chat version. Message history is read separately.",
+        "operationId": "agent_chats",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentChatSummary"
+                  },
+                  "title": "Response Agent Chats Api Agent Chat Chats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Agent Chats",
+        "tags": ["Local agent chat"]
+      },
+      "post": {
+        "description": "Create a persistent conversation for one existing project or General. Project scope cannot subsequently change. New conversations start in Ask; optional context is resolved against that project.",
+        "operationId": "create_agent_chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Create Agent Chat",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/chats/order": {
+      "put": {
+        "description": "Reorder the supplied unique conversation IDs within their existing slots, preserving the positions of all omitted conversations. Does not edit projects or delete history.",
+        "operationId": "order_agent_chats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentChatSummary"
+                  },
+                  "title": "Response Order Agent Chats Api Agent Chat Chats Order Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Order Agent Chats",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/chats/{chat_id}": {
+      "delete": {
+        "description": "Delete an idle conversation and its message history with the confirmed chat version. Does not delete media or roll back project edits; running conversations reject deletion.",
+        "operationId": "delete_agent_chat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_version",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Expected Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChatDeleted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Delete Agent Chat",
+        "tags": ["Local agent chat"]
+      },
+      "get": {
+        "description": "Read the complete persistent conversation snapshot, including partial assistant text, public reasoning summaries, errors and applied project revisions. Poll with Query while running; reconnect does not stop CLI execution.",
+        "operationId": "agent_chat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Agent Chat",
+        "tags": ["Local agent chat"]
+      },
+      "patch": {
+        "description": "Rename/archive/restore a conversation or change provider, Ask/Edit mode or source directory with its confirmed version. Running conversations reject updates; General and read-only policy reject Edit.",
+        "operationId": "update_agent_chat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Update Agent Chat",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/chats/{chat_id}/messages": {
+      "post": {
+        "description": "Accept one local CLI turn with a deduplicated request ID and optional project object reference. Returns 202 with a running snapshot; provider errors arrive in the persisted assistant message. Maximum 3 active turns and 1 per conversation.",
+        "operationId": "send_agent_message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Send Agent Message",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/chats/{chat_id}/stop": {
+      "post": {
+        "description": "Revoke the active turn's project MCP capability and terminate its CLI process group. Preserve partial text and already committed revisions; stopping is not project rollback. Final status may arrive after this acknowledgement.",
+        "operationId": "stop_agent_chat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Stop Agent Chat",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/codex/models": {
+      "get": {
+        "description": "Read the configured Codex CLI's paginated model/list catalog with an 8 second timeout and bounded output. Does not start a thread, inference or consume a model turn.",
+        "operationId": "agent_chat_models",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentModel"
+                  },
+                  "title": "Response Agent Chat Models Api Agent Chat Codex Models Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Agent Chat Models",
+        "tags": ["Local agent chat"]
+      }
+    },
+    "/api/agent-chat/settings": {
+      "get": {
+        "description": "Read local agent configuration, executable availability, enabled/read-only policy and confirmed settings version. Availability checks the executable, not login or model entitlement.",
+        "operationId": "agent_chat_settings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSettingsSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Agent Chat Settings",
+        "tags": ["Local agent chat"]
+      },
+      "put": {
+        "description": "Save provider executables, model IDs and Codex reasoning effort with a confirmed settings version. Changes apply to future turns; existing CLI processes keep their captured settings.",
+        "operationId": "update_agent_chat_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSettingsSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bearer token required when server authentication is enabled"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Cross-origin mutation refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Resource or pinned revision does not exist"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Stale expected_revision: reread and reconcile; never retry a write blindly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Upload exceeds 2 GiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Invalid request or timeline; project writes roll back atomically"
+          }
+        },
+        "security": [
+          {},
+          {
+            "OptionalBearer": []
+          }
+        ],
+        "summary": "Update Agent Chat Settings",
+        "tags": ["Local agent chat"]
+      }
+    },
     "/api/agent/guide": {
       "get": {
         "description": "Read the packaged Markdown agent operating guide: start here before editing. Includes workflow, units, examples, revision conflicts, audio extraction, inspection and implementation limits.",

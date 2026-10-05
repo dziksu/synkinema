@@ -1,14 +1,11 @@
 import json
 import os
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import create_engine, event, text
 
-
-def now():
-    return datetime.now(UTC).isoformat()
+from .chat_store import now  # noqa: F401 -- retain the storage timestamp API
 
 
 class Store:

@@ -1,5 +1,8 @@
 import { guardedRead, isOptimistic } from "@/api/cache";
+import { newerChat } from "@/api/chatCache";
 import type {
+  AgentChat,
+  AgentChatSummary,
   AudioRequest,
   FrameRequest,
   RenderRequestInput,
@@ -11,6 +14,11 @@ import { http } from "@/api/transport";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
 export const keys = {
+  agentSettings: ["agent-settings"] as const,
+  agentModels: (version: number, executable: string) =>
+    ["agent-models", version, executable] as const,
+  agentChats: ["agent-chats"] as const,
+  agentChat: (chatId: string | null) => ["agent-chat", chatId] as const,
   channels: ["channels"] as const,
   channel: (id: string | null) => ["channel", id] as const,
   projects: ["projects"] as const,
@@ -34,6 +42,69 @@ export const keys = {
 };
 const id = encodeURIComponent;
 export const reads = {
+  agentSettings: (client: QueryClient) =>
+    queryOptions({
+      queryKey: keys.agentSettings,
+      queryFn: ({ signal }) =>
+        guardedRead(client, keys.agentSettings, () =>
+          http.api.agentChatSettings({ signal }),
+        ),
+      refetchInterval: 30000,
+    }),
+  agentModels: (version: number, executable: string) =>
+    queryOptions({
+      queryKey: keys.agentModels(version, executable),
+      queryFn: ({ signal }) => http.api.agentChatModels({ signal }),
+      staleTime: 60000,
+    }),
+  agentChats: (client: QueryClient) =>
+    queryOptions({
+      queryKey: keys.agentChats,
+      queryFn: ({ signal }) =>
+        guardedRead(client, keys.agentChats, async () => {
+          const next = await http.api.agentChats({ signal });
+          const old = client.getQueryData<AgentChatSummary[]>(keys.agentChats);
+          return next.map((chat) =>
+            newerChat(
+              old?.find((item) => item.id === chat.id),
+              chat,
+            ),
+          );
+        }),
+      refetchInterval: (query) =>
+        query.state.data?.some((chat) => chat.running) ? 1000 : 5000,
+    }),
+  agentChat: (client: QueryClient, chatId: string | null) =>
+    queryOptions({
+      queryKey: keys.agentChat(chatId),
+      enabled: !!chatId,
+      staleTime: 0,
+      queryFn: ({ signal }) =>
+        guardedRead(client, keys.agentChat(chatId), async () => {
+          const next = await http.api.agentChat(id(chatId!), { signal });
+          const old = client.getQueryData<AgentChat>(keys.agentChat(chatId));
+          const changed = next.messages
+            .flatMap((message) => message.applied_revisions)
+            .some(
+              (revision) =>
+                !old?.messages.some((message) =>
+                  message.applied_revisions.includes(revision),
+                ),
+            );
+          if (changed && next.project_id) {
+            for (const queryKey of [
+              keys.projects,
+              keys.project(next.project_id),
+              keys.history(next.project_id),
+              keys.assets(next.project_id),
+              ["server-state"],
+            ])
+              void client.invalidateQueries({ queryKey });
+          }
+          return newerChat(old, next);
+        }),
+      refetchInterval: (query) => (query.state.data?.running ? 400 : 3000),
+    }),
   channels: (client: QueryClient) =>
     queryOptions({
       queryKey: keys.channels,

@@ -64,3 +64,13 @@ jobs:
           DIGEST: ${{ steps.image.outputs.digest }}
         run: |
           printf 'Published `%s:v%s`\n\nDigest: `%s`\n' "$IMAGE" "$VERSION" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+  local-helper:
+    name: Publish local agent installer
+    needs: image
+    permissions:
+      contents: write
+    uses: ./.github/workflows/local-helper.yml
+    with:
+      ref: ${{ inputs.ref }}
+      version: ${{ inputs.version }}
+      publish: true

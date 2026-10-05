@@ -204,6 +204,26 @@ reports retention and incomplete physical cleanup. On success Studio evicts
 pinned project snapshots before undo, reconciles media caches, and invalidates
 history/usage/jobs. Failures roll back the projection and preserve the take.
 
+### Local agent conversations
+
+`chat_contract.py` defines local conversation/settings/context DTOs. Their endpoints
+are generated together with the existing contract. `reads.agentChat` polls partial
+snapshots through Query and forwards cancellation; `chatWrites` in `mutations.ts`
+owns every conversation mutation. Chat versions are independent of project
+revisions and prevent late POST/GET responses from rewinding completed text.
+Metadata/settings projections use the shared layered cache and confirmed versions.
+Sending uses a request ID for deduplication; pending state never invents success.
+Applied project revisions invalidate project/history/state reads, whose existing
+write layers protect concurrent user edits. Source references contain domain IDs;
+the scoped MCP resolves them on the server. Studio's proxy requires a real local
+peer for every chat route without trusting forwarded headers.
+
+The standalone local launcher serves those same generated chat endpoints on the
+host and streams other requests to an authenticated private Docker engine. Its
+server-side `RemoteChatBackend` uses the existing REST contract for scoped MCP
+reads and atomic revision-guarded edits. Studio keeps the same Query options,
+generated client and cache reconciliation in both deployment modes.
+
 ### Studio runtime (TanStack Start)
 
 `apps/studio` applies these generated-client/Query boundaries in TanStack Start. Its route loaders prefetch Query options, and each SSR request owns

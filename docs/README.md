@@ -16,6 +16,9 @@ checkout is needed only for development and repository examples.
 
 ## Work with an agent
 
+- [Local agent chat](LOCAL_AGENT_CHAT.md) — embedded Codex/Claude/Copilot conversations,
+  Ask/Edit, project context, history and Stop.
+
 1. [Connection guide](AGENT_SETUP.md) — endpoint, client selection, read-only probe
    and troubleshooting.
 2. Client instructions: [Codex](integrations/CODEX.md),

@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { writes } from "@/api/mutations";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +34,7 @@ export default function FolderRemoval({
     >
       <>
         <DialogContent showCloseButton={false} className="modal">
-          <div className="modal-title">
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>{tr("Delete folder?")}</DialogTitle>
             <DialogClose asChild>
               <Button
@@ -46,19 +47,21 @@ export default function FolderRemoval({
                 <X size={20} />
               </Button>
             </DialogClose>
-          </div>
-          <DialogDescription>
-            {tr(
-              "The folder is removed and its files move to this collection's root. No media is deleted.",
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {tr(
+                "The folder is removed and its files move to this collection's root. No media is deleted.",
+              )}
+            </DialogDescription>
+            <p className="deletion-project-name">{name}</p>
+            {mutation.error && (
+              <p role="alert" className="error-banner">
+                {mutation.error.message}
+              </p>
             )}
-          </DialogDescription>
-          <p className="deletion-project-name">{name}</p>
-          {mutation.error && (
-            <p role="alert" className="error-banner">
-              {mutation.error.message}
-            </p>
-          )}
-          <div className="dialog-actions">
+          </DialogBody>
+          <DialogFooter>
             <Button
               variant="outline"
               className="button"
@@ -82,7 +85,7 @@ export default function FolderRemoval({
             >
               {tr("Delete folder, keep files")}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </>
     </DialogRoot>

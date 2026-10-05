@@ -4,12 +4,15 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { tr, useLocale } from "@/lib/i18n";
+import { useChatDock } from "@/modules/chat/store";
+import { useStudio } from "@/modules/editor/store";
 import {
   CaptionStyles,
   PlacementControls,
 } from "@/modules/editor/preview/CanvasTools";
 import {
   Check,
+  MessageSquare,
   Layers,
   Maximize2,
   SlidersHorizontal,
@@ -34,6 +37,7 @@ export default function ClipInspector({
   onRemove: () => void;
 }) {
   useLocale();
+  const projectId = useStudio((state) => state.projectId);
   const visual = ["video", "overlay"].includes(track.kind);
   const effectValue = (type: string) =>
     c.effects.find((e) => e.type === type && e.enabled)?.value ??
@@ -52,6 +56,20 @@ export default function ClipInspector({
         {track.name}
         <span>{c.id.slice(0, 6)}</span>
       </div>
+      {projectId && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            useChatDock
+              .getState()
+              .ask(projectId, { type: "clip", target_id: c.id, label: c.name })
+          }
+        >
+          <MessageSquare />
+          {tr("Ask agent about this clip")}
+        </Button>
+      )}
       <label className="field">
         {" "}
         {tr("Name")}{" "}

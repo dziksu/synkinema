@@ -1,0 +1,108 @@
+name: Local agent launcher
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      version:
+        default: ''
+        type: string
+      publish:
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-15
+          - target: darwin-x64
+            runner: macos-15-intel
+          - target: linux-arm64
+            runner: ubuntu-22.04-arm
+          - target: linux-x64
+            runner: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: requirements-local.txt
+      - run: python -m pip install -r requirements-local.txt
+      - name: Build and smoke the standalone executable outside the checkout
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_REF: ${{ inputs.ref }}
+        run: |
+          args=(--repository "$GITHUB_REPOSITORY" --commit "$RELEASE_REF")
+          if [[ -n "$RELEASE_VERSION" ]]; then
+            args+=(--version "$RELEASE_VERSION")
+          fi
+          python scripts/build_local_helper.py "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: local-helper-${{ matrix.target }}
+          path: dist/local-helper/*
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    name: Publish version-matched local installer
+    needs: build
+    if: inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Recheck the exact published release tag and commit
+        run: node scripts/release/image-tags.mjs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: local-helper-*
+          merge-multiple: true
+          path: .release/local-helper
+      - name: Verify binary identity and assemble all checksums
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_REF: ${{ inputs.ref }}
+        run: >-
+          python3 scripts/package_local_assets.py --directory .release/local-helper
+          --version "$RELEASE_VERSION" --repository "$GITHUB_REPOSITORY" --commit "$RELEASE_REF"
+      - name: Upload only to the already published matching release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gh release upload "v$RELEASE_VERSION" --clobber \
+            .release/local-helper/synkinema-local-darwin-arm64 \
+            .release/local-helper/synkinema-local-darwin-x64 \
+            .release/local-helper/synkinema-local-linux-arm64 \
+            .release/local-helper/synkinema-local-linux-x64 \
+            .release/local-helper/synkinema-local-install.sh \
+            .release/local-helper/SHA256SUMS \
+            .release/local-helper/local-helper.json

@@ -1,3 +1,4 @@
+import { DialogBody, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   DialogClose,
@@ -33,43 +34,45 @@ export default function ElementPicker({
             if (dragging) e.preventDefault();
           }}
         >
-          <div className="modal-title">
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>{tr("Add an element")}</DialogTitle>
             <DialogClose className="icon-button" aria-label={tr("Close")}>
               <X size={18} />
             </DialogClose>
-          </div>
-          <DialogDescription>
-            {tr(
-              "Click to add at the playhead, or drag onto the preview. Occupied layers create a new track.",
-            )}
-          </DialogDescription>
-          <div className="element-choices">
-            {(
-              [
-                ["rectangle", tr("Rectangle")],
-                ["ellipse", tr("Ellipse")],
-                ["line", tr("Line")],
-              ] as const
-            ).map(([shape, label]) => (
-              <Button
-                variant="outline"
-                key={shape}
-                className="button"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData(elementMime, shape);
-                  e.dataTransfer.effectAllowed = "copy";
-                  setDragging(true);
-                }}
-                onDragEnd={() => setDragging(false)}
-                onClick={() => onInsert(shape)}
-              >
-                <span className={`shape-sample shape-${shape}`} />
-                {label}
-              </Button>
-            ))}
-          </div>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              {tr(
+                "Click to add at the playhead, or drag onto the preview. Occupied layers create a new track.",
+              )}
+            </DialogDescription>
+            <div className="element-choices">
+              {(
+                [
+                  ["rectangle", tr("Rectangle")],
+                  ["ellipse", tr("Ellipse")],
+                  ["line", tr("Line")],
+                ] as const
+              ).map(([shape, label]) => (
+                <Button
+                  variant="outline"
+                  key={shape}
+                  className="button"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(elementMime, shape);
+                    e.dataTransfer.effectAllowed = "copy";
+                    setDragging(true);
+                  }}
+                  onDragEnd={() => setDragging(false)}
+                  onClick={() => onInsert(shape)}
+                >
+                  <span className={`shape-sample shape-${shape}`} />
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </DialogBody>
         </DialogContent>
       </>
     </DialogRoot>

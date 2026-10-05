@@ -1,3 +1,4 @@
+import { DialogBody, DialogFooter, DialogForm } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,7 @@ export function NewTrackForm({
     defaultValues: { name: "", kind: "overlay" },
   });
   return (
-    <form
-      className="space-y-4"
+    <DialogForm
       onSubmit={form.handleSubmit(async (values) => {
         if (!(await onSubmit(values)))
           form.setError("root", {
@@ -41,48 +41,52 @@ export function NewTrackForm({
           });
       })}
     >
-      <Controller
-        name="name"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="track-name">{tr("Track name")}</FieldLabel>
-            <Input
-              {...field}
-              id="track-name"
-              required
-              autoFocus
-              maxLength={200}
-              aria-invalid={fieldState.invalid}
-            />
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
-      <Controller
-        name="kind"
-        control={form.control}
-        render={({ field }) => (
-          <Field>
-            <FieldLabel htmlFor="track-kind">{tr("Track type")}</FieldLabel>
-            <NativeSelect {...field} id="track-kind">
-              {kinds.map((kind) => (
-                <NativeSelectOption key={kind} value={kind}>
-                  {trackKindLabel(kind)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-        )}
-      />
-      <FieldError errors={[form.formState.errors.root]} />
-      <Button
-        className="w-full"
-        type="submit"
-        disabled={form.formState.isSubmitting}
-      >
-        {tr("Add track")}
-      </Button>
-    </form>
+      <DialogBody>
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="track-name">{tr("Track name")}</FieldLabel>
+              <Input
+                {...field}
+                id="track-name"
+                required
+                autoFocus
+                maxLength={200}
+                aria-invalid={fieldState.invalid}
+              />
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
+        />
+        <Controller
+          name="kind"
+          control={form.control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor="track-kind">{tr("Track type")}</FieldLabel>
+              <NativeSelect {...field} id="track-kind">
+                {kinds.map((kind) => (
+                  <NativeSelectOption key={kind} value={kind}>
+                    {trackKindLabel(kind)}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+          )}
+        />
+        <FieldError errors={[form.formState.errors.root]} />
+      </DialogBody>
+      <DialogFooter>
+        <Button
+          className="w-full"
+          type="submit"
+          disabled={form.formState.isSubmitting}
+        >
+          {tr("Add track")}
+        </Button>
+      </DialogFooter>
+    </DialogForm>
   );
 }

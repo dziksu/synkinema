@@ -5,6 +5,7 @@ import type {
 import { reads } from "@/api/queries";
 import NumberField from "@/components/NumberField";
 import { Button } from "@/components/ui/button";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/ui/native-select";
 import { tr } from "@/lib/i18n";
 import type { Project } from "@/lib/types";
@@ -38,10 +39,12 @@ function qualityLabel(id: string) {
 }
 export default function ExportSettings({
   project,
+  description,
   busy,
   onExport,
 }: {
   project: Project;
+  description?: string;
   busy: boolean;
   onExport: (request: RenderRequestInput) => void;
 }) {
@@ -123,275 +126,282 @@ export default function ExportSettings({
   const canExport =
     valid && !!catalog.data && !!plan.data && !plan.isError && !busy;
   return (
-    <div className="export-settings">
-      <p className="muted">
-        {tr(
-          "Export a new version in any format. Your timeline and project canvas stay unchanged.",
+    <div className="export-settings flex min-h-0 flex-auto flex-col gap-0">
+      <DialogBody>
+        {description && <p className="muted">{description}</p>}
+        <p className="muted">
+          {tr(
+            "Export a new version in any format. Your timeline and project canvas stay unchanged.",
+          )}
+        </p>
+        {catalog.isPending && (
+          <p role="status">{tr("Loading output formats…")}</p>
         )}
-      </p>
-      {catalog.isPending && (
-        <p role="status">{tr("Loading output formats…")}</p>
-      )}
-      {catalog.isError && (
-        <p role="alert">
-          {catalog.error.message}{" "}
-          <button onClick={() => void catalog.refetch()}>
-            {tr("Try again")}
-          </button>
-        </p>
-      )}
-      <label className="field">
-        {tr("Output format")}
-        <NativeSelect
-          value={format}
-          onChange={(e) => {
-            if (e.target.value === "custom")
-              setCustom({ width: size.width, height: size.height });
-            setFormat(e.target.value);
-          }}
-        >
-          <option value="project">
-            {tr("Match project canvas")} · {project.profile.width} ×{" "}
-            {project.profile.height}
-          </option>
-          {["16:9", "9:16", "1:1", "4:5"].map((aspect) => (
-            <option key={aspect} value={aspect}>
-              {formatLabel(aspect)} · {aspect}
-            </option>
-          ))}
-          <option value="custom">{tr("Custom dimensions")}</option>
-        </NativeSelect>
-      </label>
-      {presets.length > 0 && (
-        <div
-          className="export-resolution-grid"
-          role="group"
-          aria-label={tr("Resolution")}
-        >
-          {presets.map((p) => (
-            <button
-              type="button"
-              key={p.id}
-              aria-pressed={p.id === preset?.id}
-              onClick={() => setEdge(Number(p.id.split("-").at(-1)))}
-            >
-              <strong>{p.resolution}</strong>
-              <span>
-                {p.width} × {p.height}
-              </span>
+        {catalog.isError && (
+          <p role="alert">
+            {catalog.error.message}{" "}
+            <button onClick={() => void catalog.refetch()}>
+              {tr("Try again")}
             </button>
-          ))}
-        </div>
-      )}
-      {format === "custom" && (
-        <div className="field-row">
-          <NumberField
-            label={tr("Width (px)")}
-            value={custom.width}
-            min={128}
-            max={3840}
-            step={2}
-            onChange={(width) => setCustom({ ...custom, width })}
-          />
-          <NumberField
-            label={tr("Height (px)")}
-            value={custom.height}
-            min={128}
-            max={3840}
-            step={2}
-            onChange={(height) => setCustom({ ...custom, height })}
-          />
-        </div>
-      )}
-      {!valid && (
-        <p role="alert">
-          {tr("Use even dimensions between 128 and 3840 pixels.")}
-        </p>
-      )}
-      <div className="field-row">
+          </p>
+        )}
         <label className="field">
-          {tr("Encoding quality")}
+          {tr("Output format")}
           <NativeSelect
-            value={crf}
-            onChange={(e) => setCrf(Number(e.target.value))}
+            value={format}
+            onChange={(e) => {
+              if (e.target.value === "custom")
+                setCustom({ width: size.width, height: size.height });
+              setFormat(e.target.value);
+            }}
           >
-            {catalog.data?.qualities.map((q) => (
-              <option key={q.id} value={q.crf}>
-                {qualityLabel(q.id)}
+            <option value="project">
+              {tr("Match project canvas")} · {project.profile.width} ×{" "}
+              {project.profile.height}
+            </option>
+            {["16:9", "9:16", "1:1", "4:5"].map((aspect) => (
+              <option key={aspect} value={aspect}>
+                {formatLabel(aspect)} · {aspect}
               </option>
             ))}
+            <option value="custom">{tr("Custom dimensions")}</option>
           </NativeSelect>
         </label>
-        <label className="field">
-          {tr("Frame rate")}
-          <NativeSelect
-            value={fps}
-            onChange={(e) => setFps(Number(e.target.value))}
+        {presets.length > 0 && (
+          <div
+            className="export-resolution-grid"
+            role="group"
+            aria-label={tr("Resolution")}
           >
-            {Array.from(
-              new Set([
-                ...(catalog.data?.frame_rates || []),
-                project.profile.fps,
-              ]),
-            )
-              .sort((a, b) => a - b)
-              .map((rate) => (
-                <option key={rate} value={rate}>
-                  {rate} FPS
+            {presets.map((p) => (
+              <button
+                type="button"
+                key={p.id}
+                aria-pressed={p.id === preset?.id}
+                onClick={() => setEdge(Number(p.id.split("-").at(-1)))}
+              >
+                <strong>{p.resolution}</strong>
+                <span>
+                  {p.width} × {p.height}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        {format === "custom" && (
+          <div className="field-row">
+            <NumberField
+              label={tr("Width (px)")}
+              value={custom.width}
+              min={128}
+              max={3840}
+              step={2}
+              onChange={(width) => setCustom({ ...custom, width })}
+            />
+            <NumberField
+              label={tr("Height (px)")}
+              value={custom.height}
+              min={128}
+              max={3840}
+              step={2}
+              onChange={(height) => setCustom({ ...custom, height })}
+            />
+          </div>
+        )}
+        {!valid && (
+          <p role="alert">
+            {tr("Use even dimensions between 128 and 3840 pixels.")}
+          </p>
+        )}
+        <div className="field-row">
+          <label className="field">
+            {tr("Encoding quality")}
+            <NativeSelect
+              value={crf}
+              onChange={(e) => setCrf(Number(e.target.value))}
+            >
+              {catalog.data?.qualities.map((q) => (
+                <option key={q.id} value={q.crf}>
+                  {qualityLabel(q.id)}
                 </option>
               ))}
-          </NativeSelect>
-        </label>
-      </div>
-      <p className="field-hint">
-        {tr(
-          "Higher FPS does not create new motion. Use 60 FPS when your footage supports it.",
-        )}
-      </p>
-      {ratioChanged && (
-        <div className="export-framing">
-          <div>
-            <label className="field">
-              {tr("Frame fitting")}
-              <NativeSelect
-                value={fit}
-                onChange={(e) => setFit(e.target.value as typeof fit)}
-              >
-                <option value="contain">
-                  {tr("Fit · keep the whole composition")}
-                </option>
-                <option value="cover">
-                  {tr("Fill · crop to the output frame")}
-                </option>
-              </NativeSelect>
-            </label>
-            {fit === "contain" && (
+            </NativeSelect>
+          </label>
+          <label className="field">
+            {tr("Frame rate")}
+            <NativeSelect
+              value={fps}
+              onChange={(e) => setFps(Number(e.target.value))}
+            >
+              {Array.from(
+                new Set([
+                  ...(catalog.data?.frame_rates || []),
+                  project.profile.fps,
+                ]),
+              )
+                .sort((a, b) => a - b)
+                .map((rate) => (
+                  <option key={rate} value={rate}>
+                    {rate} FPS
+                  </option>
+                ))}
+            </NativeSelect>
+          </label>
+        </div>
+        <p className="field-hint">
+          {tr(
+            "Higher FPS does not create new motion. Use 60 FPS when your footage supports it.",
+          )}
+        </p>
+        {ratioChanged && (
+          <div className="export-framing">
+            <div>
               <label className="field">
-                {tr("Bar color")}
+                {tr("Frame fitting")}
+                <NativeSelect
+                  value={fit}
+                  onChange={(e) => setFit(e.target.value as typeof fit)}
+                >
+                  <option value="contain">
+                    {tr("Fit · keep the whole composition")}
+                  </option>
+                  <option value="cover">
+                    {tr("Fill · crop to the output frame")}
+                  </option>
+                </NativeSelect>
+              </label>
+              {fit === "contain" && (
+                <label className="field">
+                  {tr("Bar color")}
+                  <input
+                    type="color"
+                    value={background}
+                    onChange={(e) => setBackground(e.target.value)}
+                  />
+                </label>
+              )}
+              <label className="field">
+                {tr("Horizontal alignment")}
                 <input
-                  type="color"
-                  value={background}
-                  onChange={(e) => setBackground(e.target.value)}
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={x}
+                  onChange={(e) => setX(Number(e.target.value))}
                 />
               </label>
-            )}
-            <label className="field">
-              {tr("Horizontal alignment")}
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={x}
-                onChange={(e) => setX(Number(e.target.value))}
-              />
-            </label>
-            <label className="field">
-              {tr("Vertical alignment")}
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={y}
-                onChange={(e) => setY(Number(e.target.value))}
-              />
-            </label>
-            <Button
-              variant="ghost"
-              type="button"
-              className="button subtle"
-              onClick={() => {
-                setX(0.5);
-                setY(0.5);
-              }}
-            >
-              {tr("Center frame")}
-            </Button>
-          </div>
-          <figure className="export-framing-guide">
-            <div
-              className="export-framing-stage"
-              style={{
-                aspectRatio: targetAspect,
-                background,
-                width: Math.min(180, 220 * targetAspect),
-              }}
-            >
-              <div
-                className="export-canvas-guide"
-                style={{
-                  width: `${widthPercent}%`,
-                  height: `${heightPercent}%`,
-                  left: `${(100 - widthPercent) * x}%`,
-                  top: `${(100 - heightPercent) * y}%`,
+              <label className="field">
+                {tr("Vertical alignment")}
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={y}
+                  onChange={(e) => setY(Number(e.target.value))}
+                />
+              </label>
+              <Button
+                variant="ghost"
+                type="button"
+                className="button subtle"
+                onClick={() => {
+                  setX(0.5);
+                  setY(0.5);
                 }}
               >
-                <span>{tr("Project canvas")}</span>
-              </div>
+                {tr("Center frame")}
+              </Button>
             </div>
-            <figcaption>
-              {tr("Framing guide · applies to all layers")}
-            </figcaption>
-          </figure>
-        </div>
-      )}
-      {plan.isFetching && (
-        <p role="status" className="field-hint">
-          {tr("Checking source resolution…")}
-        </p>
-      )}
-      {plan.isError && (
-        <p role="alert">
-          {plan.error.message}{" "}
-          <button onClick={() => void plan.refetch()}>{tr("Try again")}</button>
-        </p>
-      )}
-      {!!plan.data?.warnings.length && (
-        <details className="export-warnings">
-          <summary>
-            {tr("{{count}} source or framing warnings", {
-              count: plan.data.warnings.length,
-            })}
-          </summary>
-          <ul>
-            {plan.data.warnings.map((warning, i) => (
-              <li key={`${warning.code}-${i}`}>{warning.message}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-      <div className="export-delivery-summary">
-        <strong>
-          {output.width} × {output.height} · {fps} FPS
-        </strong>
-        <span>
-          {tr("MP4 · H.264 · AAC")} · {project.profile.target_lufs} LUFS
-        </span>
-      </div>
-      <div className="export-options">
-        <button
-          disabled={!canExport}
-          onClick={form.handleSubmit(() =>
-            onExport({ ...request, quality: "preview" }),
-          )}
-        >
-          <Play />
-          <strong>{tr("Check framing")}</strong>
-          <span>{tr("Draft only · up to 640 px")}</span>
-        </button>
-        <button
-          className="export-final"
-          disabled={!canExport}
-          onClick={form.handleSubmit(() => onExport(request))}
-        >
-          {busy ? <LoaderCircle className="spin" /> : <Clapperboard />}
-          <strong>{tr("Export final video")}</strong>
-          <span>
+            <figure className="export-framing-guide">
+              <div
+                className="export-framing-stage"
+                style={{
+                  aspectRatio: targetAspect,
+                  background,
+                  width: Math.min(180, 220 * targetAspect),
+                }}
+              >
+                <div
+                  className="export-canvas-guide"
+                  style={{
+                    width: `${widthPercent}%`,
+                    height: `${heightPercent}%`,
+                    left: `${(100 - widthPercent) * x}%`,
+                    top: `${(100 - heightPercent) * y}%`,
+                  }}
+                >
+                  <span>{tr("Project canvas")}</span>
+                </div>
+              </div>
+              <figcaption>
+                {tr("Framing guide · applies to all layers")}
+              </figcaption>
+            </figure>
+          </div>
+        )}
+        {plan.isFetching && (
+          <p role="status" className="field-hint">
+            {tr("Checking source resolution…")}
+          </p>
+        )}
+        {plan.isError && (
+          <p role="alert">
+            {plan.error.message}{" "}
+            <button onClick={() => void plan.refetch()}>
+              {tr("Try again")}
+            </button>
+          </p>
+        )}
+        {!!plan.data?.warnings.length && (
+          <details className="export-warnings">
+            <summary>
+              {tr("{{count}} source or framing warnings", {
+                count: plan.data.warnings.length,
+              })}
+            </summary>
+            <ul>
+              {plan.data.warnings.map((warning, i) => (
+                <li key={`${warning.code}-${i}`}>{warning.message}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </DialogBody>
+      <DialogFooter className="block space-y-4">
+        <div className="export-delivery-summary">
+          <strong>
             {output.width} × {output.height} · {fps} FPS
+          </strong>
+          <span>
+            {tr("MP4 · H.264 · AAC")} · {project.profile.target_lufs} LUFS
           </span>
-        </button>
-      </div>
+        </div>
+        <div className="export-options">
+          <button
+            disabled={!canExport}
+            onClick={form.handleSubmit(() =>
+              onExport({ ...request, quality: "preview" }),
+            )}
+          >
+            <Play />
+            <strong>{tr("Check framing")}</strong>
+            <span>{tr("Draft only · up to 640 px")}</span>
+          </button>
+          <button
+            className="export-final"
+            disabled={!canExport}
+            onClick={form.handleSubmit(() => onExport(request))}
+          >
+            {busy ? <LoaderCircle className="spin" /> : <Clapperboard />}
+            <strong>{tr("Export final video")}</strong>
+            <span>
+              {output.width} × {output.height} · {fps} FPS
+            </span>
+          </button>
+        </div>
+      </DialogFooter>
     </div>
   );
 }

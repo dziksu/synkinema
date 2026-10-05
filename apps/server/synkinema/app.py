@@ -76,6 +76,10 @@ def create_app(data_dir=None, start_worker=True):
 
     production = Production(service, inspection, voices)
     mcp = make_mcp(service, worker, inspection, voices, production)
+    from .chat_routes import local_request, register_chat_http
+    from .chat_service import ChatService
+
+    chat = ChatService(service)
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -83,10 +87,13 @@ def create_app(data_dir=None, start_worker=True):
             if start_worker:
                 await worker.start()
                 await production.start()
-            yield
-            await production.stop()
-            await worker.stop()
-            store.engine.dispose()
+            try:
+                yield
+            finally:
+                await chat.close()
+                await production.stop()
+                await worker.stop()
+                store.engine.dispose()
 
     app = FastAPI(
         title="Synkinema",
@@ -110,6 +117,7 @@ def create_app(data_dir=None, start_worker=True):
     )
     app.state.service, app.state.worker, app.state.inspection = service, worker, inspection
     app.state.production = production
+    app.state.chat = chat
 
     async def swagger_docs(request: Request):
         root = request.scope.get("root_path", "").rstrip("/")
@@ -147,6 +155,9 @@ def create_app(data_dir=None, start_worker=True):
 
     @app.middleware("http")
     async def local_security(request: Request, call_next):
+        chat_path = request.url.path.startswith("/api/agent-chat/")
+        if chat_path and not local_request(request):
+            return JSONResponse({"detail": "Agent chat requires a local connection"}, status_code=403)
         # Refuse cross-origin mutations even when a hostile page can reach localhost.
         origin = request.headers.get("origin")
         if request.method not in ("GET", "HEAD", "OPTIONS") and origin:
@@ -158,7 +169,13 @@ def create_app(data_dir=None, start_worker=True):
             ):
                 return JSONResponse({"detail": "Cross-origin writes are not allowed"}, status_code=403)
         token = os.environ.get("SYNKINEMA_API_TOKEN")
-        if token and request.url.path.startswith(("/api/", "/mcp")) and request.url.path != "/api/health":
+        capability = request.url.path.startswith("/api/agent-chat/mcp/")
+        if (
+            token
+            and request.url.path.startswith(("/api/", "/mcp"))
+            and request.url.path != "/api/health"
+            and not capability
+        ):
             import secrets
 
             if not secrets.compare_digest(request.headers.get("authorization", ""), f"Bearer {token}"):
@@ -543,14 +560,20 @@ def create_app(data_dir=None, start_worker=True):
     from .channel_routes import register_channel_http
 
     register_channel_http(app, service)
+    register_chat_http(app, chat)
     for route in app.routes:
         if isinstance(route, APIRoute) and route.path.startswith("/api/"):
             route.description = REST_DESCRIPTIONS[route.name]
-            route.tags = [
-                "Agent discovery"
-                if route.name in {"read_agent_guide", "project_schema", "operation_schema", "capabilities"}
-                else "Composition"
-            ]
+            route.tags = (
+                ["Local agent chat"]
+                if route.path.startswith("/api/agent-chat/")
+                else [
+                    "Agent discovery"
+                    if route.name
+                    in {"read_agent_guide", "project_schema", "operation_schema", "capabilities"}
+                    else "Composition"
+                ]
+            )
             route.operation_id = route.name
 
     from .openapi import install_openapi
