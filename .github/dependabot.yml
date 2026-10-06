@@ -56,6 +56,9 @@ updates:
       # MCP 2 changes the server contract and requires a deliberate migration.
       - dependency-name: mcp
         update-types: [version-update:semver-major]
+      # tokenizers 0.23 requires huggingface-hub < 2; migrate speech together.
+      - dependency-name: huggingface-hub
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directory: /
     schedule:

@@ -1,7 +1,11 @@
 """Cheap timeline diagnostics. Does not render, decode media or change stored state."""
 
+import logging
+
 from .renderer import validate_timeline
 from .timeline import lane_overlaps
+
+log = logging.getLogger(__name__)
 
 
 def narration_link_issues(project):
@@ -36,8 +40,11 @@ def preflight(service, project, *, require_script_audio=False):
         issue(errors, "empty_timeline", "Add clips before rendering.")
     try:
         validate_timeline(project)
-    except ValueError as exc:
-        issue(errors, "timeline", str(exc))
+    except ValueError:
+        log.warning("Preflight timeline validation failed for project %s", project.id, exc_info=True)
+        issue(
+            errors, "timeline", "Timeline validation failed. Check video tracks, clip timing and transitions."
+        )
     for track, left, right in lane_overlaps(project):
         issue(
             warnings,
@@ -58,8 +65,20 @@ def preflight(service, project, *, require_script_audio=False):
             )
             try:
                 service.validate_assets(sample)
-            except (ValueError, KeyError) as exc:
-                issue(errors, "clip", str(exc).strip("'"), **context)
+            except (ValueError, KeyError):
+                log.warning(
+                    "Preflight clip validation failed for project %s, track %s, clip %s",
+                    project.id,
+                    track.id,
+                    clip.id,
+                    exc_info=True,
+                )
+                issue(
+                    errors,
+                    "clip",
+                    "Clip validation failed. Check media references and clip settings.",
+                    **context,
+                )
             if clip.asset_id:
                 referenced.add(clip.asset_id)
     for asset_id in sorted(referenced):
@@ -67,8 +86,14 @@ def preflight(service, project, *, require_script_audio=False):
             asset = service.asset(asset_id)
             if not service.store.path(asset["path"]).is_file():
                 issue(errors, "missing_media_file", "Source media file is missing.", asset_id=asset_id)
-        except (ValueError, KeyError) as exc:
-            issue(errors, "asset", str(exc).strip("'"), asset_id=asset_id)
+        except (ValueError, KeyError):
+            log.warning(
+                "Preflight asset validation failed for project %s, asset %s",
+                project.id,
+                asset_id,
+                exc_info=True,
+            )
+            issue(errors, "asset", "Referenced asset is invalid or unavailable.", asset_id=asset_id)
     active = [t for t in project.tracks if not t.muted]
     audio = [c for t in active if t.kind in ("voiceover", "music", "sound", "ambient") for c in t.clips]
     visual = [c for t in active if t.kind in ("video", "overlay") for c in t.clips]

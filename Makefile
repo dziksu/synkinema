@@ -2,7 +2,7 @@
 RUFF ?= .venv/bin/ruff
 PYTHON ?= .venv/bin/python
 
-.PHONY: help format format-check format-web format-python check lint test-tools api-check test-python test-web build build-local
+.PHONY: help format format-check format-web format-python check dependency-check lint test-tools api-check test-python test-web build build-local
 
 help:
 	@echo "make format        — format frontend/config (Biome) and Python (Ruff)"
@@ -22,7 +22,10 @@ format-check:
 	npm --prefix apps/studio run format:check
 	$(RUFF) format --check apps/server tests scripts
 
-check: format-check lint test-tools api-check test-python test-web build
+check: dependency-check format-check lint test-tools api-check test-python test-web build
+
+dependency-check:
+	$(PYTHON) -m pytest -q tests/test_local_helper_packaging.py::test_helper_dependency_versions_match_engine_lock
 
 lint:
 	$(RUFF) check apps/server tests scripts

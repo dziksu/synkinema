@@ -29,8 +29,9 @@ const server = http.createServer(async (req, res) => {
 		);
 		res.end(content);
 	} catch (e) {
+		console.error("Failed to serve Turnwise scene resource", e);
 		res.statusCode = 404;
-		res.end(String(e));
+		res.end("Not found");
 	}
 });
 server.listen(0, "127.0.0.1");

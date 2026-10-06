@@ -75,6 +75,10 @@ def test_helper_dependency_versions_match_engine_lock():
         return result
 
     engine, helper = pinned(ROOT / "requirements.txt"), pinned(ROOT / "requirements-local.txt")
-    for name in engine.keys() & helper.keys():
-        assert engine[name] == helper[name], name
+    mismatches = [
+        f"{name}: engine {engine[name]}, helper {helper[name]}"
+        for name in sorted(engine.keys() & helper.keys())
+        if engine[name] != helper[name]
+    ]
+    assert not mismatches, "Shared dependency pins must match requirements.txt:\n" + "\n".join(mismatches)
     assert all(version.startswith("==") for version in helper.values())
