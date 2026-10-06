@@ -64,6 +64,9 @@ updates:
         applies-to: security-updates
         patterns: ['*']
     ignore:
+      # PyAV 19 removes metadata_errors used by pinned faster-whisper 1.2.1.
+      - dependency-name: av
+        update-types: [version-update:semver-major]
       # Archived provider/model adapter is upgraded only after an explicit review.
       - dependency-name: supertonic
       # MCP 2 changes the server contract and requires a deliberate migration.
