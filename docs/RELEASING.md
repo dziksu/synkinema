@@ -24,6 +24,8 @@ by `make check` or `npm run release:check`.
 and CI verification. Update shared packages in `requirements.txt` and
 `requirements-local.txt` together. Keep `huggingface-hub` below version 2 while
 the pinned `tokenizers` release requires it; migrate the speech dependencies together.
+The launcher resolves `pydantic-core` from Pydantic's exact dependency metadata;
+do not add an independent core pin that can conflict with the selected Pydantic.
 
 1. Run `npm ci --ignore-scripts`, install Studio/Python dependencies as in the
    README, then run `make check` and `npm run workflows:check`.
@@ -76,6 +78,12 @@ for public repositories; private repositories need
 GitHub Code Security and the `ENABLE_CODEQL=true` repository variable.
 Enable private vulnerability reporting in Settings → Security for the advisory
 link in `SECURITY.md`. Dependabot uses the checked-in configuration automatically.
+Routine Dependabot updates run on Mondays at 09:00 Europe/Warsaw and combine
+minor/patch updates into one PR per area: release tooling, Studio, Python,
+containers and GitHub Actions. npm/Python major migrations stay separate, subject
+to the existing migration ignores. Version PR limits are two per npm/Python entry
+and one per Docker/Actions entry. Security updates have their own groups and do
+not wait for the weekly version-update schedule or consume those version limits.
 
 ## Pipeline
 
