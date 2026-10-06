@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.7.1](https://github.com/dziksu/synkinema/compare/v1.7.0...v1.7.1) (2026-10-06)
+
+### Build and Dependencies
+
+* **deps-dev:** bump swagger-typescript-api from 13.12.6 to 13.13.0 in /apps/studio ([e5efff7](https://github.com/dziksu/synkinema/commit/e5efff73c7f98c0b4a4d3493a713e99dd34e6cb4))
+* **deps:** bump huggingface-hub from 1.32.0 to 1.33.0 in the speech group ([77aa43d](https://github.com/dziksu/synkinema/commit/77aa43d91593f5141b62c968e66bfa1009850b2b))
+* **deps:** bump mako from 1.4.1 to 1.4.3 ([2dbe938](https://github.com/dziksu/synkinema/commit/2dbe9380e42d93e01a45dcbaeeeb009b46baf19a))
+* **deps:** bump pyjwt from 2.14.0 to 2.15.1 ([bb7d735](https://github.com/dziksu/synkinema/commit/bb7d735d7eeea6e7e9dd0b85ef16c70c43d59a35))
+* **deps:** bump react-hook-form from 7.88.0 to 7.89.0 in /apps/studio ([8297ac9](https://github.com/dziksu/synkinema/commit/8297ac9532461d2e52c5187788fabe76d6c2a1f4))
+* **deps:** bump react-resizable-panels from 4.14.1 to 4.14.2 in /apps/studio ([13b7030](https://github.com/dziksu/synkinema/commit/13b703044ac75f69fbce04762a8aa3d7411567bb))
+* **deps:** bump shadcn from 4.21.0 to 4.21.1 in /apps/studio ([0d2aeab](https://github.com/dziksu/synkinema/commit/0d2aeab643390c64b94929001eb67a0f0e64f4f5))
+* **deps:** bump the studio group in /apps/studio with 5 updates ([fa104ed](https://github.com/dziksu/synkinema/commit/fa104ed227f783d221b072ca1e2e2c2aa9743a63))
+* **deps:** bump undici from 8.10.2 to 8.11.2 in /apps/studio ([58192f5](https://github.com/dziksu/synkinema/commit/58192f59253e7722ad0ee54d5cd58f35b456b1bf))
+* **deps:** bump watchfiles from 1.2.0 to 1.3.0 ([89d9631](https://github.com/dziksu/synkinema/commit/89d9631de4aee07d906cdcdbc5c1971024767bd9))
+* **deps:** group Dependabot updates and fix Pydantic core resolution ([74e5937](https://github.com/dziksu/synkinema/commit/74e5937e1fc54b48f2338388c9005bc20a9b453d))
+* **deps:** patch vulnerable Studio transitive dependencies ([9f70d07](https://github.com/dziksu/synkinema/commit/9f70d07cdbb4d960127842d6b6382fe56610cab1))
+* **deps:** update Python dependencies and guard speech compatibility ([967011d](https://github.com/dziksu/synkinema/commit/967011daba427042bcd9fa502ea88eeb54379b1b))
+
 ## [1.7.0](https://github.com/dziksu/synkinema/compare/v1.6.2...v1.7.0) (2026-10-05)
 
 ### Features
