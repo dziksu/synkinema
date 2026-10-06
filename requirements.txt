@@ -27,7 +27,7 @@ huggingface-hub==1.32.0
 idna==3.19
 jsonschema-specifications==2025.9.1
 jsonschema==4.26.0
-Mako==1.4.1
+Mako==1.4.3
 MarkupSafe==3.0.3
 mcp==1.30.0
 numpy==2.5.3
