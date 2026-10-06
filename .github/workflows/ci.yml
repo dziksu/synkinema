@@ -46,7 +46,7 @@ jobs:
       - name: Validate workflow syntax
         run: npm run workflows:check
       - name: Format, release rules, API drift and Python tests
-        run: make format-check lint test-tools api-check test-python PYTHON=python RUFF=ruff
+        run: make dependency-check format-check lint test-tools api-check test-python PYTHON=python RUFF=ruff
   studio:
     name: Studio tests and build
     runs-on: ubuntu-24.04

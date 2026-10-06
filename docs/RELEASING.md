@@ -20,6 +20,11 @@ version-by-version release record.
 No remote is needed for local checks. No push or external publication is performed
 by `make check` or `npm run release:check`.
 
+`make dependency-check` checks shared Python pins before the rest of `make check`
+and CI verification. Update shared packages in `requirements.txt` and
+`requirements-local.txt` together. Keep `huggingface-hub` below version 2 while
+the pinned `tokenizers` release requires it; migrate the speech dependencies together.
+
 1. Run `npm ci --ignore-scripts`, install Studio/Python dependencies as in the
    README, then run `make check` and `npm run workflows:check`.
 2. Review and commit the intended files with Conventional Commit subjects. Keep
