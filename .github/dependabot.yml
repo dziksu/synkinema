@@ -4,12 +4,19 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+      day: monday
+      time: '09:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 2
     commit-message:
       prefix: build(deps-dev)
     groups:
       release-toolchain:
-        patterns: ['semantic-release', '@semantic-release/*', 'conventional-changelog-*']
+        patterns: ['*']
+        update-types: [minor, patch]
+      release-security:
+        applies-to: security-updates
+        patterns: ['*']
     ignore:
       # Preset 10 requires a newer changelog writer; update the toolchain together.
       - dependency-name: conventional-changelog-conventionalcommits
@@ -18,19 +25,20 @@ updates:
     directory: /apps/studio
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+      day: monday
+      time: '09:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 2
     commit-message:
       prefix: build(deps)
       prefix-development: build(deps-dev)
     groups:
-      react:
-        patterns: [react, react-dom, '@types/react', '@types/react-dom']
-      tanstack:
-        patterns: ['@tanstack/*']
-      i18n:
-        patterns: [i18next, react-i18next]
-      build-tools:
-        patterns: ['vite', 'vitest', '@vitejs/plugin-react', '@tailwindcss/vite']
+      studio:
+        patterns: ['*']
+        update-types: [minor, patch]
+      studio-security:
+        applies-to: security-updates
+        patterns: ['*']
     ignore:
       # Compiler and OpenAPI generator majors require source and contract migrations.
       - dependency-name: typescript
@@ -41,15 +49,20 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+      day: monday
+      time: '09:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 2
     commit-message:
       prefix: build(deps)
       prefix-development: build(deps-dev)
     groups:
-      api:
-        patterns: [fastapi, starlette, pydantic, pydantic-core, mcp]
-      speech:
-        patterns: [supertonic, onnxruntime, numpy, soundfile, huggingface-hub]
+      python:
+        patterns: ['*']
+        update-types: [minor, patch]
+      python-security:
+        applies-to: security-updates
+        patterns: ['*']
     ignore:
       # Archived provider/model adapter is upgraded only after an explicit review.
       - dependency-name: supertonic
@@ -63,8 +76,18 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 1
     commit-message:
       prefix: build(deps)
+    groups:
+      containers:
+        patterns: ['*']
+      containers-security:
+        applies-to: security-updates
+        patterns: ['*']
     ignore:
       # Runtime majors must move with .nvmrc/.python-version and both smoke tests.
       - dependency-name: node
@@ -75,5 +98,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 1
     commit-message:
       prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ['*']
+      actions-security:
+        applies-to: security-updates
+        patterns: ['*']
