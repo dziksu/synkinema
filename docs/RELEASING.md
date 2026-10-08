@@ -126,6 +126,10 @@ public in GitHub Packages and rerun the failed workflow for the same tag/commit;
 the workflow does not change package visibility or fall back to a different image.
 Launcher assets publish only after the matching image succeeds;
 an older release retry uploads to its own tag without changing `latest`.
+Verification and publication use separate `local-helper-check-*` and
+`local-helper-release-*` artifact names. Publication downloads only the release
+artifacts. A retried build replaces its own target artifact, so partial retries
+can retain the other successful targets without mixing verification binaries.
 `make check` includes installer/gateway regression tests; the container CI smoke
 additionally launches a compiled host helper outside the checkout with a disposable
 volume and test CLI. Real account inference remains a separate local check.
@@ -166,6 +170,13 @@ lockfiles; base-image and OS security updates are intentional rebuild inputs.
   job, or rerun the workflow for the same commit. The release runner reuses only
   a single stable tag pointing at that exact SHA. It never chooses an unrelated
   latest tag or increments the version just to retry the image.
+- **An existing release needs a publication workflow fix:** after the fix is
+  merged and its required checks pass, run **Release container** from Actions
+  using the current `main` workflow. Enter the existing version without `v` and
+  the full commit SHA referenced by that version's tag. This uses the corrected
+  publication workflow to rebuild the original source and upload its matching
+  installer. The exact tag/commit and anonymous image checks still apply; it
+  does not create a release or update an older release's `latest` aliases.
 - **Tag exists but GitHub Release creation failed:** inspect that exact tag and
   commit in GitHub. Complete the missing release for that tag in the GitHub UI
   (use generated release notes), then rerun the workflow for the same commit.

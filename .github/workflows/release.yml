@@ -1,6 +1,18 @@
 name: Release container
 # Called directly: GITHUB_TOKEN-created tags do not trigger a separate push run.
 on:
+  # Recover an existing release using the current publication workflow while
+  # rebuilding only the exact, previously verified tagged commit.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing stable release version, without the v prefix
+        required: true
+        type: string
+      ref:
+        description: Full commit SHA matching the existing release tag
+        required: true
+        type: string
   workflow_call:
     inputs:
       version:

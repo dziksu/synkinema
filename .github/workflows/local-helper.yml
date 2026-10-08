@@ -54,10 +54,12 @@ jobs:
           python scripts/build_local_helper.py "${args[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: local-helper-${{ matrix.target }}
+          # CI verification and release publication both call this workflow.
+          name: local-helper-${{ inputs.publish && 'release' || 'check' }}-${{ matrix.target }}
           path: dist/local-helper/*
           if-no-files-found: error
           retention-days: 7
+          overwrite: true
   publish:
     name: Publish version-matched local installer
     needs: build
@@ -87,7 +89,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: local-helper-*
+          pattern: local-helper-release-*
           merge-multiple: true
           path: .release/local-helper
       - name: Verify binary identity and assemble all checksums
