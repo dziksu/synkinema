@@ -256,9 +256,17 @@ async def test_launcher_ownership_shared_volume_and_failed_run_cleanup(tmp_path,
 
     monkeypatch.setattr(local_launcher, "docker", fake_docker)
     config = options(["--data-dir", str(tmp_path / "profile"), "--port", "59150", "--no-open"])
-    with pytest.raises(ValueError, match="already used"):
+    with pytest.raises(ValueError, match="already used") as error:
         await run(config)
+    assert "docker stop other-container" in str(error.value)
+    assert "Stopping retains projects and media" in str(error.value)
+    assert "Changing only --port" in str(error.value)
     assert not any(call[0] == "run" for call in calls)
+    users = "first-container\nsecond-container"
+    with pytest.raises(ValueError, match="already used") as error:
+        await run(config)
+    assert "docker stop first-container second-container" in str(error.value)
+    assert not any(call[0] in ("run", "stop", "rm") for call in calls)
     users, existing = "", {"Id": "a" * 64, "Config": {"Labels": {}}}
     with pytest.raises(ValueError, match="another deployment"):
         await run(config)
@@ -276,6 +284,37 @@ async def test_launcher_ownership_shared_volume_and_failed_run_cleanup(tmp_path,
         await awaitable
     assert ["container", "rm", "--force", "b" * 64] in calls
     assert not any("--volumes" in call for call in calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reason", ["unauthorized", "denied", "manifest unknown"])
+async def test_unavailable_release_image_explains_local_recovery_without_leaking_token(monkeypatch, reason):
+    from synkinema import local_launcher
+
+    token = "private-profile-token"
+
+    class FailedPull:
+        returncode = 1
+
+        async def communicate(self):
+            return b"", f"Error: {reason} ({token})".encode()
+
+    async def spawn(*args, **kwargs):
+        return FailedPull()
+
+    monkeypatch.setattr(local_launcher.shutil, "which", lambda name: "/bin/docker")
+    monkeypatch.setattr(local_launcher.asyncio, "create_subprocess_exec", spawn)
+    with pytest.raises(ValueError) as error:
+        await local_launcher.docker(["run", "ghcr.io/dziksu/synkinema:v1.7.1"], token=token)
+    message = str(error.value)
+    assert token not in message
+    assert "anonymous pulls" in message
+    assert "docker build -t synkinema:local ." in message
+    assert "--image synkinema:local" in message
+    assert "same --volume" in message
+    with pytest.raises(ValueError) as error:
+        await local_launcher.docker(["container", "inspect", "unknown"], token=token)
+    assert "docker build" not in str(error.value)
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
 import signal
 import socket
@@ -95,6 +96,16 @@ async def docker(args, *, token=None):
         message = error.decode("utf-8", "replace").strip()[-2000:]
         if token:
             message = message.replace(token, "[private token]")
+        image = next((arg for arg in args if arg.startswith("ghcr.io/")), None)
+        if image and any(
+            reason in message.lower() for reason in ("unauthorized", "denied", "manifest unknown")
+        ):
+            message += (
+                f"\nCannot download {image}. The published image must allow anonymous pulls."
+                "\nFrom a Synkinema checkout, run `docker build -t synkinema:local .`,"
+                " then restart this launcher with `--image synkinema:local`."
+                " Keep the same --volume to retain projects and media."
+            )
         raise ValueError(f"Docker: {message or 'command failed'}")
     return output.decode("utf-8", "replace").strip()
 
@@ -322,8 +333,14 @@ async def run(config):
                 await remove_owned(config.container, previous.container_id, previous.instance)
             users = await docker(["ps", "--filter", f"volume={config.volume}", "--format", "{{.Names}}"])
             if users:
+                names = users.splitlines()
+                stop_command = shlex.join(["docker", "stop", *names])
                 raise ValueError(
-                    f"Data volume {config.volume} is already used by {users}. Stop that deployment first"
+                    f"Data volume {config.volume} is already used by {', '.join(names)}."
+                    "\nFinish any active renders or agent turns, then stop that deployment first:"
+                    f"\n  {stop_command}"
+                    "\nStopping retains projects and media. Restart this launcher afterwards."
+                    " Changing only --port will not resolve a shared-volume conflict."
                 )
             listener = reserve_port(config.port)
             reserve_port(config.backend_port).close()
