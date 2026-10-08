@@ -118,7 +118,13 @@ a source/version manifest and license notices. They are generated into ignored
 `requirements-local.txt` dependency set. The builder stamps only a staged package.
 Each target records version/repository/commit and SHA-256; assembly rejects mixed,
 missing or modified artifacts. The existing exact-tag image guard runs again
-before upload. Launcher assets publish only after the matching image succeeds;
+before upload. After the image push and again before installer upload, an
+anonymous GHCR token/manifest check verifies the exact version is publicly
+readable and contains Linux amd64/arm64 images. Authenticated publication alone
+does not prove users can download a package. If this check fails, make the package
+public in GitHub Packages and rerun the failed workflow for the same tag/commit;
+the workflow does not change package visibility or fall back to a different image.
+Launcher assets publish only after the matching image succeeds;
 an older release retry uploads to its own tag without changing `latest`.
 `make check` includes installer/gateway regression tests; the container CI smoke
 additionally launches a compiled host helper outside the checkout with a disposable

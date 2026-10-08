@@ -57,6 +57,10 @@ jobs:
             SOURCE_URL=https://github.com/${{ github.repository }}
           sbom: true
           provenance: mode=max
+      - name: Verify the published image is available to installer users
+        run: node scripts/release/public-image.mjs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
       - name: Record published image digest
         env:
           IMAGE: ${{ steps.identity.outputs.image }}

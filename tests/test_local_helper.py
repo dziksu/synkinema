@@ -243,6 +243,7 @@ async def test_launcher_ownership_shared_volume_and_failed_run_cleanup(tmp_path,
         if args[0] == "ps":
             return users
         if args[0] == "run":
+            assert kwargs["image"] == config.image
             labels = {
                 args[index + 1].split("=", 1)[0]: args[index + 1].split("=", 1)[1]
                 for index, value in enumerate(args)
@@ -256,9 +257,17 @@ async def test_launcher_ownership_shared_volume_and_failed_run_cleanup(tmp_path,
 
     monkeypatch.setattr(local_launcher, "docker", fake_docker)
     config = options(["--data-dir", str(tmp_path / "profile"), "--port", "59150", "--no-open"])
-    with pytest.raises(ValueError, match="already used"):
+    with pytest.raises(ValueError, match="already used") as error:
         await run(config)
+    assert "docker stop other-container" in str(error.value)
+    assert "Stopping retains projects and media" in str(error.value)
+    assert "Changing only --port" in str(error.value)
     assert not any(call[0] == "run" for call in calls)
+    users = "first-container\nsecond-container"
+    with pytest.raises(ValueError, match="already used") as error:
+        await run(config)
+    assert "docker stop first-container second-container" in str(error.value)
+    assert not any(call[0] in ("run", "stop", "rm") for call in calls)
     users, existing = "", {"Id": "a" * 64, "Config": {"Labels": {}}}
     with pytest.raises(ValueError, match="another deployment"):
         await run(config)
@@ -276,6 +285,71 @@ async def test_launcher_ownership_shared_volume_and_failed_run_cleanup(tmp_path,
         await awaitable
     assert ["container", "rm", "--force", "b" * 64] in calls
     assert not any("--volumes" in call for call in calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reason", ["unauthorized", "denied", "manifest unknown"])
+async def test_unavailable_release_image_explains_local_recovery_without_leaking_token(monkeypatch, reason):
+    from synkinema import local_launcher
+
+    token = "private-profile-token"
+
+    class FailedPull:
+        returncode = 1
+
+        async def communicate(self):
+            return b"", f"Error: {reason} ({token})".encode()
+
+    async def spawn(*args, **kwargs):
+        return FailedPull()
+
+    monkeypatch.setattr(local_launcher.shutil, "which", lambda name: "/bin/docker")
+    monkeypatch.setattr(local_launcher.asyncio, "create_subprocess_exec", spawn)
+    with pytest.raises(ValueError) as error:
+        image = "ghcr.io/dziksu/synkinema:v1.7.1"
+        await local_launcher.docker(["run", image], token=token, image=image)
+    message = str(error.value)
+    assert token not in message
+    assert "anonymous pulls" in message
+    assert "docker build -t synkinema:local ." in message
+    assert "--image synkinema:local" in message
+    assert "same --volume" in message
+    with pytest.raises(ValueError) as error:
+        await local_launcher.docker(["container", "inspect", "unknown"], token=token)
+    assert "docker build" not in str(error.value)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "image",
+    [
+        "evil.example/ghcr.io/dziksu/synkinema:v1.7.1",
+        "ghcr.io.evil.example/dziksu/synkinema:v1.7.1",
+        "ghcr.io@evil.example/dziksu/synkinema:v1.7.1",
+        "https://ghcr.io/dziksu/synkinema:v1.7.1",
+        "synkinema:local",
+        None,
+    ],
+)
+async def test_release_image_recovery_checks_explicit_registry_not_other_arguments(monkeypatch, image):
+    from synkinema import local_launcher
+
+    class FailedCommand:
+        returncode = 1
+
+        async def communicate(self):
+            return b"", b"Docker: unauthorized"
+
+    async def spawn(*args, **kwargs):
+        return FailedCommand()
+
+    monkeypatch.setattr(local_launcher.shutil, "which", lambda name: "/bin/docker")
+    monkeypatch.setattr(local_launcher.asyncio, "create_subprocess_exec", spawn)
+    # A GHCR-looking argument does not identify the image being run.
+    with pytest.raises(ValueError) as error:
+        await local_launcher.docker(["run", "--env", "ghcr.io/unrelated", image or "local"], image=image)
+    assert "Cannot download" not in str(error.value)
+    assert "anonymous pulls" not in str(error.value)
 
 
 @pytest.mark.asyncio
@@ -298,6 +372,7 @@ async def test_import_history_preserves_ids_order_settings_and_originals(tmp_pat
     calls = []
 
     async def fake_docker(args, **kwargs):
+        assert kwargs["image"] == config.image
         calls.append(args)
         return json.dumps(snapshot)
 

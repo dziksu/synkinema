@@ -39,7 +39,16 @@ editable timeline; revision history and undo keep every change under your contro
 ### Docker with your local CLI agents
 
 To use the built-in chat with **Codex, Claude Code or Copilot installed and signed
-in on your computer**, install Docker and curl, then run:
+in on your computer**, install Docker and curl, and start your Docker engine
+(Docker Desktop or Colima).
+
+**Moving an existing Compose installation to this mode?** Finish any running
+renders or agent turns, then run `docker compose stop synkinema` in its checkout
+**before** the installer. This keeps the `synkinema_synkinema-data` volume and
+your projects/media. The launcher needs exclusive access to that volume and
+port 43817; changing only the port does not resolve a shared-volume conflict.
+
+Then run:
 
 ```sh
 curl -fsSL https://github.com/dziksu/synkinema/releases/latest/download/synkinema-local-install.sh | sh
@@ -47,8 +56,8 @@ curl -fsSL https://github.com/dziksu/synkinema/releases/latest/download/synkinem
 
 The installer verifies SHA-256, installs a standalone launcher for macOS/Linux
 arm64/x64, and starts the matching Docker image. **No cloning, Python, Node.js or
-local FFmpeg installation is needed.** This command becomes available with the
-release containing the launcher assets; older releases do not include them.
+local FFmpeg installation is needed.** The selected release must include the
+launcher assets and a publicly readable matching GHCR image.
 
 Open **[http://localhost:43817](http://localhost:43817)**, then **Agent chat →
 Agent settings**. The localhost gateway runs your native CLI with its existing
@@ -67,12 +76,14 @@ container while retaining projects, media and conversations. Start again with:
 ~/.local/share/synkinema/synkinema-local stop
 ```
 
-For an existing Compose deployment, stop it with `docker compose stop synkinema`
-before starting this mode; retain its volume. The launcher refuses occupied ports,
-foreign containers and a volume already used by another running container.
+The launcher refuses occupied ports, foreign containers and a volume already
+used by another running container. If installation succeeded but startup failed,
+fix the reported problem and rerun the installed launcher; no reinstallation is needed.
 If your earlier `docker run` used `synkinema-data`, pass `--volume synkinema-data`.
 Use `--port 43819`, `--backend-port`, `--data-dir`, `--read-only` and `--no-open`
-as needed. To update, stop the launcher and rerun the installer; helper and image
+as needed. If pulling the matching image reports `unauthorized`, `denied` or
+`manifest unknown`, see [launcher troubleshooting](docs/LOCAL_AGENT_CHAT.md#launcher-troubleshooting).
+To update, stop the launcher and rerun the installer; helper and image
 versions must match. See [local launcher details](docs/LOCAL_AGENT_CHAT.md#docker-with-agents-on-the-host).
 
 ### Docker engine and external MCP clients

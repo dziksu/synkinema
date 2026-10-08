@@ -27,13 +27,19 @@ account's quota/billing.
 
 Install Docker (including a local running engine such as Colima), curl and at
 least one signed-in CLI. The released installer starts everything without a
-checkout or installed Python/Node:
+checkout or installed Python/Node.
+
+For an existing Compose installation, finish active renders/agent turns and run
+`docker compose stop synkinema` in its checkout **before** installing. This keeps
+its named volume and all projects/media. Only one engine can use that volume.
+Then run:
 
 ```sh
 curl -fsSL https://github.com/dziksu/synkinema/releases/latest/download/synkinema-local-install.sh | sh
 ```
 
-The command requires a release containing the new assets. It downloads a
+The command requires launcher assets and a publicly readable matching Docker
+image in the selected release. It downloads a
 versioned PyInstaller executable, checks SHA-256 and writes a shortcut under
 `~/.local/share/synkinema`. Packaged platforms are macOS arm64/x64 and Linux
 arm64/x64 with glibc 2.35 or newer. Windows/musl are not packaged. Source paths
@@ -105,6 +111,26 @@ matching Docker image succeeds. Local smoke uses disposable data:
 python scripts/smoke_local_helper.py synkinema:local \
   --helper dist/local-helper/synkinema-local-darwin-arm64
 ```
+
+## Launcher troubleshooting
+
+| Startup error | Recovery |
+| --- | --- |
+| `Data volume ... is already used by ...` | Finish active work, then run the `docker stop ...` command printed by the launcher (or `docker compose stop synkinema` in the original checkout). Stopping preserves the volume. Run the installed launcher again. Changing only `--port` cannot fix this conflict. |
+| `Local port ... is occupied` | Stop the application using that port, or choose `--port 43819`. The backend defaults to the next port. |
+| Docker cannot connect to its daemon | Start Docker Desktop/Colima and check `docker info`, then rerun the launcher. |
+| Image pull returns `unauthorized`, `denied` or `manifest unknown` | The matching published image is unavailable to anonymous users. The maintainer must make the GHCR package public and verify that version was published. With a checkout, build `docker build -t synkinema:local .`, then use the command below. Helper/image versions must match. |
+
+If the installer already created the executable, there is no need to download it
+again. For a matching local image:
+
+```sh
+~/.local/share/synkinema/synkinema-local --image synkinema:local
+```
+
+Keep the original `--volume` when restarting so existing projects remain visible.
+To return to the previous Compose deployment, stop the launcher, then run
+`docker compose up -d synkinema` in the original checkout.
 
 ## Asking and editing
 

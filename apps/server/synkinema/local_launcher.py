@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
 import signal
 import socket
@@ -71,7 +72,7 @@ def options(args=None):
     return result
 
 
-async def docker(args, *, token=None):
+async def docker(args, *, token=None, image=None):
     if not shutil.which("docker"):
         raise ValueError("Install and start Docker (Docker Desktop/Colima) first")
     env = external_environment()
@@ -95,6 +96,18 @@ async def docker(args, *, token=None):
         message = error.decode("utf-8", "replace").strip()[-2000:]
         if token:
             message = message.replace(token, "[private token]")
+        # Docker image references use registry/repository, without a URL scheme.
+        if (
+            image
+            and image.partition("/")[0] == "ghcr.io"
+            and any(reason in message.lower() for reason in ("unauthorized", "denied", "manifest unknown"))
+        ):
+            message += (
+                f"\nCannot download {image}. The published image must allow anonymous pulls."
+                "\nFrom a Synkinema checkout, run `docker build -t synkinema:local .`,"
+                " then restart this launcher with `--image synkinema:local`."
+                " Keep the same --volume to retain projects and media."
+            )
         raise ValueError(f"Docker: {message or 'command failed'}")
     return output.decode("utf-8", "replace").strip()
 
@@ -220,7 +233,8 @@ async def import_chats(config):
                 config.image,
                 "-c",
                 EXPORT_CHATS,
-            ]
+            ],
+            image=config.image,
         )
     )
     for _, document, _ in snapshot["chats"]:
@@ -322,8 +336,14 @@ async def run(config):
                 await remove_owned(config.container, previous.container_id, previous.instance)
             users = await docker(["ps", "--filter", f"volume={config.volume}", "--format", "{{.Names}}"])
             if users:
+                names = users.splitlines()
+                stop_command = shlex.join(["docker", "stop", *names])
                 raise ValueError(
-                    f"Data volume {config.volume} is already used by {users}. Stop that deployment first"
+                    f"Data volume {config.volume} is already used by {', '.join(names)}."
+                    "\nFinish any active renders or agent turns, then stop that deployment first:"
+                    f"\n  {stop_command}"
+                    "\nStopping retains projects and media. Restart this launcher afterwards."
+                    " Changing only --port will not resolve a shared-volume conflict."
                 )
             listener = reserve_port(config.port)
             reserve_port(config.backend_port).close()
@@ -359,7 +379,7 @@ async def run(config):
             for key in ("ELEVENLABS_API_KEY", "SYNKINEMA_FFMPEG_THREADS"):
                 if key in os.environ:
                     args.extend(["--env", key])
-            container_id = await docker([*args, config.image], token=token)
+            container_id = await docker([*args, config.image], token=token, image=config.image)
             state = LocalState(
                 token=token,
                 container=config.container,
