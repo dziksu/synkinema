@@ -7990,7 +7990,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
 /**
  * @title Synkinema
- * @version 1.7.1
+ * @version 1.7.2
  *
  * Local FFmpeg editing API shared with MCP at /mcp/. Start with /api/agent/guide, /api/schema/project and /api/schema/operations. All timeline times are integer milliseconds. Serialize project writes using expected_revision; inspect actual renders before declaring completion.
  */

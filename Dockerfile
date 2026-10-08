@@ -1,5 +1,5 @@
 FROM node:24-bookworm-slim AS studio
-ARG APP_VERSION=1.7.1
+ARG APP_VERSION=1.7.2
 ENV VITE_APP_VERSION=$APP_VERSION
 WORKDIR /studio
 COPY apps/studio/package*.json ./
@@ -8,7 +8,7 @@ COPY apps/studio/ ./
 RUN npm run build
 
 FROM python:3.12-slim-bookworm AS runtime
-ARG APP_VERSION=1.7.1
+ARG APP_VERSION=1.7.2
 ARG VCS_REF=unknown
 ARG SOURCE_URL=https://github.com/dziksu/synkinema
 LABEL org.opencontainers.image.title="Synkinema" \
