@@ -72,7 +72,7 @@ def options(args=None):
     return result
 
 
-async def docker(args, *, token=None):
+async def docker(args, *, token=None, image=None):
     if not shutil.which("docker"):
         raise ValueError("Install and start Docker (Docker Desktop/Colima) first")
     env = external_environment()
@@ -96,9 +96,11 @@ async def docker(args, *, token=None):
         message = error.decode("utf-8", "replace").strip()[-2000:]
         if token:
             message = message.replace(token, "[private token]")
-        image = next((arg for arg in args if arg.startswith("ghcr.io/")), None)
-        if image and any(
-            reason in message.lower() for reason in ("unauthorized", "denied", "manifest unknown")
+        # Docker image references use registry/repository, without a URL scheme.
+        if (
+            image
+            and image.partition("/")[0] == "ghcr.io"
+            and any(reason in message.lower() for reason in ("unauthorized", "denied", "manifest unknown"))
         ):
             message += (
                 f"\nCannot download {image}. The published image must allow anonymous pulls."
@@ -231,7 +233,8 @@ async def import_chats(config):
                 config.image,
                 "-c",
                 EXPORT_CHATS,
-            ]
+            ],
+            image=config.image,
         )
     )
     for _, document, _ in snapshot["chats"]:
@@ -376,7 +379,7 @@ async def run(config):
             for key in ("ELEVENLABS_API_KEY", "SYNKINEMA_FFMPEG_THREADS"):
                 if key in os.environ:
                     args.extend(["--env", key])
-            container_id = await docker([*args, config.image], token=token)
+            container_id = await docker([*args, config.image], token=token, image=config.image)
             state = LocalState(
                 token=token,
                 container=config.container,
