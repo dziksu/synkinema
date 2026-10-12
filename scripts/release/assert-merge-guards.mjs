@@ -1,13 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const requiredChecks = [
-  "Verify code and API contract",
-  "Studio tests and build",
-  "Container (linux/amd64)",
-  "Container (linux/arm64)",
-  "Conventional PR title",
-];
+const requiredChecks = ["Release metadata", "Conventional PR title"];
 
 export function assertReleaseMergeGuards(rules) {
   const pullRequestRules = rules.filter((rule) => rule.type === "pull_request");

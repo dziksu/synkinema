@@ -55,6 +55,10 @@ jobs:
             APP_VERSION=${{ inputs.version }}
             VCS_REF=${{ inputs.ref }}
             SOURCE_URL=https://github.com/${{ github.repository }}
+          # Reuse the exact version/commit layers from both native smoke builds.
+          cache-from: |
+            type=gha,scope=release-amd64
+            type=gha,scope=release-arm64
           sbom: true
           provenance: mode=max
       - name: Verify the published image is available to installer users

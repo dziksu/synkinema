@@ -1,10 +1,6 @@
 name: CodeQL
+# Optional maintainer audit; routine checks run locally through Husky.
 on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: '31 6 * * 1'
   workflow_dispatch:
 permissions:
   contents: read

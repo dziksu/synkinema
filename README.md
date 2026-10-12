@@ -316,7 +316,7 @@ Windows users can use Docker or WSL2.
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m pip install --no-build-isolation --no-deps -e .
-npm ci --ignore-scripts
+npm ci                     # Also installs Husky hooks
 npm --prefix apps/studio ci
 npm --prefix apps/studio run build
 .venv/bin/synkinema serve
@@ -334,12 +334,12 @@ its existing port 8080. See [Studio architecture and runtime](apps/studio/README
 
 ```sh
 make format              # Biome for web/tooling; Ruff for Python
-make check               # Same code, contract, tests and build gate as CI
+make check               # Full gate, also run by Husky pre-push and before release
 npm run workflows:check  # Pinned actionlint, archive checksum verified
 npm run release:check    # Local commit analysis; never publishes or creates tags
 ```
 
-The root npm manifest contains release tooling only. The Studio has its own
+The root npm manifest contains release tooling and local Git hooks. The Studio has its own
 manifest and lockfile. Biome formats JavaScript, TypeScript, CSS, HTML and JSON;
 Ruff formats and lints Python. YAML is checked by actionlint. See
 [Contributing](CONTRIBUTING.md) for the full workflow.
@@ -412,9 +412,10 @@ collaboration. Cache size is not automatically capped. See [Roadmap](ROADMAP.md)
 
 ## Releases and license
 
-Conventional Commits on `main` drive semantic-release after the code checks and
-both container smoke tests pass. It opens or updates a release PR with the
-generated changelog and matching application versions. With the documented
+Conventional Commits on `main` drive semantic-release planning and a release PR
+with the generated changelog and matching application versions. Routine code
+checks run locally through Husky; GitHub keeps a small PR title check and runs full
+code/API verification plus both container smoke tests before publishing a version. With the documented
 repository rules and auto-merge enabled, passing required checks automatically
 squash-merge that PR. The merge publishes the version tag, GitHub release notes
 and GHCR image. No npm or PyPI package is published.
