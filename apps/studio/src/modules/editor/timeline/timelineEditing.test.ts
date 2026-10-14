@@ -10,6 +10,7 @@ import {
   planMediaInsert,
   planMove,
   removeSteps,
+  splitSteps,
   withLinked,
 } from "./timelineEditing";
 
@@ -67,6 +68,54 @@ it("links synced picture and sound halves and expands selections with them", () 
   expect(withLinked(p, ["pic"]).sort()).toEqual(["pic", "snd"]);
   expect(withLinked(p, ["pic"], false)).toEqual(["pic"]);
   expect(withLinked(p, ["missing", "other"])).toEqual(["other"]);
+});
+
+it.each(["pic", "snd"])(
+  "splits linked picture and sound from %s with matching speed-adjusted source ranges",
+  (anchor) => {
+    const range = { source_in_ms: 500, speed: 1.5 };
+    const p = project([
+      track("v", "video", [clip("pic", 1000, 8000, range)]),
+      track("a", "sound", [clip("snd", 1000, 8000, range)]),
+      track("other", "music", [
+        clip("unrelated", 1000, 8000, { asset_id: "song" }),
+      ]),
+    ]);
+    const steps = splitSteps(p, anchor, 5000);
+    expect(steps).toHaveLength(2);
+    const after = projectAfter(p, { steps, batch: true });
+    for (const lane of after.tracks.slice(0, 2)) {
+      expect(
+        lane.clips.map((c) => [c.start_ms, c.duration_ms, c.source_in_ms]),
+      ).toEqual([
+        [1000, 4000, 500],
+        [5000, 4000, 6500],
+      ]);
+    }
+    expect(after.tracks[2]).toEqual(p.tracks[2]);
+    expect(after.revision).toBe(p.revision);
+    const [picture, audio] = after.tracks;
+    expect(
+      new Set(after.tracks.slice(0, 2).flatMap((t) => t.clips.map((c) => c.id)))
+        .size,
+    ).toBe(4);
+    for (let side = 0; side < 2; side++)
+      expect(linkedClipIds(after, picture.clips[side].id)).toEqual([
+        audio.clips[side].id,
+      ]);
+  },
+);
+
+it("splits only the requested clip when linked selection is disabled", () => {
+  const p = project([
+    track("v", "video", [clip("pic", 0, 8000)]),
+    track("a", "sound", [clip("snd", 0, 8000)]),
+  ]);
+  const steps = splitSteps(p, "pic", 4000, false);
+  expect(steps).toHaveLength(1);
+  const after = projectAfter(p, { steps });
+  expect(after.tracks[0].clips).toHaveLength(2);
+  expect(after.tracks[1]).toEqual(p.tracks[1]);
 });
 
 it("selects clips intersecting a marquee on the covered tracks only", () => {

@@ -29,6 +29,7 @@ import {
   planMediaInsert,
   planMove,
   removeSteps,
+  splitSteps,
   type MediaInsert,
 } from "@/modules/editor/timeline/timelineEditing";
 import { freeStart } from "@/modules/editor/timeline/timelineMath";
@@ -65,6 +66,7 @@ export function useProjectEditing(
     const id = project.id;
     // Preserve only changed transform properties before the preceding request completes.
     const intent = structuredClone(payload) as Record<string, any>;
+    const linking = useStudio.getState().linking;
     if (
       ["update_clip", "inspector_update"].includes(type) &&
       intent.changes?.transform
@@ -253,6 +255,14 @@ export function useProjectEditing(
               );
             steps = moveSteps(current, plan);
             batch = true;
+          } else if (type === "split_clip") {
+            steps = splitSteps(
+              current,
+              intent.clip_id,
+              intent.time_ms,
+              linking,
+            );
+            batch = steps.length > 1;
           } else if (type === "remove_clips") {
             steps = removeSteps(current, intent.clip_ids);
             if (!steps.length)

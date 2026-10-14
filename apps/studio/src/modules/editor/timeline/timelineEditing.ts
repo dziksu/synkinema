@@ -84,6 +84,29 @@ export function withLinked(project: Project, ids: string[], linking = true) {
   return [...all];
 }
 
+/** Split both synchronized halves in one edit, preserving a linked pair on each side. */
+export function splitSteps(
+  project: Project,
+  clipId: string,
+  timeMs: number,
+  linking = true,
+): EditStep[] {
+  if (!locate(project, clipId))
+    throw new Error(tr("This clip is no longer available."));
+  return withLinked(project, [clipId], linking).map((id) => {
+    const { track, clip } = locate(project, id)!;
+    return {
+      type: "split_clip",
+      payload: {
+        track_id: track.id,
+        clip_id: clip.id,
+        time_ms: timeMs,
+        new_clip_id: createId(),
+      },
+    };
+  });
+}
+
 /** Clips whose rendered boxes intersect a marquee, in timeline coordinates. */
 export function clipsInRange(
   project: Project,
