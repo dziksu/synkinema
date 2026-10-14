@@ -16,6 +16,7 @@ import { Preview } from "@/modules/editor/preview/Preview";
 import SourceMonitor from "@/modules/editor/source/SourceMonitor";
 import { useStudio } from "@/modules/editor/store";
 import Timeline from "@/modules/editor/timeline/Timeline";
+import TimelineSplitButton from "@/modules/editor/timeline/TimelineSplitButton";
 import type { MediaInsert } from "@/modules/editor/timeline/timelineEditing";
 import { audioKinds, freeStart } from "@/modules/editor/timeline/timelineMath";
 import MediaBrowser from "@/modules/media/MediaBrowser";
@@ -30,7 +31,6 @@ import {
   Pause,
   Play,
   Plus,
-  Scissors,
   SkipBack,
   SlidersHorizontal,
   Type,
@@ -428,20 +428,15 @@ export function EditorTimeline({
               <ArrowRight size={16} />
             </IconButton>
             <span className="divider" />
-            <IconButton
-              label={tr("Split clip at playhead")}
-              disabled={!selected || operation.isPending}
-              onClick={() =>
-                selected &&
-                edit("split_clip", {
-                  track_id: selectedTrack!.id,
-                  clip_id: selected.id,
-                  time_ms: Math.round(useStudio.getState().time),
-                })
-              }
-            >
-              <Scissors size={16} />
-            </IconButton>
+            <TimelineSplitButton
+              compact
+              clip={selected}
+              track={selectedTrack}
+              pending={operation.isPending}
+              onEdit={(type, payload) => {
+                void edit(type, payload);
+              }}
+            />
             <Button
               variant="ghost"
               className="text-button"
