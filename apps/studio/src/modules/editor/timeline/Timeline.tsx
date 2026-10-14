@@ -31,6 +31,7 @@ import {
   trimValues,
 } from "@/modules/editor/timeline/timelineMath";
 import TimelineTrackMenu from "@/modules/editor/timeline/TimelineTrackMenu";
+import TimelineRuler from "@/modules/editor/timeline/TimelineRuler";
 import {
   Eye,
   EyeOff,
@@ -586,55 +587,13 @@ export default function Timeline({
           ref={content}
           style={{ width: width + headerWidth }}
         >
-          <div className="ruler">
-            <div className="ruler-label">{project.profile.fps} FPS</div>
-            <div
-              className="ruler-line"
-              style={{ width }}
-              role="slider"
-              aria-label={tr("Timeline playhead")}
-              aria-valuemin={0}
-              aria-valuemax={project.duration_ms}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                  e.preventDefault();
-                  set({
-                    time: Math.max(
-                      0,
-                      Math.min(
-                        project.duration_ms - 1,
-                        useStudio.getState().time +
-                          ((e.key === "ArrowRight" ? 1 : -1) * 1000) /
-                            project.profile.fps,
-                      ),
-                    ),
-                    playing: false,
-                  });
-                }
-              }}
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
-                seek(e.clientX, e.currentTarget);
-              }}
-              onPointerMove={(e) => {
-                if (e.currentTarget.hasPointerCapture(e.pointerId))
-                  seek(e.clientX, e.currentTarget);
-              }}
-            >
-              {Array.from(
-                { length: Math.ceil(duration / (zoom < 1 ? 5000 : 2000)) },
-                (_, i) => {
-                  const t = i * (zoom < 1 ? 5000 : 2000);
-                  return (
-                    <span key={i} style={{ left: t * px }}>
-                      {tc(t)}
-                    </span>
-                  );
-                },
-              )}
-            </div>
-          </div>
+          <TimelineRuler
+            durationMs={project.duration_ms}
+            fps={project.profile.fps}
+            zoom={zoom}
+            width={width}
+            rulerDurationMs={duration}
+          />
           <TrackSorting tracks={project.tracks} onEdit={onEdit}>
             {project.tracks.map((t, index) => {
               const visual = ["video", "overlay", "text"].includes(t.kind);
