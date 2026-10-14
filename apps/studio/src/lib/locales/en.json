@@ -804,6 +804,8 @@
   "Add at {{time}} · reuse a free track or create a layer": "Add at {{time}} · reuse a free track or create a layer",
   "Click to add at the playhead, or drag onto the preview. Occupied layers create a new track.": "Click to add at the playhead, or drag onto the preview. Occupied layers create a new track.",
   "All 32 tracks are in use. Free a compatible track at the playhead before adding another layer.": "All 32 tracks are in use. Free a compatible track at the playhead before adding another layer.",
+  "All 32 tracks are in use. Free a track before adding this transition.": "All 32 tracks are in use. Free a track before adding this transition.",
+  "Transition applied. Overlapping clips use separate tracks.": "Transition applied. Overlapping clips use separate tracks.",
   "Sound effects": "Sound effects",
   "This media is no longer available.": "This media is no longer available.",
   "Unknown element type.": "Unknown element type.",

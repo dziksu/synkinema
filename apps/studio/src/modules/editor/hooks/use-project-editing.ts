@@ -34,6 +34,7 @@ import {
   type MediaInsert,
 } from "@/modules/editor/timeline/timelineEditing";
 import { freeStart } from "@/modules/editor/timeline/timelineMath";
+import { transitionSteps } from "@/modules/editor/timeline/transitionEditing";
 
 export function useProjectEditing(
   project: Project | undefined,
@@ -137,6 +138,7 @@ export function useProjectEditing(
     let resolvedDirectionRevision: number | undefined;
     let before: Project;
     let scriptPlacement: ScriptTakePlacement | undefined;
+    let transitionTracks = 0;
     return operation
       .mutateAsync({
         projectId: id,
@@ -299,6 +301,15 @@ export function useProjectEditing(
             );
             steps = scriptPlacement.steps;
             batch = steps.length > 1;
+          } else if (resolved.type === "set_transition") {
+            steps = transitionSteps(
+              current,
+              resolved as Extract<EditStep, { type: "set_transition" }>,
+            );
+            transitionTracks = steps.filter(
+              (step) => step.type === "add_track",
+            ).length;
+            batch = steps.length > 1;
           } else {
             steps = [resolved as EditStep];
           }
@@ -318,6 +329,10 @@ export function useProjectEditing(
           stacks.redo = [];
         }
         setShowRender(false);
+        if (transitionTracks)
+          setNotice(
+            tr("Transition applied. Overlapping clips use separate tracks."),
+          );
         if (scriptPlacement) {
           if (useStudio.getState().projectId === id)
             state.set({

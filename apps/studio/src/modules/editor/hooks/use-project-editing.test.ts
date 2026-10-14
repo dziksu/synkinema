@@ -16,7 +16,7 @@ afterEach(() => {
   useStudio.setState({ linking: true });
 });
 
-function setup() {
+function setup(pairedCuts = false) {
   const project = {
     ...structuredClone(defaults.project),
     id: "linked-split",
@@ -37,6 +37,16 @@ function setup() {
       ],
     })),
   } as ProjectSnapshot;
+  if (pairedCuts)
+    for (const track of project.tracks) {
+      track.clips[0].duration_ms = 4000;
+      track.clips.push({
+        ...structuredClone(track.clips[0]),
+        id: `${track.id}-second`,
+        start_ms: 4000,
+        source_in_ms: 4000,
+      });
+    }
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -101,6 +111,117 @@ it("sends linked split as one revision-guarded batch and records one undo entry"
         .getQueryData<ProjectSnapshot>(keys.project(project.id))
         ?.tracks.map((t) => t.clips.length),
     ).toEqual([2, 2]);
+  } finally {
+    unmount();
+    client.clear();
+  }
+});
+
+it("saves a transition and its audio companion lane atomically, undoes it, and allows another transition", async () => {
+  const { result, project, client, notice, unmount } = setup(true);
+  let server = structuredClone(project);
+  const batch = vi
+    .spyOn(http.api, "batch")
+    .mockImplementation(async (_id, request) => {
+      const base = server.revision;
+      expect(request.expected_revision).toBe(base);
+      server = {
+        ...projectAfter(server, { steps: request.operations }),
+        revision: base + 1,
+      };
+      return {
+        project: server,
+        applied_operations: request.operations.length,
+        base_revision: base,
+        committed: true,
+      };
+    });
+  const operation = vi
+    .spyOn(http.api, "operation")
+    .mockImplementation(async (_id, request) => {
+      expect(request).toMatchObject({
+        type: "restore_revision",
+        payload: { revision: 10 },
+        expected_revision: 11,
+      });
+      server = { ...structuredClone(project), revision: 12 };
+      return server;
+    });
+  const transition = () =>
+    result.current.edit("inspector_update", {
+      track_id: "video",
+      clip_id: "video-second",
+      changes: { transition: { type: "crossfade", duration_ms: 300 } },
+    });
+  try {
+    await act(async () => {
+      await transition();
+    });
+    expect(batch).toHaveBeenCalledOnce();
+    expect(operation).not.toHaveBeenCalled();
+    expect(server.tracks).toHaveLength(3);
+    expect(result.current.undoStacks.current[project.id]).toEqual({
+      undo: [10],
+      redo: [],
+    });
+    expect(notice).toHaveBeenCalledWith(
+      "Transition applied. Overlapping clips use separate tracks.",
+    );
+    await act(async () => {
+      await result.current.edit("restore_revision", {}, "undo");
+    });
+    expect(server.tracks).toHaveLength(2);
+    expect(client.getQueryData(keys.project(project.id))).toEqual(server);
+    await act(async () => {
+      await transition();
+    });
+    expect(batch).toHaveBeenCalledTimes(2);
+    expect(server.tracks).toHaveLength(3);
+    expect(server.revision).toBe(13);
+    expect(result.current.undoStacks.current[project.id]).toEqual({
+      undo: [12],
+      redo: [],
+    });
+  } finally {
+    unmount();
+    client.clear();
+  }
+});
+
+it("rolls back transition timing and companion lanes together when saving fails", async () => {
+  const { result, project, client, notice, unmount } = setup(true);
+  let reject!: (error: Error) => void;
+  const batch = vi.spyOn(http.api, "batch").mockImplementation(
+    () =>
+      new Promise((_resolve, no) => {
+        reject = no;
+      }),
+  );
+  try {
+    let pending: ReturnType<typeof result.current.edit>;
+    act(() => {
+      pending = result.current.edit("inspector_update", {
+        track_id: "video",
+        clip_id: "video-second",
+        changes: { transition: { type: "crossfade", duration_ms: 300 } },
+      });
+    });
+    await waitFor(() => expect(batch).toHaveBeenCalledOnce());
+    const projected = client.getQueryData<ProjectSnapshot>(
+      keys.project(project.id),
+    )!;
+    expect(projected.tracks).toHaveLength(3);
+    expect(projected.tracks[0].clips[1].start_ms).toBe(3700);
+    await act(async () => {
+      reject(new Error("Revision conflict"));
+      await pending;
+    });
+    expect(client.getQueryData(keys.project(project.id))).toEqual(project);
+    expect(notice).toHaveBeenCalledWith("Revision conflict");
+    expect(result.current.undoStacks.current[project.id]).toEqual({
+      undo: [],
+      redo: [],
+    });
   } finally {
     unmount();
     client.clear();
