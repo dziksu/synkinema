@@ -9,6 +9,7 @@ import {
   moveSteps,
   planMediaInsert,
   planMove,
+  planTrim,
   removeSteps,
   splitSteps,
   withLinked,
@@ -116,6 +117,122 @@ it("splits only the requested clip when linked selection is disabled", () => {
   const after = projectAfter(p, { steps });
   expect(after.tracks[0].clips).toHaveLength(2);
   expect(after.tracks[1]).toEqual(p.tracks[1]);
+});
+
+it.each(["pic", "snd"])(
+  "trims linked halves from %s while preserving their independent fades and animations",
+  (anchor) => {
+    const range = { source_in_ms: 500, speed: 1.5 };
+    const p = project([
+      track("v", "video", [
+        clip("pic", 1000, 4000, {
+          ...range,
+          animations: [
+            {
+              property: "opacity",
+              keyframes: [
+                { time_ms: 0, value: 0 },
+                { time_ms: 4000, value: 1 },
+              ],
+            },
+          ],
+        }),
+      ]),
+      track("a", "sound", [
+        clip("snd", 1000, 4000, {
+          ...range,
+          fade_in_ms: 500,
+          fade_out_ms: 3500,
+        }),
+      ]),
+    ]);
+    const media = [asset("clip-asset", { duration_ms: 10000 })];
+    const left = planTrim(p, media, anchor, "left", 2000);
+    const after = projectAfter(p, {
+      steps: left.map((payload) => ({ type: "trim_clip", payload })),
+      batch: true,
+    });
+    expect(left).toHaveLength(2);
+    expect(
+      after.tracks
+        .flatMap((t) => t.clips)
+        .map((c) => [c.start_ms, c.duration_ms, c.source_in_ms]),
+    ).toEqual([
+      [2000, 3000, 2000],
+      [2000, 3000, 2000],
+    ]);
+    expect(linkedClipIds(after, "pic")).toEqual(["snd"]);
+    expect(
+      after.tracks[0].clips[0].animations[0].keyframes.at(-1)?.time_ms,
+    ).toBe(3000);
+    expect(after.tracks[1].clips[0]).toMatchObject({
+      animations: [],
+      fade_in_ms: 500,
+      fade_out_ms: 3000,
+    });
+    expect(
+      planTrim(after, media, anchor, "right", 4000).map(
+        (p) => p.changes.duration_ms,
+      ),
+    ).toEqual([2000, 2000]);
+  },
+);
+
+it("limits linked trims against neighbors on both lanes and the source range", () => {
+  const range = { source_in_ms: 3000, speed: 2 };
+  const p = project([
+    track("v", "video", [clip("pic", 2000, 1000, range)]),
+    track("a", "sound", [
+      clip("prev", 0, 1500),
+      clip("snd", 2000, 1000, range),
+      clip("next", 4000),
+    ]),
+  ]);
+  const media = [asset("clip-asset", { duration_ms: 10000 })];
+  expect(planTrim(p, media, "pic", "left", 0).map((p) => p.changes)).toEqual([
+    expect.objectContaining({
+      start_ms: 1500,
+      duration_ms: 1500,
+      source_in_ms: 2000,
+    }),
+    expect.objectContaining({
+      start_ms: 1500,
+      duration_ms: 1500,
+      source_in_ms: 2000,
+    }),
+  ]);
+  expect(
+    planTrim(p, media, "pic", "right", 6000).map((p) => p.changes.duration_ms),
+  ).toEqual([2000, 2000]);
+  expect(
+    planTrim(
+      p,
+      [asset("clip-asset", { duration_ms: 6000 })],
+      "pic",
+      "right",
+      6000,
+    ).map((p) => p.changes.duration_ms),
+  ).toEqual([1500, 1500]);
+});
+
+it("trims one half with linking off and honors the visual transition when trimming audio", () => {
+  const p = project([
+    track("v", "video", [
+      clip("pic", 1000, 2000, {
+        transition: { type: "fade", duration_ms: 500 },
+      }),
+    ]),
+    track("a", "sound", [clip("snd", 1000, 2000)]),
+  ]);
+  expect(
+    planTrim(p, assets, "snd", "right", 1100).map((p) => p.changes.duration_ms),
+  ).toEqual([501, 501]);
+  const single = planTrim(p, assets, "snd", "right", 1100, false);
+  expect(single).toHaveLength(1);
+  expect(single[0]).toMatchObject({
+    clip_id: "snd",
+    changes: { duration_ms: 100 },
+  });
 });
 
 it("selects clips intersecting a marquee on the covered tracks only", () => {

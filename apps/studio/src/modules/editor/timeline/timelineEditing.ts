@@ -9,7 +9,9 @@ import {
   extractsAudio,
   freeStart,
   quantize,
+  retimeAnimations,
   trackHasRoom,
+  trimValues,
   usableAsset,
 } from "@/modules/editor/timeline/timelineMath";
 
@@ -105,6 +107,50 @@ export function splitSteps(
       },
     };
   });
+}
+
+/** Clamp a linked trim to the bounds of every participating lane. Each half
+ * keeps its own fades and animations, while source range and timing stay equal. */
+export function planTrim(
+  project: Project,
+  assets: Asset[],
+  clipId: string,
+  side: "left" | "right",
+  timeMs: number,
+  linking = true,
+) {
+  const origin = locate(project, clipId);
+  if (!origin) throw new Error(tr("This clip is no longer available."));
+  const ids = withLinked(project, [clipId], linking);
+  const members = ids.map((id) => locate(project, id)!);
+  const neighbors = members.flatMap(({ track }) =>
+    track.clips.filter((clip) => !ids.includes(clip.id)),
+  );
+  const longestTransition = members.reduce(
+    (current, { clip }) =>
+      clip.transition.type !== "cut" &&
+      clip.transition.duration_ms > current.duration_ms
+        ? clip.transition
+        : current,
+    { ...origin.clip.transition, duration_ms: 0 },
+  );
+  const values = trimValues(
+    { ...origin.clip, transition: longestTransition },
+    side,
+    timeMs,
+    assets.find((asset) => asset.id === origin.clip.asset_id),
+    neighbors,
+  );
+  return members.map(({ track, clip }) => ({
+    track_id: track.id,
+    clip_id: clip.id,
+    changes: {
+      ...values,
+      animations: retimeAnimations(clip, values.duration_ms),
+      fade_in_ms: Math.min(clip.fade_in_ms, values.duration_ms),
+      fade_out_ms: Math.min(clip.fade_out_ms, values.duration_ms),
+    },
+  }));
 }
 
 /** Clips whose rendered boxes intersect a marquee, in timeline coordinates. */

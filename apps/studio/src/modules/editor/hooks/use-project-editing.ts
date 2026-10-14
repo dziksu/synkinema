@@ -28,6 +28,7 @@ import {
   moveSteps,
   planMediaInsert,
   planMove,
+  planTrim,
   removeSteps,
   splitSteps,
   type MediaInsert,
@@ -255,6 +256,16 @@ export function useProjectEditing(
               );
             steps = moveSteps(current, plan);
             batch = true;
+          } else if (type === "trim_clips") {
+            steps = planTrim(
+              current,
+              assets,
+              intent.clip_id,
+              intent.side,
+              intent.time_ms,
+              intent.linking ?? linking,
+            ).map((payload) => ({ type: "trim_clip", payload }));
+            batch = steps.length > 1;
           } else if (type === "split_clip") {
             steps = splitSteps(
               current,

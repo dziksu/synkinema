@@ -19,6 +19,7 @@ import {
   linkedClipSet,
   planMediaInsert,
   planMove,
+  planTrim,
   withLinked,
   type MediaInsert,
   type NewTrack,
@@ -26,9 +27,7 @@ import {
 import {
   acceptsAsset,
   audioKinds,
-  retimeAnimations,
   snapTime,
-  trimValues,
 } from "@/modules/editor/timeline/timelineMath";
 import TimelineTrackMenu from "@/modules/editor/timeline/TimelineTrackMenu";
 import TimelineRuler from "@/modules/editor/timeline/TimelineRuler";
@@ -73,6 +72,7 @@ type Gesture = {
   moved: boolean;
   /** Clips travelling with the anchor (selection plus linked sound). */
   ids: string[];
+  linking: boolean;
   /** Plain click inside a multi-selection narrows it on release. */
   collapse: boolean;
   newTrackId: string;
@@ -221,22 +221,11 @@ export default function Timeline({
       });
     else if (d.side !== "move") {
       const item = g.items[0];
-      const values = trimValues(
-        d.clip,
-        d.side,
-        d.side === "left" ? item.start : item.start + item.duration,
-        assets.find((a) => a.id === d.clip.asset_id),
-        d.track.clips,
-      );
-      onEdit("trim_clip", {
-        track_id: d.track.id,
+      onEdit("trim_clips", {
         clip_id: d.clip.id,
-        changes: {
-          ...values,
-          animations: retimeAnimations(d.clip, values.duration_ms),
-          fade_in_ms: Math.min(d.clip.fade_in_ms, values.duration_ms),
-          fade_out_ms: Math.min(d.clip.fade_out_ms, values.duration_ms),
-        },
+        side: d.side,
+        time_ms: d.side === "left" ? item.start : item.start + item.duration,
+        linking: d.linking,
       });
     }
   };
@@ -375,7 +364,7 @@ export default function Timeline({
     }
     done();
   };
-  const clipMove = (e: React.PointerEvent, c: Clip, t: Track) => {
+  const clipMove = (e: React.PointerEvent, c: Clip) => {
     const d = gesture.current;
     if (!d || d.clip.id !== c.id) return;
     if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 3 && !d.moved) return;
@@ -388,7 +377,6 @@ export default function Timeline({
     const targetId = force ? hit!.dataset.phantomAfter : hit?.dataset.trackId;
     const delta =
       (e.clientX - d.x + (scroll.current?.scrollLeft || 0) - d.scroll) / px;
-    const asset = assets.find((a) => a.id === c.asset_id);
     const requested =
       (d.side === "right" ? c.start_ms + c.duration_ms : c.start_ms) + delta;
     const snapped = snapTime(
@@ -399,11 +387,21 @@ export default function Timeline({
       snap && !e.altKey,
     );
     if (d.side !== "move") {
-      const v = trimValues(c, d.side, snapped.value, asset, t.clips);
+      const trims = planTrim(
+        project,
+        assets,
+        c.id,
+        d.side,
+        snapped.value,
+        d.linking,
+      );
       preview({
-        items: [
-          { track: t.id, start: v.start_ms, duration: v.duration_ms, name: "" },
-        ],
+        items: trims.map(({ track_id, changes }) => ({
+          track: track_id,
+          start: changes.start_ms,
+          duration: changes.duration_ms,
+          name: "",
+        })),
         valid: true,
         snap: snapped.snap,
         note: c.name,
@@ -763,15 +761,16 @@ export default function Timeline({
                                   scroll: scroll.current?.scrollLeft || 0,
                                   moved: false,
                                   ids: side
-                                    ? [c.id]
+                                    ? withLinked(project, [c.id], s.linking)
                                     : withLinked(project, ids, s.linking),
+                                  linking: s.linking,
                                   collapse:
                                     !additive && !side && ids.length > 1,
                                   newTrackId: createId(),
                                 };
                                 e.currentTarget.setPointerCapture(e.pointerId);
                               }}
-                              onPointerMove={(e) => clipMove(e, c, t)}
+                              onPointerMove={(e) => clipMove(e, c)}
                               onPointerUp={finish}
                               onPointerCancel={cancel}
                             >
