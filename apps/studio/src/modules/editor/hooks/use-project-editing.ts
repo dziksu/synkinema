@@ -10,7 +10,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import type { EditStep } from "@/api/generated/client";
 import { writes } from "@/api/mutations";
@@ -18,6 +18,7 @@ import { projectWrites } from "@/api/projectMutations";
 import { reads } from "@/api/queries";
 import type { Asset, Clip, Project } from "@/lib/types";
 import { inspectorEdit } from "@/modules/editor/inspector/inspectorEdit";
+import { EditHistoryQueue } from "@/modules/editor/editHistoryQueue";
 import {
   planScriptTake,
   type ScriptTakePlacement,
@@ -49,9 +50,14 @@ export function useProjectEditing(
   const undoStacks = useRef<Record<string, { undo: number[]; redo: number[] }>>(
     {},
   );
+  const historyQueues = useRef<Record<string, EditHistoryQueue>>({});
+  const [queuedEdits, setQueuedEdits] = useState(0);
   const operationMutation = useMutation(projectWrites(query));
   const pendingEdits = useIsMutating({ mutationKey: ["project-edit"] });
-  const operation = { ...operationMutation, isPending: pendingEdits > 0 };
+  const operation = {
+    ...operationMutation,
+    isPending: pendingEdits > 0 || queuedEdits > 0,
+  };
   const resolveComment = useMutation({
     ...writes.resolveComment(query),
     onError: (e) => setNotice(e.message),
@@ -146,253 +152,270 @@ export function useProjectEditing(
     let before: Project;
     let scriptPlacement: ScriptTakePlacement | undefined;
     let transitionTracks = 0;
-    return operation
-      .mutateAsync({
-        projectId: id,
-        resolve: async (current) => {
-          before = current;
+    const historyQueue = (historyQueues.current[id] ||= new EditHistoryQueue());
+    const save = () =>
+      operation
+        .mutateAsync({
+          projectId: id,
+          resolve: async (current) => {
+            before = current;
+            const stacks = (undoStacks.current[id] ||= { undo: [], redo: [] });
+            if (direction) {
+              const revision = stacks[direction].at(-1);
+              if (revision === undefined)
+                throw new Error(tr("Nothing to undo."));
+              intent.revision = revision;
+              resolvedDirectionRevision = revision;
+            }
+            if (intent.changes?.transform) {
+              const clip = current.tracks
+                .flatMap((t) => t.clips)
+                .find((c) => c.id === intent.clip_id);
+              intent.changes.transform = {
+                ...clip?.transform,
+                ...intent.changes.transform,
+              };
+            }
+            if (intent.changes?.placement) {
+              const clip = current.tracks
+                .flatMap((t) => t.clips)
+                .find((c) => c.id === intent.clip_id);
+              intent.changes.placement = {
+                ...(clip ? placementOf(clip) : {}),
+                ...intent.changes.placement,
+              };
+            }
+            if (touchedEffects && newEffects) {
+              const existing =
+                current.tracks
+                  .flatMap((t) => t.clips)
+                  .find((c) => c.id === intent.clip_id)?.effects || [];
+              intent.changes.effects = [
+                ...existing.filter((e) => !touchedEffects.has(e.type)),
+                ...newEffects.filter((e) => touchedEffects.has(e.type)),
+              ];
+            }
+            if (touchedAnimations && newAnimations) {
+              const existing =
+                current.tracks
+                  .flatMap((t) => t.clips)
+                  .find((c) => c.id === intent.clip_id)?.animations || [];
+              intent.changes.animations = [
+                ...existing.filter((a) => !touchedAnimations.has(a.property)),
+                ...newAnimations.filter((a) =>
+                  touchedAnimations.has(a.property),
+                ),
+              ];
+            }
+            if (type === "add_clip") {
+              const target = current.tracks.find(
+                (t) => t.id === intent.track_id,
+              );
+              if (target)
+                intent.clip.start_ms = intent.append
+                  ? Math.max(
+                      0,
+                      ...target.clips.map((c) => c.start_ms + c.duration_ms),
+                    )
+                  : freeStart(
+                      target,
+                      intent.clip.start_ms || 0,
+                      intent.clip.duration_ms || 4000,
+                    );
+              delete intent.append;
+            }
+            let resolved: { type: string; payload: unknown } = {
+              type,
+              payload: intent,
+            };
+            if (type === "inspector_update") {
+              const track = current.tracks.find(
+                (t) => t.id === intent.track_id,
+              );
+              const clip = track?.clips.find((c) => c.id === intent.clip_id);
+              if (!track || !clip)
+                throw new Error(tr("This clip is no longer available."));
+              resolved = inspectorEdit(
+                track,
+                clip,
+                intent.changes,
+                assets,
+                intent.animation_duration_ms,
+              );
+            }
+            let steps: EditStep[];
+            let batch = false;
+            if (type === "delete_timeline_track") {
+              steps = deleteTimelineTrack(
+                current,
+                intent.track_id,
+                intent.clip_ids,
+              );
+              batch = true;
+            } else if (type === "insert_canvas") {
+              steps = canvasInsert(
+                current,
+                assets,
+                intent as CanvasInsert,
+              ).steps;
+              batch = true;
+            } else if (type === "insert_layer") {
+              steps = layerInsert(current, intent.kind, intent.clip).steps;
+              batch = true;
+            } else if (type === "insert_media") {
+              steps = planMediaInsert(
+                current,
+                assets,
+                intent as MediaInsert,
+              ).steps;
+              batch = true;
+            } else if (type === "move_clips") {
+              const plan = planMove(current, assets, {
+                anchor: intent.anchor,
+                ids: intent.ids,
+                target: intent.target,
+                delta: intent.delta,
+                newTrackId: intent.new_track_id,
+                forceNewTrack: intent.force_new_track,
+              });
+              if (!plan.valid)
+                throw new Error(
+                  tr("These clips no longer fit here. Review the timeline."),
+                );
+              steps = moveSteps(current, plan);
+              batch = true;
+            } else if (type === "trim_clips") {
+              steps = planTrim(
+                current,
+                assets,
+                intent.clip_id,
+                intent.side,
+                intent.time_ms,
+                intent.linking ?? linking,
+              ).map((payload) => ({ type: "trim_clip", payload }));
+              batch = steps.length > 1;
+            } else if (type === "split_clip") {
+              steps = splitSteps(
+                current,
+                intent.clip_id,
+                intent.time_ms,
+                linking,
+              );
+              batch = steps.length > 1;
+            } else if (type === "duplicate_clips") {
+              steps = duplicateSteps(current, intent.clip_ids, linking);
+              batch = steps.length > 1;
+            } else if (type === "remove_clips") {
+              steps = removeSteps(current, intent.clip_ids);
+              if (!steps.length)
+                throw new Error(tr("This clip is no longer available."));
+              batch = true;
+            } else if (type === "insert_script_take") {
+              const line = current.script_lines.find(
+                (item) => item.id === intent.line_id,
+              );
+              const asset =
+                assets.find((item) => item.id === intent.asset_id) ||
+                (await query.fetchQuery(reads.assets(query, current.id))).find(
+                  (item) => item.id === intent.asset_id,
+                );
+              if (!line || !asset)
+                throw new Error(tr("This script take is no longer available."));
+              scriptPlacement = planScriptTake(
+                current,
+                line,
+                asset,
+                intent.start_ms,
+                intent.with_captions,
+              );
+              steps = scriptPlacement.steps;
+              batch = steps.length > 1;
+            } else if (resolved.type === "set_transition") {
+              steps = transitionSteps(
+                current,
+                resolved as Extract<EditStep, { type: "set_transition" }>,
+              );
+              transitionTracks = steps.filter(
+                (step) => step.type === "add_track",
+              ).length;
+              batch = steps.length > 1;
+            } else {
+              steps = [resolved as EditStep];
+            }
+            return { steps, batch };
+          },
+        })
+        .then((p) => {
+          const current = before;
           const stacks = (undoStacks.current[id] ||= { undo: [], redo: [] });
           if (direction) {
-            const revision = stacks[direction].at(-1);
-            if (revision === undefined) throw new Error(tr("Nothing to undo."));
-            intent.revision = revision;
-            resolvedDirectionRevision = revision;
-          }
-          if (intent.changes?.transform) {
-            const clip = current.tracks
-              .flatMap((t) => t.clips)
-              .find((c) => c.id === intent.clip_id);
-            intent.changes.transform = {
-              ...clip?.transform,
-              ...intent.changes.transform,
-            };
-          }
-          if (intent.changes?.placement) {
-            const clip = current.tracks
-              .flatMap((t) => t.clips)
-              .find((c) => c.id === intent.clip_id);
-            intent.changes.placement = {
-              ...(clip ? placementOf(clip) : {}),
-              ...intent.changes.placement,
-            };
-          }
-          if (touchedEffects && newEffects) {
-            const existing =
-              current.tracks
-                .flatMap((t) => t.clips)
-                .find((c) => c.id === intent.clip_id)?.effects || [];
-            intent.changes.effects = [
-              ...existing.filter((e) => !touchedEffects.has(e.type)),
-              ...newEffects.filter((e) => touchedEffects.has(e.type)),
-            ];
-          }
-          if (touchedAnimations && newAnimations) {
-            const existing =
-              current.tracks
-                .flatMap((t) => t.clips)
-                .find((c) => c.id === intent.clip_id)?.animations || [];
-            intent.changes.animations = [
-              ...existing.filter((a) => !touchedAnimations.has(a.property)),
-              ...newAnimations.filter((a) => touchedAnimations.has(a.property)),
-            ];
-          }
-          if (type === "add_clip") {
-            const target = current.tracks.find((t) => t.id === intent.track_id);
-            if (target)
-              intent.clip.start_ms = intent.append
-                ? Math.max(
-                    0,
-                    ...target.clips.map((c) => c.start_ms + c.duration_ms),
-                  )
-                : freeStart(
-                    target,
-                    intent.clip.start_ms || 0,
-                    intent.clip.duration_ms || 4000,
-                  );
-            delete intent.append;
-          }
-          let resolved: { type: string; payload: unknown } = {
-            type,
-            payload: intent,
-          };
-          if (type === "inspector_update") {
-            const track = current.tracks.find((t) => t.id === intent.track_id);
-            const clip = track?.clips.find((c) => c.id === intent.clip_id);
-            if (!track || !clip)
-              throw new Error(tr("This clip is no longer available."));
-            resolved = inspectorEdit(
-              track,
-              clip,
-              intent.changes,
-              assets,
-              intent.animation_duration_ms,
-            );
-          }
-          let steps: EditStep[];
-          let batch = false;
-          if (type === "delete_timeline_track") {
-            steps = deleteTimelineTrack(
-              current,
-              intent.track_id,
-              intent.clip_ids,
-            );
-            batch = true;
-          } else if (type === "insert_canvas") {
-            steps = canvasInsert(current, assets, intent as CanvasInsert).steps;
-            batch = true;
-          } else if (type === "insert_layer") {
-            steps = layerInsert(current, intent.kind, intent.clip).steps;
-            batch = true;
-          } else if (type === "insert_media") {
-            steps = planMediaInsert(
-              current,
-              assets,
-              intent as MediaInsert,
-            ).steps;
-            batch = true;
-          } else if (type === "move_clips") {
-            const plan = planMove(current, assets, {
-              anchor: intent.anchor,
-              ids: intent.ids,
-              target: intent.target,
-              delta: intent.delta,
-              newTrackId: intent.new_track_id,
-              forceNewTrack: intent.force_new_track,
-            });
-            if (!plan.valid)
-              throw new Error(
-                tr("These clips no longer fit here. Review the timeline."),
-              );
-            steps = moveSteps(current, plan);
-            batch = true;
-          } else if (type === "trim_clips") {
-            steps = planTrim(
-              current,
-              assets,
-              intent.clip_id,
-              intent.side,
-              intent.time_ms,
-              intent.linking ?? linking,
-            ).map((payload) => ({ type: "trim_clip", payload }));
-            batch = steps.length > 1;
-          } else if (type === "split_clip") {
-            steps = splitSteps(
-              current,
-              intent.clip_id,
-              intent.time_ms,
-              linking,
-            );
-            batch = steps.length > 1;
-          } else if (type === "duplicate_clips") {
-            steps = duplicateSteps(current, intent.clip_ids, linking);
-            batch = steps.length > 1;
-          } else if (type === "remove_clips") {
-            steps = removeSteps(current, intent.clip_ids);
-            if (!steps.length)
-              throw new Error(tr("This clip is no longer available."));
-            batch = true;
-          } else if (type === "insert_script_take") {
-            const line = current.script_lines.find(
-              (item) => item.id === intent.line_id,
-            );
-            const asset =
-              assets.find((item) => item.id === intent.asset_id) ||
-              (await query.fetchQuery(reads.assets(query, current.id))).find(
-                (item) => item.id === intent.asset_id,
-              );
-            if (!line || !asset)
-              throw new Error(tr("This script take is no longer available."));
-            scriptPlacement = planScriptTake(
-              current,
-              line,
-              asset,
-              intent.start_ms,
-              intent.with_captions,
-            );
-            steps = scriptPlacement.steps;
-            batch = steps.length > 1;
-          } else if (resolved.type === "set_transition") {
-            steps = transitionSteps(
-              current,
-              resolved as Extract<EditStep, { type: "set_transition" }>,
-            );
-            transitionTracks = steps.filter(
-              (step) => step.type === "add_track",
-            ).length;
-            batch = steps.length > 1;
+            setInspectorReset((n) => n + 1);
+            if (stacks[direction].at(-1) === resolvedDirectionRevision)
+              stacks[direction].pop();
+            stacks[direction === "undo" ? "redo" : "undo"].push(p.revision - 1);
           } else {
-            steps = [resolved as EditStep];
+            stacks.undo.push(p.revision - 1);
+            stacks.redo = [];
           }
-          return { steps, batch };
-        },
-      })
-      .then((p) => {
-        const current = before;
-        const stacks = (undoStacks.current[id] ||= { undo: [], redo: [] });
-        if (direction) {
-          setInspectorReset((n) => n + 1);
-          if (stacks[direction].at(-1) === resolvedDirectionRevision)
-            stacks[direction].pop();
-          stacks[direction === "undo" ? "redo" : "undo"].push(p.revision - 1);
-        } else {
-          stacks.undo.push(p.revision - 1);
-          stacks.redo = [];
-        }
-        setShowRender(false);
-        if (transitionTracks)
-          setNotice(
-            tr("Transition applied. Overlapping clips use separate tracks."),
-          );
-        if (scriptPlacement) {
-          if (useStudio.getState().projectId === id)
-            state.set({
-              selectedId: scriptPlacement.selected_id,
-              selectedIds: [scriptPlacement.selected_id],
-              time: scriptPlacement.start_ms,
-              playing: false,
-            });
-          setNotice(
-            intent.with_captions
-              ? tr("Narration and subtitles are ready on the timeline.")
-              : tr("Narration is ready on the timeline."),
-          );
-        }
-        if (
-          [
-            "add_clip",
-            "insert_media",
-            "insert_canvas",
-            "insert_layer",
-            "duplicate_clips",
-          ].includes(type) &&
-          useStudio.getState().projectId === id
-        ) {
-          const previousIds = new Set(
-            current.tracks.flatMap((t) => t.clips.map((c) => c.id)),
-          );
-          // Select every inserted clip (picture and its sound); picture is primary.
-          const added = [...p.tracks]
-            .sort(
-              (a, b) =>
-                Number(["video", "overlay"].includes(b.kind)) -
-                Number(["video", "overlay"].includes(a.kind)),
-            )
-            .flatMap((t) => t.clips)
-            .filter((c) => !previousIds.has(c.id));
-          if (added.length)
-            state.set({
-              selectedId: added[0].id,
-              selectedIds: added.map((c) => c.id),
-              time: added[0].start_ms,
-              playing: false,
-            });
-        }
-        return p;
-      })
+          setShowRender(false);
+          if (transitionTracks)
+            setNotice(
+              tr("Transition applied. Overlapping clips use separate tracks."),
+            );
+          if (scriptPlacement) {
+            if (useStudio.getState().projectId === id)
+              state.set({
+                selectedId: scriptPlacement.selected_id,
+                selectedIds: [scriptPlacement.selected_id],
+                time: scriptPlacement.start_ms,
+                playing: false,
+              });
+            setNotice(
+              intent.with_captions
+                ? tr("Narration and subtitles are ready on the timeline.")
+                : tr("Narration is ready on the timeline."),
+            );
+          }
+          if (
+            [
+              "add_clip",
+              "insert_media",
+              "insert_canvas",
+              "insert_layer",
+              "duplicate_clips",
+            ].includes(type) &&
+            useStudio.getState().projectId === id
+          ) {
+            const previousIds = new Set(
+              current.tracks.flatMap((t) => t.clips.map((c) => c.id)),
+            );
+            // Select every inserted clip (picture and its sound); picture is primary.
+            const added = [...p.tracks]
+              .sort(
+                (a, b) =>
+                  Number(["video", "overlay"].includes(b.kind)) -
+                  Number(["video", "overlay"].includes(a.kind)),
+              )
+              .flatMap((t) => t.clips)
+              .filter((c) => !previousIds.has(c.id));
+            if (added.length)
+              state.set({
+                selectedId: added[0].id,
+                selectedIds: added.map((c) => c.id),
+                time: added[0].start_ms,
+                playing: false,
+              });
+          }
+          return p;
+        });
+    setQueuedEdits((count) => count + 1);
+    return historyQueue
+      .enqueue(save, !!direction)
       .catch((e: Error) => {
         setInspectorReset((n) => n + 1);
         setNotice(e.message);
-      });
+      })
+      .finally(() => setQueuedEdits((count) => count - 1));
   };
 
   return { undoStacks, operation, resolveComment, addComment, edit };
