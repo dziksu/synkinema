@@ -256,11 +256,11 @@ it("moves a multi-selection by one delta as a single atomic batch", () => {
   const plan = planMove(p, assets, {
     anchor: "a",
     ids: ["a", "b", "d"],
-    target: "o",
+    target: "v",
     delta: 1500,
   });
   expect(plan.valid).toBe(true);
-  // Explicit multi-selections never leave their lanes.
+  // Horizontal group movement preserves every source lane.
   expect(plan.items.map((i) => [i.clip.id, i.to?.id, i.start])).toEqual([
     ["a", "v", 1500],
     ["b", "v", 2500],
@@ -273,6 +273,161 @@ it("moves a multi-selection by one delta as a single atomic batch", () => {
     1500, 2500, 5000,
   ]);
 });
+
+it.each([0, 700])(
+  "moves adjacent selected captions together to another lane with delta %s",
+  (delta) => {
+    const p = project([
+      track("captions", "text", [clip("a", 0), clip("b", 1000)]),
+      track("destination", "text"),
+    ]);
+    const plan = planMove(p, assets, {
+      anchor: "a",
+      ids: ["a", "b"],
+      target: "destination",
+      delta,
+    });
+    expect(plan.valid).toBe(true);
+    expect(
+      plan.items.map((item) => [item.clip.id, item.to?.id, item.start]),
+    ).toEqual([
+      ["a", "destination", delta],
+      ["b", "destination", 1000 + delta],
+    ]);
+    const steps = moveSteps(p, plan);
+    expect(steps).toHaveLength(2);
+    const after = projectAfter(p, { steps, batch: true });
+    expect(after.tracks[0].clips).toHaveLength(0);
+    expect(
+      after.tracks[1].clips.map((c) => [c.id, c.start_ms, c.duration_ms]),
+    ).toEqual([
+      ["a", delta, 1000],
+      ["b", 1000 + delta, 1000],
+    ]);
+    expect(p.tracks[0].clips).toHaveLength(2);
+  },
+);
+
+it("keeps other selected lanes in sync when the anchor lane changes", () => {
+  const p = project([
+    track("v", "video", [clip("pic-a", 0), clip("pic-b", 1000)]),
+    track("o", "overlay"),
+    track("a", "sound", [clip("snd-a", 0), clip("snd-b", 1000)]),
+    track("titles", "text", [clip("title", 2000)]),
+  ]);
+  const plan = planMove(p, assets, {
+    anchor: "pic-a",
+    ids: ["pic-a", "pic-b", "snd-a", "snd-b", "title"],
+    target: "o",
+    delta: 500,
+  });
+  expect(plan.valid).toBe(true);
+  const after = projectAfter(p, { steps: moveSteps(p, plan), batch: true });
+  expect(after.tracks[0].clips).toHaveLength(0);
+  expect(after.tracks[1].clips.map((c) => c.start_ms)).toEqual([500, 1500]);
+  expect(after.tracks[2].clips.map((c) => c.start_ms)).toEqual([500, 1500]);
+  expect(after.tracks[3].clips[0].start_ms).toBe(2500);
+  expect(linkedClipIds(after, "pic-a")).toEqual(["snd-a"]);
+  expect(linkedClipIds(after, "pic-b")).toEqual(["snd-b"]);
+});
+
+it("moves the whole source group to one companion lane when only a later clip collides", () => {
+  const p = project([
+    track("source", "text", [clip("a", 0), clip("b", 1000)]),
+    track("target", "text", [clip("occupied", 1000)]),
+  ]);
+  const plan = planMove(p, assets, {
+    anchor: "a",
+    ids: ["a", "b"],
+    target: "target",
+    delta: 0,
+    newTrackId: "companion",
+  });
+  expect(plan.valid).toBe(true);
+  expect(plan.newTrack?.id).toBe("companion");
+  expect(plan.items.every((item) => !item.to)).toBe(true);
+  const after = projectAfter(p, { steps: moveSteps(p, plan), batch: true });
+  expect(after.tracks.find((t) => t.id === "source")?.clips).toHaveLength(0);
+  expect(after.tracks.find((t) => t.id === "target")).toEqual(p.tracks[1]);
+  expect(
+    after.tracks.find((t) => t.id === "companion")?.clips.map((c) => c.id),
+  ).toEqual(["a", "b"]);
+});
+
+it("rejects incompatible group targets and merging selected clips onto each other", () => {
+  const p = project([
+    track("source", "text", [clip("a", 0), clip("b", 1000)]),
+    track("target", "text", [clip("other", 0)]),
+    track("audio", "sound"),
+  ]);
+  expect(
+    planMove(p, assets, {
+      anchor: "a",
+      ids: ["a", "b"],
+      target: "audio",
+      delta: 0,
+    }).valid,
+  ).toBe(false);
+  expect(
+    planMove(p, assets, {
+      anchor: "a",
+      ids: ["a", "b", "other"],
+      target: "target",
+      delta: 500,
+    }).valid,
+  ).toBe(false);
+  const video = project([
+    track("v", "video", [clip("a", 0), clip("b", 1000)]),
+    track("audio", "sound"),
+  ]);
+  expect(
+    planMove(video, assets, {
+      anchor: "a",
+      ids: ["a", "b"],
+      target: "audio",
+      delta: 0,
+    }).valid,
+  ).toBe(false);
+});
+
+it.each(["left", "right"])(
+  "preserves an existing dissolve when its complete video pair moves from %s",
+  (anchor) => {
+    const transition = { type: "crossfade", duration_ms: 700 } as const;
+    const p = project([
+      track("v", "video", [
+        clip("left", 0, 4000),
+        clip("right", 3300, 4000, { transition }),
+      ]),
+      track("o", "overlay"),
+    ]);
+    const plan = planMove(p, assets, {
+      anchor,
+      ids: ["left", "right"],
+      target: "v",
+      delta: 1000,
+    });
+    expect(plan.valid).toBe(true);
+    const steps = moveSteps(p, plan);
+    expect(steps.map((s) => s.type)).toEqual([
+      "move_clip",
+      "move_clip",
+      "update_clip",
+    ]);
+    const after = projectAfter(p, { steps, batch: true });
+    expect(after.tracks[0].clips.map((c) => c.start_ms)).toEqual([1000, 4300]);
+    expect(after.tracks[0].clips[1].transition).toEqual(transition);
+    expect(after.tracks[0].clips[0].transition.type).toBe("cut");
+    expect(
+      planMove(p, assets, {
+        anchor,
+        ids: ["left", "right"],
+        target: "o",
+        delta: 1000,
+      }).valid,
+    ).toBe(false);
+  },
+);
 
 it("rejects group moves that collide or cross zero instead of reshuffling", () => {
   const p = project([
