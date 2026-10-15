@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.7.3](https://github.com/dziksu/synkinema/compare/v1.7.2...v1.7.3) (2026-10-15)
+
+### Build and Dependencies
+
+* **deps:** bump python ([fa5806e](https://github.com/dziksu/synkinema/commit/fa5806ea15e9678929b11791269781527665e01f))
+
+## [1.7.2](https://github.com/dziksu/synkinema/compare/v1.7.1...v1.7.2) (2026-10-08)
+
+### Bug Fixes
+
+* **launcher:** check explicit Docker image registry ([fc0c556](https://github.com/dziksu/synkinema/commit/fc0c556fa67bb7c95d1ff473a719782187c06449))
+* **launcher:** diagnose Docker setup and guard public image access ([b21b0c1](https://github.com/dziksu/synkinema/commit/b21b0c11ffc17436c7f9875fcfb06db6f2ffbe2b))
+
 ## [1.7.1](https://github.com/dziksu/synkinema/compare/v1.7.0...v1.7.1) (2026-10-06)
 
 ### Build and Dependencies
