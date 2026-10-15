@@ -18,7 +18,7 @@ import { useStudio } from "@/modules/editor/store";
 import Timeline from "@/modules/editor/timeline/Timeline";
 import TimelineSplitButton from "@/modules/editor/timeline/TimelineSplitButton";
 import type { MediaInsert } from "@/modules/editor/timeline/timelineEditing";
-import { audioKinds, freeStart } from "@/modules/editor/timeline/timelineMath";
+import { audioKinds } from "@/modules/editor/timeline/timelineMath";
 import MediaBrowser from "@/modules/media/MediaBrowser";
 import {
   ArrowRight,
@@ -299,22 +299,7 @@ export function EditorTimeline({
                   variant="outline"
                   className="button"
                   onClick={() => {
-                    const { id: _id, ...copy } = selected;
-                    edit("add_clip", {
-                      track_id: selectedTrack!.id,
-                      clip: {
-                        ...copy,
-                        name: tr("{{name}} — copy", {
-                          name: selected.name,
-                        }),
-                        transition: { type: "cut", duration_ms: 0 },
-                        start_ms: freeStart(
-                          selectedTrack!,
-                          selected.start_ms + selected.duration_ms,
-                          selected.duration_ms,
-                        ),
-                      },
-                    });
+                    void edit("duplicate_clips", { clip_id: selected.id });
                   }}
                 >
                   <Copy size={14} /> {tr("Duplicate")}{" "}

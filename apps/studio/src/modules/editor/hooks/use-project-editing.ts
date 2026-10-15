@@ -33,6 +33,7 @@ import {
   splitSteps,
   type MediaInsert,
 } from "@/modules/editor/timeline/timelineEditing";
+import { duplicateSteps } from "@/modules/editor/timeline/timelineDuplication";
 import { freeStart } from "@/modules/editor/timeline/timelineMath";
 import { transitionSteps } from "@/modules/editor/timeline/transitionEditing";
 
@@ -69,6 +70,12 @@ export function useProjectEditing(
     // Preserve only changed transform properties before the preceding request completes.
     const intent = structuredClone(payload) as Record<string, any>;
     const linking = useStudio.getState().linking;
+    if (type === "duplicate_clips") {
+      const selectedIds = useStudio.getState().selectedIds;
+      intent.clip_ids = selectedIds.includes(intent.clip_id)
+        ? [...selectedIds]
+        : [intent.clip_id];
+    }
     if (
       ["update_clip", "inspector_update"].includes(type) &&
       intent.changes?.transform
@@ -276,6 +283,9 @@ export function useProjectEditing(
               linking,
             );
             batch = steps.length > 1;
+          } else if (type === "duplicate_clips") {
+            steps = duplicateSteps(current, intent.clip_ids, linking);
+            batch = steps.length > 1;
           } else if (type === "remove_clips") {
             steps = removeSteps(current, intent.clip_ids);
             if (!steps.length)
@@ -353,6 +363,7 @@ export function useProjectEditing(
             "insert_media",
             "insert_canvas",
             "insert_layer",
+            "duplicate_clips",
           ].includes(type) &&
           useStudio.getState().projectId === id
         ) {

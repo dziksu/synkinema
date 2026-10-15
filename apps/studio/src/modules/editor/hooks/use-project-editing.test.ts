@@ -13,7 +13,12 @@ import { useProjectEditing } from "./use-project-editing";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  useStudio.setState({ linking: true });
+  useStudio.setState({
+    linking: true,
+    selectedIds: [],
+    selectedId: null,
+    projectId: null,
+  });
 });
 
 function setup(pairedCuts = false) {
@@ -257,6 +262,122 @@ it("rolls both split projections back together when the server rejects either ha
       await pending;
     });
     expect(client.getQueryData(keys.project(project.id))).toEqual(project);
+    expect(result.current.undoStacks.current[project.id]).toEqual({
+      undo: [],
+      redo: [],
+    });
+    expect(notice).toHaveBeenCalledWith("Revision conflict");
+    expect(batch).toHaveBeenCalledOnce();
+  } finally {
+    unmount();
+    client.clear();
+  }
+});
+
+it("duplicates the captured selection atomically, selects every copy, and undoes the group together", async () => {
+  const { result, project, client, unmount } = setup(true);
+  useStudio.getState().set({
+    projectId: project.id,
+    selectedId: "video-second",
+    selectedIds: ["video-clip", "video-second"],
+  });
+  let server = structuredClone(project);
+  const batch = vi
+    .spyOn(http.api, "batch")
+    .mockImplementation(async (_id, request) => {
+      expect(request.expected_revision).toBe(server.revision);
+      const base = server.revision;
+      server = {
+        ...projectAfter(server, { steps: request.operations }),
+        revision: base + 1,
+      };
+      return {
+        project: server,
+        applied_operations: request.operations.length,
+        base_revision: base,
+        committed: true,
+      };
+    });
+  const operation = vi
+    .spyOn(http.api, "operation")
+    .mockImplementation(async (_id, request) => {
+      expect(request).toMatchObject({
+        type: "restore_revision",
+        payload: { revision: 10 },
+        expected_revision: 11,
+      });
+      server = { ...structuredClone(project), revision: 12 };
+      return server;
+    });
+  try {
+    await act(async () => {
+      const pending = result.current.edit("duplicate_clips", {
+        clip_id: "video-second",
+      });
+      useStudio.getState().set({ selectedId: "sound-clip", linking: false });
+      await pending;
+    });
+    expect(batch).toHaveBeenCalledOnce();
+    expect(operation).not.toHaveBeenCalled();
+    expect(batch.mock.calls[0][1].operations).toHaveLength(4);
+    expect(server.tracks.map((t) => t.clips.map((c) => c.start_ms))).toEqual([
+      [0, 4000, 8000, 12000],
+      [0, 4000, 8000, 12000],
+    ]);
+    expect(useStudio.getState().selectedIds).toHaveLength(4);
+    expect(useStudio.getState().selectedIds).not.toContain("video-second");
+    expect(result.current.undoStacks.current[project.id]).toEqual({
+      undo: [10],
+      redo: [],
+    });
+    await act(async () => {
+      await result.current.edit("restore_revision", {}, "undo");
+    });
+    expect(server.tracks.map((t) => t.clips.length)).toEqual([2, 2]);
+    expect(client.getQueryData(keys.project(project.id))).toEqual(server);
+  } finally {
+    unmount();
+    client.clear();
+  }
+});
+
+it("rolls every duplicate back on revision conflict without adding an undo entry", async () => {
+  const { result, project, client, notice, unmount } = setup(true);
+  useStudio.getState().set({
+    projectId: project.id,
+    selectedId: "video-second",
+    selectedIds: ["video-clip", "video-second"],
+    linking: false,
+  });
+  let reject!: (error: Error) => void;
+  const batch = vi.spyOn(http.api, "batch").mockImplementation(
+    () =>
+      new Promise((_resolve, no) => {
+        reject = no;
+      }),
+  );
+  try {
+    let pending: ReturnType<typeof result.current.edit>;
+    act(() => {
+      pending = result.current.edit("duplicate_clips", {
+        clip_id: "video-second",
+      });
+    });
+    await waitFor(() => expect(batch).toHaveBeenCalledOnce());
+    const projected = client.getQueryData<ProjectSnapshot>(
+      keys.project(project.id),
+    )!;
+    expect(projected.tracks.map((t) => t.clips.length)).toEqual([4, 2]);
+    expect(projected.revision).toBe(10);
+    await act(async () => {
+      reject(new Error("Revision conflict"));
+      await pending;
+    });
+    expect(client.getQueryData(keys.project(project.id))).toEqual(project);
+    expect(useStudio.getState().selectedIds).toEqual([
+      "video-clip",
+      "video-second",
+    ]);
     expect(result.current.undoStacks.current[project.id]).toEqual({
       undo: [],
       redo: [],

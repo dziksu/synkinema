@@ -26,6 +26,7 @@ export function TimelineSelectionTools({
   track?: Track;
   onEdit: TimelineEdit;
 }) {
+  const selectedIds = useStudio((s) => s.selectedIds);
   const audio =
     track && ["voiceover", "music", "sound", "ambient"].includes(track.kind);
   return (
@@ -41,14 +42,15 @@ export function TimelineSelectionTools({
               variant="ghost"
               className="text-button"
               onClick={() =>
-                onEdit("duplicate_clip", {
-                  track_id: track.id,
+                onEdit("duplicate_clips", {
                   clip_id: clip.id,
                 })
               }
             >
               <Copy size={14} />
-              {tr("Duplicate clip")}
+              {selectedIds.length > 1
+                ? tr("Duplicate selected clips")
+                : tr("Duplicate clip")}
             </Button>
             <Button
               variant="destructive"
