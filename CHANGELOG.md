@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.7.4](https://github.com/dziksu/synkinema/compare/v1.7.3...v1.7.4) (2026-10-15)
+
+### Bug Fixes
+
+* **editor:** duplicate selected clips atomically ([1241813](https://github.com/dziksu/synkinema/commit/1241813d600ab3a724c5718a733936e07657ec50))
+* **editor:** move selected clip groups across tracks ([7e5d1c8](https://github.com/dziksu/synkinema/commit/7e5d1c8b5833d4a2b3f9e281c47ad8a859afca07))
+* **editor:** preserve overlapping media when adding transitions ([145b79f](https://github.com/dziksu/synkinema/commit/145b79fdd689087b7932027ad04f821ce15e0be2))
+* **editor:** serialize rapid undo and redo history ([f806017](https://github.com/dziksu/synkinema/commit/f806017a726e07116917633b8e90e4378bc0cb04))
+* **editor:** split linked video and audio atomically ([11c7caf](https://github.com/dziksu/synkinema/commit/11c7caf191c0be1beb409261db6cee17b83f79f6))
+* **editor:** trim linked video and audio together ([24ef2fa](https://github.com/dziksu/synkinema/commit/24ef2fac97bfca52c1187957f27f664b6404a0cc))
+* **preview:** seek precisely while paused ([3d8f27b](https://github.com/dziksu/synkinema/commit/3d8f27bdce4343949571f77d8d1098fb9ea34b38))
+* **studio:** disable invalid timeline split actions ([79ec822](https://github.com/dziksu/synkinema/commit/79ec8226f03a46bc494487097ce4d910bd4c7f94))
+* **studio:** keep timeline lanes stable when selecting clips ([ceab651](https://github.com/dziksu/synkinema/commit/ceab651f61c1a97c0051bfd6595fde555c224654))
+* **studio:** make timeline playhead keyboard accessible ([b0436a5](https://github.com/dziksu/synkinema/commit/b0436a5e85c7481777cc1ea3e5912792ab11766a))
+* **studio:** omit empty upload destination fields ([ff08492](https://github.com/dziksu/synkinema/commit/ff08492cd26a0375cf61ce95c19ecff06e0ecb28))
+* **studio:** stabilize video editing and consolidate dependency updates ([#105](https://github.com/dziksu/synkinema/issues/105)) ([e49d5dc](https://github.com/dziksu/synkinema/commit/e49d5dc88d7ab528a138ee749bfdb92d2dcd8bce)), closes [#101](https://github.com/dziksu/synkinema/issues/101) [#102](https://github.com/dziksu/synkinema/issues/102)
+
+### Build and Dependencies
+
+* **deps:** bump the python group with 14 updates ([e36e85b](https://github.com/dziksu/synkinema/commit/e36e85ba796227ab67b6ad354bf913ab57bf7b3e))
+* **deps:** bump the studio group across 1 directory with 18 updates ([36ba6a2](https://github.com/dziksu/synkinema/commit/36ba6a273197a7d57dc4d3b77ad938c7b852a73e))
+* **deps:** integrate Python updates from PR [#102](https://github.com/dziksu/synkinema/issues/102) ([bb0c67e](https://github.com/dziksu/synkinema/commit/bb0c67eb6b11601e3a07e34b5288920597bdeebf))
+* **deps:** integrate Studio updates from PR [#104](https://github.com/dziksu/synkinema/issues/104) ([f915c16](https://github.com/dziksu/synkinema/commit/f915c16f0f386d98dca98a67a18d073d059f5d60))
+
 ## [1.7.3](https://github.com/dziksu/synkinema/compare/v1.7.2...v1.7.3) (2026-10-15)
 
 ### Build and Dependencies
