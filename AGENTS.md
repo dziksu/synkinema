@@ -11,7 +11,8 @@ requirement. Preserve it in every feature, refactor and agent contribution.
   and side effects in OpenAPI whenever changing an endpoint.
 - Run `npm --prefix apps/studio run api:generate` after contract changes. Commit
   the generated schema, defaults and client together. Never hand-edit generated
-  files or duplicate backend DTOs manually. `api:check` must pass in CI.
+  files or duplicate backend DTOs manually. `api:check` must pass in the hosted
+  release gate before publication.
 - UI components use `src/api/queries.ts` query options and `mutations.ts` or
   `projectMutations.ts` mutation options. No direct `fetch`, Axios, EventSource,
   arbitrary HTTP helpers or generated client calls in components or stores.
@@ -54,8 +55,10 @@ and maintenance details. `apps/studio/src/studio.test.ts` enforces module bounda
 
 ## Repository and release workflow
 
-- `make check` is the shared local/CI gate. Root npm dependencies are release
-  tooling; install them separately from `apps/studio`. Python development uses
+- `make check` is the shared Husky pre-push and hosted release gate. Ordinary
+  PRs keep only lightweight title/metadata checks; heavy jobs require ready release
+  metadata on main. Root npm dependencies are release tooling and Husky; install
+  them separately from `apps/studio`. Python development uses
   `requirements-dev.txt`, which includes the runtime/speech lock.
 - Keep Conventional Commit subjects and PR titles. `npm run release:check` is
   local read-only analysis; `npm run release` is guarded GitHub Actions publication.

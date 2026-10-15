@@ -11,16 +11,27 @@ case "$(uname -s)-$(uname -m)" in
 esac
 actionlint_dir=$(mktemp -d)
 trap 'rm -rf "$actionlint_dir"' EXIT
-curl --fail --silent --show-error --location --retry 3 \
-  "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_${platform}.tar.gz" \
-  -o "$actionlint_dir/actionlint.tar.gz"
-if command -v sha256sum >/dev/null; then
-  actual=$(sha256sum "$actionlint_dir/actionlint.tar.gz" | cut -d ' ' -f 1)
-else
-  actual=$(shasum -a 256 "$actionlint_dir/actionlint.tar.gz" | cut -d ' ' -f 1)
+# pre-push must not redownload the same checker on every local push.
+cache_dir=node_modules/.cache/actionlint
+archive="$cache_dir/actionlint_1.7.12_${platform}.tar.gz"
+mkdir -p "$cache_dir"
+if [ ! -f "$archive" ]; then
+  curl --fail --silent --show-error --location --retry 3 \
+    "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_${platform}.tar.gz" \
+    -o "$actionlint_dir/actionlint.tar.gz"
+  mv "$actionlint_dir/actionlint.tar.gz" "$archive"
 fi
-if [ "$actual" != "$checksum" ]; then echo "actionlint checksum mismatch" >&2; exit 1; fi
-tar -xzf "$actionlint_dir/actionlint.tar.gz" -C "$actionlint_dir" actionlint
+if command -v sha256sum >/dev/null; then
+  actual=$(sha256sum "$archive" | cut -d ' ' -f 1)
+else
+  actual=$(shasum -a 256 "$archive" | cut -d ' ' -f 1)
+fi
+if [ "$actual" != "$checksum" ]; then
+  rm -f "$archive"
+  echo "actionlint checksum mismatch; retry to download a fresh archive" >&2
+  exit 1
+fi
+tar -xzf "$archive" -C "$actionlint_dir" actionlint
 # ShellCheck is optional on developer machines; YAML, expressions and actions
 # are checked identically on every platform. Shell scripts use set -euo pipefail.
 "$actionlint_dir/actionlint" -shellcheck= -pyflakes= -color

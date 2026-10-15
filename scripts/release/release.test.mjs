@@ -15,7 +15,7 @@ import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
 import config from "../../.releaserc.json" with { type: "json" };
 import { prepare } from "./prepare.mjs";
-import { planRelease } from "./plan.mjs";
+import { planRelease, planReleaseOrRetry } from "./plan.mjs";
 import {
   assertReleaseMetadata,
   writeReleasePullRequest,
@@ -229,6 +229,43 @@ test("only one stable tag on the same commit can resume publication", () => {
     "1.2.3-rc.1",
   ])
     assert.equal(isStableVersion(v), false);
+});
+
+test("planning resumes only the exact tagged release and skips later housekeeping commits", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "synkinema-release-retry-"));
+  const git = (...args) =>
+    execFileSync("git", args, { cwd, encoding: "utf8", stdio: "pipe" });
+  const options = {
+    cwd,
+    env: process.env,
+    repositoryUrl: "https://example.invalid/owner/repo.git",
+  };
+  try {
+    git("init", "--initial-branch=main");
+    git("config", "user.email", "test@example.invalid");
+    git("config", "user.name", "Release test");
+    writeFileSync(join(cwd, "file"), "first");
+    git("add", ".");
+    git("commit", "-m", "feat: initial release");
+    git("tag", "v1.0.0");
+    assert.deepEqual(await planReleaseOrRetry(options), {
+      version: "1.0.0",
+      notes: "",
+      retry: true,
+    });
+    writeFileSync(join(cwd, "file"), "housekeeping");
+    git("add", ".");
+    git("commit", "-m", "ci: reduce hosted checks");
+    assert.equal(await planReleaseOrRetry(options), null);
+    git("tag", "v1.0.1");
+    git("tag", "v1.0.2");
+    await assert.rejects(
+      planReleaseOrRetry(options),
+      /Multiple stable release tags/,
+    );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test("retrying an older release does not roll back latest or a minor tag", () => {

@@ -60,7 +60,8 @@ function MediaElement({
     if (!el) return;
     const expected =
       (clip.source_in_ms + (time - clip.start_ms) * clip.speed) / 1000;
-    if (Math.abs(el.currentTime - expected) > 0.25)
+    // Playback needs drift tolerance; paused scrubbing must show every frame.
+    if (Math.abs(el.currentTime - expected) > (playing ? 0.25 : 0.001))
       el.currentTime = Math.max(0, expected);
     el.playbackRate = clip.speed;
     const level = audioOnly ? audioLevel(clip, time, trackGain) : 0;
@@ -200,7 +201,10 @@ export function Preview({
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    if (Math.abs(el.currentTime - state.time / 1000) > 0.3)
+    if (
+      Math.abs(el.currentTime - state.time / 1000) >
+      (state.playing ? 0.3 : 0.001)
+    )
       el.currentTime = state.time / 1000;
     if (state.playing)
       void el.play().catch(() => state.set({ playing: false }));

@@ -8,7 +8,8 @@ import {
   putGainPoint,
   valueAt,
 } from "@/modules/editor/timeline/timelineAudio";
-import { Copy, DiamondPlus, RotateCcw, Scissors, Trash2 } from "lucide-react";
+import { Copy, DiamondPlus, RotateCcw, Trash2 } from "lucide-react";
+import TimelineSplitButton from "./TimelineSplitButton";
 import { useRef } from "react";
 
 export type TimelineEdit = (
@@ -25,7 +26,7 @@ export function TimelineSelectionTools({
   track?: Track;
   onEdit: TimelineEdit;
 }) {
-  const time = useStudio((s) => s.time);
+  const selectedIds = useStudio((s) => s.selectedIds);
   const audio =
     track && ["voiceover", "music", "sound", "ambient"].includes(track.kind);
   return (
@@ -36,36 +37,20 @@ export function TimelineSelectionTools({
             <span className="timeline-selection-name" title={clip.name}>
               {clip.name}
             </span>
-            <Button
-              variant="ghost"
-              className="text-button"
-              disabled={
-                time - clip.start_ms < 100 ||
-                clip.start_ms + clip.duration_ms - time < 100
-              }
-              onClick={() =>
-                onEdit("split_clip", {
-                  track_id: track.id,
-                  clip_id: clip.id,
-                  time_ms: Math.round(time),
-                })
-              }
-            >
-              <Scissors size={14} />
-              {tr("Split at playhead")}
-            </Button>
+            <TimelineSplitButton clip={clip} track={track} onEdit={onEdit} />
             <Button
               variant="ghost"
               className="text-button"
               onClick={() =>
-                onEdit("duplicate_clip", {
-                  track_id: track.id,
+                onEdit("duplicate_clips", {
                   clip_id: clip.id,
                 })
               }
             >
               <Copy size={14} />
-              {tr("Duplicate clip")}
+              {selectedIds.length > 1
+                ? tr("Duplicate selected clips")
+                : tr("Duplicate clip")}
             </Button>
             <Button
               variant="destructive"

@@ -264,10 +264,6 @@
     flex-direction: column;
     border: 0;
   }
-  .editor-session .timeline-selection-panel {
-    height: auto;
-    max-height: 96px;
-  }
   .editor-session .timeline-selection-hint {
     margin: 0;
     padding: 8px 12px;

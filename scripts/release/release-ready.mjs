@@ -11,11 +11,12 @@ if (!process.env.GITHUB_OUTPUT)
     "GITHUB_OUTPUT is required to report release metadata readiness.",
   );
 
-const { version } = JSON.parse(readFileSync(planPath, "utf8"));
+const { version, retry } = JSON.parse(readFileSync(planPath, "utf8"));
 let ready = true;
 try {
   assertReleaseMetadata(process.cwd(), version);
 } catch (error) {
+  if (retry) throw error;
   ready = false;
   console.log(`Release metadata is not ready: ${error.message}`);
 }

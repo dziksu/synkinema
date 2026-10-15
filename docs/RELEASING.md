@@ -1,4 +1,4 @@
-# CI, releases and the first push
+# Local checks, minimal CI and releases
 
 The implementation follows the useful parts of
 [StructSmith at b330b4a](https://github.com/dziksu/StructSmith/tree/b330b4a24faf45f1c9b0e15914a1fcc45d5ee555):
@@ -6,14 +6,36 @@ Conventional Commits, verification before release, a reusable GHCR workflow,
 versioned multi-architecture images, retry handling and community documentation.
 It is adapted to Python/React/npm, not Bun.
 
-Synkinema uses only the built-in `GITHUB_TOKEN`. After all checks pass, it uses
-semantic-release to calculate the next version and opens or updates a
-release-metadata PR. That PR contains the generated `CHANGELOG.md`, matching
-application/package versions and regenerated API metadata. With the repository
-rules below, the bot queues an automatic squash merge after dispatching the required
-checks. A passing PR merges into protected `main` and creates the version tag,
-GitHub Release and GHCR image. The source changelog is therefore the canonical,
-version-by-version release record.
+Routine verification runs locally through Husky. `npm ci` in the repository root
+installs the hooks: `pre-commit` checks formatting/lint, `commit-msg` validates
+Conventional Commits, and `pre-push` runs the complete `make check` gate. The push
+hook requires a clean tracked checkout of the pushed commit so it does not verify
+uncommitted files instead. Deleting refs needs no build; pushing another revision
+requires checking it out first. These hooks never publish, install dependencies or
+change source files. Install the documented Python/Studio dependencies first.
+If dependencies were installed with `--ignore-scripts`, run `npm run prepare` once.
+CI/production installs skip hook setup. `HUSKY=0` is an explicit local escape hatch;
+checks are still mandatory before release, and contributors should include local
+verification results in their PRs. Browser-created and Dependabot PRs need a local
+checkout and `make check` before manual merge because they do not run local hooks.
+
+GitHub runs one small Conventional PR title job for ordinary PRs. The CI workflow
+reports skipped release gates so required status checks do not remain pending.
+A push to `main` first performs read-only semantic-release planning. With no release
+or exact tagged retry, it stops there. A planned version opens/updates the
+release-metadata PR without building containers or launchers. That PR receives
+only a small metadata check and the title check. Once merged, the exact `main`
+checkout must pass `make check` and both native Linux container smoke tests before
+semantic-release creates the tag and GitHub Release. Launcher builds run once,
+only during publication after the image succeeds. CodeQL is available by manual
+workflow dispatch; it has no PR, push or scheduled trigger.
+
+Synkinema uses only the built-in `GITHUB_TOKEN`. The release PR contains the
+canonical generated `CHANGELOG.md`, matching package/application versions and
+regenerated API metadata. With the repository rules below, the bot queues an
+automatic squash merge after dispatching the two lightweight required checks.
+Without auto-merge, a maintainer merges that PR manually; publication still waits
+for the complete release verification gate.
 
 ## First push preparation
 
@@ -27,8 +49,9 @@ the pinned `tokenizers` release requires it; migrate the speech dependencies tog
 The launcher resolves `pydantic-core` from Pydantic's exact dependency metadata;
 do not add an independent core pin that can conflict with the selected Pydantic.
 
-1. Run `npm ci --ignore-scripts`, install Studio/Python dependencies as in the
-   README, then run `make check` and `npm run workflows:check`.
+1. Run `npm ci` to install root tooling and Husky, install Studio/Python
+   dependencies as in the README, then run `make check`. Workflow validation
+   is included and caches the checksum-verified actionlint archive locally.
 2. Review and commit the intended files with Conventional Commit subjects. Keep
    `.env`, `.data`, private media and example outputs out of Git. The initial
    release should have a `feat: ...` commit describing the editor's capabilities.
@@ -44,10 +67,11 @@ do not add an independent core pin that can conflict with the selected Pydantic.
    needs `packages: write`. Organization policy must permit those scopes. No PAT or
    custom secret is required. Tag rules must allow the workflow to create `v*` tags.
    No branch bypass is needed.
-5. Add the remote and push only when ready. A releasable push to `main` runs the
-   complete verification pipeline, then opens a release PR. Once the required
-   checks pass, automatic merge runs the release pipeline and publishes the
-   version. With no previous stable tag, semantic-release selects **1.0.0**.
+5. Add the remote and push only when ready. A releasable push to `main` opens a
+   release PR. Once the metadata
+   and title checks pass, automatic merge starts full release verification, then
+   publishes the version. With no previous stable tag, semantic-release selects
+   **1.0.0**.
 6. After the first GHCR publication, check the package's visibility. New packages
    can default to private; make it public in GitHub Packages if anonymous pulls
    are intended. Public examples work only after this setting and publication.
@@ -58,7 +82,7 @@ requires pull requests and successful checks, blocks force pushes and deletion,
 and has no bypass. Enable **Allow auto-merge**, allow squash merging, set the
 squash commit subject to the PR title, and disable merge commits and rebase
 merging. The generated `chore/release` title should be retained for traceability.
-The ruleset must require all five checks below; the workflow verifies those active
+The ruleset must require the two checks below; the workflow verifies those active
 rules through the GitHub API before it can queue auto-merge. Requiring a human
 review or CODEOWNERS approval also applies to the bot PR and therefore pauses
 automatic publication until a maintainer approves it. Do not enable merge queue
@@ -71,11 +95,17 @@ metadata before publication; it does not rely on the merge strategy or title
 alone. The release PR's CI and title check are dispatched explicitly, so they
 do not depend on approval of the `GITHUB_TOKEN`-created PR workflows. Use these
 check names:
-**Verify code and API contract**, **Studio tests and build**,
-**Container (linux/amd64)**, **Container (linux/arm64)** and
-**Conventional PR title**. CodeQL runs separately
-for public repositories; private repositories need
-GitHub Code Security and the `ENABLE_CODEQL=true` repository variable.
+**Release metadata** and **Conventional PR title**. When migrating from the old
+CI, remove required **Verify code and API contract**, **Studio tests and build**,
+**Container (linux/amd64)** and **Container (linux/arm64)** checks from repository
+settings; they now run only for publication and cannot be PR requirements. Ordinary
+PRs report the metadata check as skipped, which
+[GitHub treats as successful](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging). Do not
+use path filters on this workflow: they can leave required checks pending. Ruleset
+changes are a separate repository administration step; checkout files cannot apply
+them. CodeQL runs only when manually dispatched for public repositories; private
+repositories need GitHub Code Security and the `ENABLE_CODEQL=true` repository
+variable.
 Enable private vulnerability reporting in Settings → Security for the advisory
 link in `SECURITY.md`. Dependabot uses the checked-in configuration automatically.
 Routine Dependabot updates run on Mondays at 09:00 Europe/Warsaw and combine
@@ -89,22 +119,25 @@ not wait for the weekly version-update schedule or consume those version limits.
 
 | Stage | Behavior |
 |---|---|
-| Verify | Formatting, Ruff, release-tool tests, dependency consistency, API codegen drift and Python tests |
-| Studio | Independent React tests, TypeScript check and production Vite build, even if Python tests fail |
-| Containers | Native Linux amd64/arm64 builds; real FFmpeg render, MCP handshake, non-root/version checks, live HTTP/UI smoke test |
-| Release PR | Runs only after Verify, Studio and both container builds succeed on `main` in a non-fork repository; semantic-release calculates the next version and creates or updates `chore/release` |
-| Release metadata | The PR updates `CHANGELOG.md`, root and Studio manifests/lockfiles, Python and Docker defaults, then regenerates and commits the OpenAPI schema/client; CI and title checks are dispatched explicitly, and auto-merge waits for the active ruleset's required checks |
-| Semantic release | Runs only after the release PR is merged; verifies the committed metadata, creates `vX.Y.Z` and GitHub release notes/assets |
-| Publish image | Called directly with the tested release-PR merge SHA and selected version; verifies tag identity, builds both architectures and publishes GHCR with SBOM/provenance |
-| Local launcher | Native macOS/Linux arm64/x64 builds are checked in CI; after image publication, verify all four artifacts/tag/commit and upload the version-matched installer and SHA-256 manifest to that release |
-| CodeQL | Separate Python/JavaScript security analysis on PRs, main and weekly |
-| PR title | Validates Conventional Commit syntax without evaluating the title as code |
+| Local Husky | Formatting/lint before commit; Conventional Commit subject validation; complete `make check` before push |
+| PR title | Tiny remote check of the title used for squash-merge versioning, read as plain event data |
+| Release plan | First job on main; computes the version or resumes an exact tag on this commit; non-releasing pushes stop here |
+| Release PR | Updates canonical changelog, manifests/lockfiles, Python/Docker versions and generated API contract; dispatches metadata/title checks |
+| Release metadata | Dependency-free Node check on `chore/release`; verifies source versions, changelog and generated API version identity |
+| Release verification | One job running `make check`, including API drift, Python/FFmpeg tests, Studio tests, typecheck/build and release/hook/workflow regressions; only after version metadata is ready on main |
+| Containers | Both native Linux architectures smoke-test the selected version/commit after code verification; render, MCP, HTTP/UI and compiled host-helper checks must pass before tagging |
+| Semantic release | Creates `vX.Y.Z` and the GitHub release only after code/API and both container smoke gates pass |
+| Publish image | Verifies exact tag/commit identity, reuses native smoke-build caches and publishes both architectures with SBOM/provenance |
+| Local launcher | Builds four macOS/Linux arm64/x64 artifacts once after image publication, checks their identity and publishes matching installer/checksums |
+| CodeQL | Optional manual audit; no automatic PR, push or weekly jobs |
 
 PRs never receive publishing credentials. Main runs are serialized and not
-cancelled halfway through publication. New PR commits cancel superseded runs.
+cancelled halfway through publication.
 The release workflow is invoked through `workflow_call` because tags created with
 `GITHUB_TOKEN` do not trigger a second workflow. All third-party actions are pinned
-to full commit SHAs; Dependabot maintains them. CI image caches are best effort.
+to full commit SHAs; Dependabot maintains them. Native image caches are best effort
+and include intermediate layers for reuse by the final publication of the same
+commit/version.
 The release build does not export a second cache after pushing image tags, so a
 slow cache service cannot hold a successful publication open.
 
@@ -125,8 +158,11 @@ does not prove users can download a package. If this check fails, make the packa
 public in GitHub Packages and rerun the failed workflow for the same tag/commit;
 the workflow does not change package visibility or fall back to a different image.
 Launcher assets publish only after the matching image succeeds;
-an older release retry uploads to its own tag without changing `latest`.
-`make check` includes installer/gateway regression tests; the container CI smoke
+an older release retry uploads to its own tag without changing `latest`. Planning
+recognizes an existing stable tag on the exact checkout, so rerunning after tag
+creation still enables all gates;
+a later housekeeping commit cannot accidentally resume an unrelated version.
+`make check` includes installer/gateway regression tests; the release container smoke
 additionally launches a compiled host helper outside the checkout with a disposable
 volume and test CLI. Real account inference remains a separate local check.
 
@@ -141,8 +177,10 @@ Studio `package.json`/lockfiles, `synkinema.__version__`, Docker defaults,
 published image is then built from that verified commit with `APP_VERSION` set to
 the same version. The frontend receives it at build time; the Python image stamps
 its build output and setuptools metadata. Health, OpenAPI and the MCP initialize
-response all use the selected version. CI deliberately stamps `0.0.0` to prove the
-image override works. Source API drift checks run before image-only stamping.
+response all use the selected version. Release smoke builds use the selected
+release version so publication can reuse their cached layers. Local version-stamping
+regression tests cover overrides. Source API drift checks run before image-only
+stamping.
 
 The build records OCI source/version/revision labels, SBOM and provenance. The
 publication job summary includes the pushed manifest digest. Use a digest to pin
@@ -152,13 +190,14 @@ lockfiles; base-image and OS security updates are intentional rebuild inputs.
 
 ## Recovery
 
-- **Verification/build failure:** fix it and push the change. The release PR is not
-  opened when a required verification job fails, and its separately dispatched CI
-  must be green before automatic merge.
+- **Verification/build failure:** fix it and push the change. A release PR may
+  already be merged, but no tag or image publishes until code/API and both container
+  smoke tests pass on the exact main checkout. A later push replans the pending
+  release and updates metadata if needed.
 - **Release PR cannot be created or updated:** enable GitHub Actions permission to
   create pull requests and confirm the workflow token scopes in repository or
   organization settings. The workflow never falls back to committing on `main`.
-- **Release PR remains open:** check the five required statuses, the active `main`
+- **Release PR remains open:** check the two required statuses, the active `main`
   ruleset and repository auto-merge option. The release job skips auto-merge if the
   option or required rules are absent; it never merges an unprotected branch merely
   because CI was dispatched. A required human review must be provided separately.

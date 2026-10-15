@@ -5,7 +5,7 @@ import semver from "semver";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
 import config from "../../.releaserc.json" with { type: "json" };
-import { assertReleaseEnvironment } from "./rules.mjs";
+import { assertReleaseEnvironment, versionFromTags } from "./rules.mjs";
 
 const logger = { log() {} };
 
@@ -88,6 +88,17 @@ export async function planRelease({ cwd, repositoryUrl, env }) {
   return { version, notes };
 }
 
+export async function planReleaseOrRetry(options) {
+  const plan = await planRelease(options);
+  if (plan) return plan;
+  // A failed publication may already have created a tag. Keep all release gates
+  // enabled for that exact checkout; never choose a tag on another commit.
+  const version = versionFromTags(
+    git(options.cwd, ["tag", "--points-at", "HEAD", "--list", "v*"]),
+  );
+  return version ? { version, notes: "", retry: true } : null;
+}
+
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const env = process.env;
   const event = env.GITHUB_EVENT_PATH
@@ -95,7 +106,11 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     : {};
   assertReleaseEnvironment(env, event);
   const repositoryUrl = `https://github.com/${env.GITHUB_REPOSITORY}.git`;
-  const plan = await planRelease({ cwd: process.cwd(), repositoryUrl, env });
+  const plan = await planReleaseOrRetry({
+    cwd: process.cwd(),
+    repositoryUrl,
+    env,
+  });
   if (!plan) {
     writeFileSync(env.GITHUB_OUTPUT, "version=\n");
   } else {

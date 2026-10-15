@@ -9,7 +9,9 @@ import {
   extractsAudio,
   freeStart,
   quantize,
+  retimeAnimations,
   trackHasRoom,
+  trimValues,
   usableAsset,
 } from "@/modules/editor/timeline/timelineMath";
 
@@ -82,6 +84,73 @@ export function withLinked(project: Project, ids: string[], linking = true) {
     for (const id of [...all])
       for (const partner of linkedClipIds(project, id)) all.add(partner);
   return [...all];
+}
+
+/** Split both synchronized halves in one edit, preserving a linked pair on each side. */
+export function splitSteps(
+  project: Project,
+  clipId: string,
+  timeMs: number,
+  linking = true,
+): EditStep[] {
+  if (!locate(project, clipId))
+    throw new Error(tr("This clip is no longer available."));
+  return withLinked(project, [clipId], linking).map((id) => {
+    const { track, clip } = locate(project, id)!;
+    return {
+      type: "split_clip",
+      payload: {
+        track_id: track.id,
+        clip_id: clip.id,
+        time_ms: timeMs,
+        new_clip_id: createId(),
+      },
+    };
+  });
+}
+
+/** Clamp a linked trim to the bounds of every participating lane. Each half
+ * keeps its own fades and animations, while source range and timing stay equal. */
+export function planTrim(
+  project: Project,
+  assets: Asset[],
+  clipId: string,
+  side: "left" | "right",
+  timeMs: number,
+  linking = true,
+) {
+  const origin = locate(project, clipId);
+  if (!origin) throw new Error(tr("This clip is no longer available."));
+  const ids = withLinked(project, [clipId], linking);
+  const members = ids.map((id) => locate(project, id)!);
+  const neighbors = members.flatMap(({ track }) =>
+    track.clips.filter((clip) => !ids.includes(clip.id)),
+  );
+  const longestTransition = members.reduce(
+    (current, { clip }) =>
+      clip.transition.type !== "cut" &&
+      clip.transition.duration_ms > current.duration_ms
+        ? clip.transition
+        : current,
+    { ...origin.clip.transition, duration_ms: 0 },
+  );
+  const values = trimValues(
+    { ...origin.clip, transition: longestTransition },
+    side,
+    timeMs,
+    assets.find((asset) => asset.id === origin.clip.asset_id),
+    neighbors,
+  );
+  return members.map(({ track, clip }) => ({
+    track_id: track.id,
+    clip_id: clip.id,
+    changes: {
+      ...values,
+      animations: retimeAnimations(clip, values.duration_ms),
+      fade_in_ms: Math.min(clip.fade_in_ms, values.duration_ms),
+      fade_out_ms: Math.min(clip.fade_out_ms, values.duration_ms),
+    },
+  }));
 }
 
 /** Clips whose rendered boxes intersect a marquee, in timeline coordinates. */
@@ -168,11 +237,38 @@ export type MovePlan = {
   newTrack?: NewTrack;
 };
 
+/** An existing transition survives only when both neighboring pictures travel
+ * together on a primary video lane. Ordinary overlay/audio lanes cannot overlap. */
+function preservesTransition(a: MoveItem, b: MoveItem): boolean {
+  const [left, right] = a.clip.start_ms <= b.clip.start_ms ? [a, b] : [b, a];
+  if (
+    left.extract ||
+    right.extract ||
+    left.from.id !== right.from.id ||
+    left.from.kind !== "video" ||
+    left.to?.kind !== "video" ||
+    left.to.id !== right.to?.id ||
+    right.clip.transition.type === "cut" ||
+    left.start - left.clip.start_ms !== right.start - right.clip.start_ms
+  )
+    return false;
+  const ordered = [...left.from.clips].sort((x, y) => x.start_ms - y.start_ms);
+  const overlap =
+    left.clip.start_ms + left.clip.duration_ms - right.clip.start_ms;
+  return (
+    ordered[ordered.findIndex((c) => c.id === right.clip.id) - 1]?.id ===
+      left.clip.id &&
+    overlap > 0 &&
+    overlap < left.clip.duration_ms &&
+    Math.abs(overlap - right.clip.transition.duration_ms) <= 2
+  );
+}
+
 /**
- * Plan dragging `anchor` (and the rest of `ids`) by `delta` ms. Only the anchor
- * and its linked partner may change lanes: the anchor follows the pointer while
- * partners keep their tracks and stay in sync. A collision on a different lane
- * suggests a new lane below it instead of rejecting the drop.
+ * Plan dragging `anchor` (and the rest of `ids`) by `delta` ms. Selected clips
+ * from the anchor's lane follow it to the target; other lanes keep their layout
+ * and share the same time delta (including linked sound). A collision on a
+ * different lane suggests one new lane for the source group.
  */
 export function planMove(
   project: Project,
@@ -203,9 +299,10 @@ export function planMove(
   const linked = new Set(linkedClipIds(project, anchor));
   const onlyLinked = group.every((g) => linked.has(g.clip.id));
   const asset = assets.find((a) => a.id === origin.clip.asset_id);
-  const lane =
-    (onlyLinked && project.tracks.find((t) => t.id === target)) || origin.track;
-  const extract = extractsAudio(lane, origin.track, asset);
+  const lane = project.tracks.find((t) => t.id === target) || origin.track;
+  const extractionTarget = extractsAudio(lane, origin.track, asset);
+  // Audio extraction is a single-source action, never a partial group move.
+  const extract = extractionTarget && onlyLinked;
   const members = extract ? [] : group;
   const moving = new Set([anchor, ...members.map((g) => g.clip.id)]);
   const earliest = Math.min(
@@ -223,21 +320,40 @@ export function planMove(
   const items: MoveItem[] = members.map((g) => ({
     clip: g.clip,
     from: g.track,
-    to: g.track,
+    to: g.track.id === origin.track.id ? lane : g.track,
     start: g.clip.start_ms + d,
   }));
   let start = origin.clip.start_ms + d;
   let newTrack: NewTrack | undefined;
-  const compatible = acceptsClip(lane, origin.track, asset, origin.clip);
-  if (compatible && forceNewTrack && onlyLinked)
+  const sameLane = [
+    origin,
+    ...members.filter((g) => g.track.id === origin.track.id),
+  ];
+  const compatible =
+    (!extractionTarget || onlyLinked) &&
+    sameLane.every((g) =>
+      acceptsClip(
+        lane,
+        g.track,
+        assets.find((a) => a.id === g.clip.asset_id),
+        g.clip,
+      ),
+    );
+  if (compatible && forceNewTrack)
     newTrack = { id: newTrackId, kind: companionKind(lane), after: lane.id };
-  else if (compatible && !fits(lane, start, origin.clip.duration_ms)) {
+  else if (
+    compatible &&
+    sameLane.some((g) => !fits(lane, g.clip.start_ms + d, g.clip.duration_ms))
+  ) {
     if (lane.id !== origin.track.id)
       newTrack = { id: newTrackId, kind: companionKind(lane), after: lane.id };
     else if (!members.length)
       // Sliding a lone clip along its own lane settles into the nearest gap.
       start = freeStart(lane, start, origin.clip.duration_ms, anchor);
   }
+  if (newTrack)
+    for (const item of items)
+      if (item.from.id === origin.track.id) item.to = undefined;
   items.unshift({
     clip: origin.clip,
     from: origin.track,
@@ -252,6 +368,17 @@ export function planMove(
       !!newTrack) &&
     items.every(
       (item) => !item.to || fits(item.to, item.start, item.clip.duration_ms),
+    ) &&
+    items.every((item, index) =>
+      items
+        .slice(index + 1)
+        .every(
+          (other) =>
+            item.to?.id !== other.to?.id ||
+            item.start + item.clip.duration_ms <= other.start ||
+            other.start + other.clip.duration_ms <= item.start ||
+            preservesTransition(item, other),
+        ),
     );
   return { valid, delta: d, items, newTrack };
 }
@@ -289,6 +416,25 @@ export function moveSteps(project: Project, plan: MovePlan): EditStep[] {
         },
       });
   }
+  // move_clip resets incoming/outgoing transitions. Restore only complete pairs
+  // after every move, without set_transition's unrelated timeline ripple.
+  for (const item of plan.items)
+    if (
+      item.clip.transition.type !== "cut" &&
+      plan.items.some(
+        (other) =>
+          other.clip.start_ms < item.clip.start_ms &&
+          preservesTransition(other, item),
+      )
+    )
+      steps.push({
+        type: "update_clip",
+        payload: {
+          track_id: item.to!.id,
+          clip_id: item.clip.id,
+          changes: { transition: item.clip.transition },
+        },
+      });
   return steps;
 }
 

@@ -13,14 +13,24 @@ Dependencies are locked in `requirements.txt`,
 ```sh
 make format
 make check
-npm run workflows:check
 ```
 
 `make check` runs Biome formatting, Ruff formatting/lint, release-tool tests,
 local release analysis, generated API drift checks, Python tests with real FFmpeg,
 Studio tests, TypeScript checking and the production frontend build.
-CI also builds and smoke-tests non-root Linux amd64 and arm64 containers, including
-real rendering, MCP initialization, HTTP endpoints and the bundled UI.
+Root `npm ci` also installs Husky. `pre-commit` checks formatting/lint;
+`commit-msg` enforces Conventional Commit subjects; `pre-push` runs `make check`,
+including checksum-verified workflow validation. If you used `--ignore-scripts`,
+run `npm run prepare` to activate the hooks. Hooks use the documented `.venv` and
+Studio/root dependencies; they do not install anything or format files for you.
+The push gate requires clean tracked files and the pushed commit checked out.
+
+Ordinary PRs run only the small title check on GitHub. Browser-created and
+Dependabot changes must be checked out and verified locally before manual merge.
+CodeQL is a manual workflow. Main pushes first plan a release; full hosted
+verification runs only when release metadata is ready. Before publication, both
+non-root Linux amd64/arm64 containers must pass rendering, MCP, HTTP/UI and host
+launcher smoke checks. The four standalone launcher builds run only at publication.
 
 For container changes, build a separate QA image and use a disposable data volume.
 Do not test deletion against your working media or restart another person's server.
@@ -80,9 +90,11 @@ features, fixes, performance and runtime/build changes. The Conventional Commits
 preset is pinned to 9.x for compatibility with the release-notes generator; upgrade
 that toolchain as a group and keep the notes-generation regression test passing.
 
-Release preparation is restricted to the verified GitHub Actions `main` run. A
+Release preparation is restricted to GitHub Actions on `main`. A
 releasable change opens or updates a release PR with generated notes and
-version metadata; required checks gate its automatic squash merge and publication.
+version metadata; lightweight metadata/title checks gate its automatic squash
+merge. Full code/API verification and both container smoke checks then gate
+publication on the exact merged commit.
 `npm run release` refuses
 local execution. Use `npm run release:check` to inspect committed changes locally;
 it excludes uncommitted work and never accesses a remote. See

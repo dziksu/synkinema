@@ -9,21 +9,24 @@
     "node": ">=24.10.0"
   },
   "scripts": {
-    "test": "node --test scripts/release/*.test.mjs",
+    "test": "node --test scripts/release/*.test.mjs scripts/hooks/*.test.mjs",
     "release": "node scripts/release/publish.mjs",
     "release:check": "node scripts/release/check.mjs",
     "release:plan": "node scripts/release/plan.mjs",
     "release:prepare-pr": "node scripts/release/release-pr.mjs",
     "release:ready": "node scripts/release/release-ready.mjs",
     "pr:check": "node scripts/release/pr-title.mjs",
-    "workflows:check": "bash scripts/check-workflows.sh"
+    "workflows:check": "bash scripts/check-workflows.sh",
+    "prepare": "node scripts/hooks/install.mjs",
+    "check": "make check"
   },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "13.0.1",
     "@semantic-release/github": "12.0.10",
     "@semantic-release/release-notes-generator": "14.1.1",
     "conventional-changelog-conventionalcommits": "9.3.1",
-    "semver": "7.8.5",
-    "semantic-release": "25.0.9"
+    "husky": "9.1.7",
+    "semantic-release": "25.0.9",
+    "semver": "7.8.5"
   }
 }

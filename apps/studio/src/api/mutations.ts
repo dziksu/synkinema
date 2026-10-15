@@ -606,7 +606,16 @@ export const writes = {
       }) => {
         const imported: Asset[] = [];
         for (const file of files) {
-          const asset = await http.api.upload({ file, ...destination });
+          // Multipart serializes explicit undefined/null as text; omit root/shared IDs.
+          const asset = await http.api.upload({
+            file,
+            ...(destination.project_id
+              ? { project_id: destination.project_id }
+              : {}),
+            ...(destination.folder_id
+              ? { folder_id: destination.folder_id }
+              : {}),
+          });
           imported.push(asset);
           // Only expose playable media after probing succeeds; pending file names live in mutation variables.
           const key = keys.assets(destination.project_id);

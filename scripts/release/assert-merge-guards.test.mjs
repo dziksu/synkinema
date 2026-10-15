@@ -2,13 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { assertReleaseMergeGuards } from "./assert-merge-guards.mjs";
 
-const checks = [
-  "Verify code and API contract",
-  "Studio tests and build",
-  "Container (linux/amd64)",
-  "Container (linux/arm64)",
-  "Conventional PR title",
-];
+const checks = ["Release metadata", "Conventional PR title"];
 
 test("release merge guard accepts active rules with every required check", () => {
   assert.doesNotThrow(() =>
@@ -26,7 +20,7 @@ test("release merge guard accepts active rules with every required check", () =>
   );
 });
 
-test("release merge guard rejects missing container verification", () => {
+test("release merge guard rejects missing release metadata verification", () => {
   assert.throws(
     () =>
       assertReleaseMergeGuards([
@@ -37,12 +31,12 @@ test("release merge guard rejects missing container verification", () => {
           type: "required_status_checks",
           parameters: {
             required_status_checks: checks
-              .filter((context) => context !== "Container (linux/arm64)")
+              .filter((context) => context !== "Release metadata")
               .map((context) => ({ context })),
           },
         },
       ]),
-    /Container \(linux\/arm64\)/,
+    /Release metadata/,
   );
 });
 
