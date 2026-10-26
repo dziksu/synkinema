@@ -56,7 +56,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: .python-version
           cache: pip
@@ -126,7 +126,7 @@ jobs:
         run: |
           docker run -d --name synkinema-ci -p 127.0.0.1:18080:8080 -e SYNKINEMA_ALLOWED_HOSTS=studio.test synkinema:ci
           python3 scripts/http_smoke.py --url http://127.0.0.1:18080 --version "${{ needs.release-plan.outputs.version }}" --trusted-host studio.test
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: .python-version
       - name: Compile the host launcher and test it with the real container
@@ -173,7 +173,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: .python-version
           cache: pip
