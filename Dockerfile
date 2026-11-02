@@ -1,4 +1,4 @@
-FROM node:24.22.1-bookworm-slim AS studio
+FROM node:24.22.2-bookworm-slim AS studio
 ARG APP_VERSION=1.7.5
 ENV VITE_APP_VERSION=$APP_VERSION
 WORKDIR /studio
@@ -7,7 +7,7 @@ RUN npm ci
 COPY apps/studio/ ./
 RUN npm run build
 
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 ARG APP_VERSION=1.7.5
 ARG VCS_REF=unknown
 ARG SOURCE_URL=https://github.com/dziksu/synkinema
