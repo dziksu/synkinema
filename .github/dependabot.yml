@@ -96,7 +96,8 @@ updates:
       - dependency-name: node
         update-types: [version-update:semver-major]
       - dependency-name: python
-        update-types: [version-update:semver-major]
+        # Python minor versions change the interpreter ABI and need speech-wheel validation.
+        update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: github-actions
     directory: /
     schedule:
