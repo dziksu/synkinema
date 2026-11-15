@@ -1,4 +1,4 @@
-"""Local Supertonic + optional BYOK ElevenLabs. Credentials stay on the server."""
+"""Local speech providers and optional BYOK ElevenLabs."""
 
 import asyncio
 import hashlib
@@ -10,6 +10,7 @@ from typing import Literal
 import httpx
 from pydantic import ConfigDict, Field, model_validator
 
+from . import chatterbox_tts
 from .models import Model
 from .supertonic_tts import INPUT_LIMIT, LICENSE_URL, MODEL, REVISION, VOICES, Language, Supertonic
 
@@ -27,6 +28,12 @@ class VoiceRequest(Model):
                     "speed": 1.0,
                 },
                 {
+                    "provider": "chatterbox",
+                    "text": "The Moon had a little help [chuckle].",
+                    "voice_id": "whyzy",
+                    "language": "en",
+                },
+                {
                     "provider": "elevenlabs",
                     "text": "Narration text",
                     "voice_id": "ACCOUNT_VOICE_ID",
@@ -38,36 +45,39 @@ class VoiceRequest(Model):
     text: str = Field(
         min_length=1,
         max_length=5000,
-        description="Text to speak, in the explicitly selected language. Supertonic limit: 1000 characters; ElevenLabs: 5000.",
+        description="Text to speak. Limits in characters: Supertonic 1000, Chatterbox Turbo 500 (English, allows tags like [chuckle]), ElevenLabs 5000.",
     )
     voice_id: str = Field(
         pattern=r"^[a-zA-Z0-9_-]{1,80}$",
-        description="Supertonic preset F1–F5 or M1–M5, or an ElevenLabs account voice ID.",
+        description="Supertonic preset F1–F5 or M1–M5, configured Chatterbox reference ID, or ElevenLabs account voice ID. Discover IDs through voice status.",
     )
     model_id: str | None = Field(
         None,
         pattern=r"^[a-zA-Z0-9_-]{1,80}$",
-        description="Omit for the selected provider's default: supertonic-3 or eleven_multilingual_v2.",
+        description="Omit for the selected provider's default: supertonic-3, chatterbox-turbo or eleven_multilingual_v2.",
     )
     stability: float = Field(
-        0.5, ge=0, le=1, description="ElevenLabs only. Leave at the default for Supertonic."
+        0.5, ge=0, le=1, description="ElevenLabs only. Leave at the default for local providers."
     )
     speed: float = Field(
-        1, ge=0.7, le=2, description="Speech speed multiplier. Supertonic: 0.7–2.0; ElevenLabs: 0.7–1.2."
+        1,
+        ge=0.7,
+        le=2,
+        description="Speech speed multiplier. Supertonic: 0.7–2.0; Chatterbox: fixed at 1.0; ElevenLabs: 0.7–1.2.",
     )
-    provider: Literal["elevenlabs", "supertonic"] = Field(
+    provider: Literal["elevenlabs", "supertonic", "chatterbox"] = Field(
         "elevenlabs",
-        description="Legacy default remains ElevenLabs. Choose supertonic explicitly for offline CPU synthesis.",
+        description="Legacy default remains ElevenLabs. Choose supertonic or chatterbox explicitly for offline CPU synthesis.",
     )
     language: Language | None = Field(
         None,
-        description="Required for Supertonic: exactly one supported ISO code. No auto/na fallback and no translation or language detection. Omit for ElevenLabs.",
+        description="For Supertonic, select a supported ISO code. Chatterbox accepts only en and defaults to en. Omit for ElevenLabs. No language detection or translation.",
     )
     steps: int = Field(
         8,
         ge=4,
         le=16,
-        description="Supertonic inference steps; more steps cost CPU time. Leave at 8 for ElevenLabs.",
+        description="Supertonic inference steps; more steps cost CPU time. Leave at 8 for the other providers.",
     )
     project_id: str | None = Field(
         None,
@@ -94,6 +104,19 @@ class VoiceRequest(Model):
             if re.search(r"</?[a-z]{2}>", self.text, re.IGNORECASE):
                 raise ValueError("Select the language field instead of embedding language tags in the text")
             self.model_id = MODEL
+        elif self.provider == chatterbox_tts.PROVIDER:
+            if self.language not in (None, "en"):
+                raise ValueError("Chatterbox Turbo supports only English (en)")
+            if self.model_id not in (None, chatterbox_tts.MODEL):
+                raise ValueError("Chatterbox supports only the pinned chatterbox-turbo model")
+            if len(self.text) > chatterbox_tts.INPUT_LIMIT:
+                raise ValueError(
+                    f"Chatterbox supports at most {chatterbox_tts.INPUT_LIMIT} characters per take"
+                )
+            if self.speed != 1 or self.stability != 0.5 or self.steps != 8:
+                raise ValueError("Leave speed, stability and steps at their defaults for Chatterbox Turbo")
+            self.language = "en"
+            self.model_id = chatterbox_tts.MODEL
         else:
             if self.language is not None or self.steps != 8:
                 raise ValueError("language and steps apply only to Supertonic")
@@ -108,6 +131,7 @@ class Voices:
         self.service = service
         self.transport = transport
         self.local = local or Supertonic(service.store.root)
+        self.chatterbox = chatterbox_tts.Chatterbox(service.store.root)
         self.lock = asyncio.Lock()
 
     def status(self):
@@ -122,6 +146,7 @@ class Voices:
             "default_provider": "supertonic" if local["configured"] else "elevenlabs",
             "providers": [
                 local,
+                self.chatterbox.status(),
                 {
                     "id": "elevenlabs",
                     "name": "ElevenLabs",
@@ -142,17 +167,20 @@ class Voices:
 
     async def generate(self, request: VoiceRequest):
         # Preserve existing ElevenLabs cache identities; scope only changes where the asset is listed.
-        excluded = (
-            {"project_id"}
-            if request.provider == "supertonic"
-            else {"provider", "language", "steps", "project_id"}
-        )
-        digest = hashlib.sha256(request.model_dump_json(exclude=excluded).encode()).hexdigest()
-        source = (
-            f"supertonic-3@{REVISION}:{request.voice_id}:{digest}"
-            if request.provider == "supertonic"
-            else f"elevenlabs:{request.voice_id}:{digest}"
-        )
+        excluded = {"project_id"}
+        provenance = f"supertonic-3@{REVISION}"
+        if request.provider == "elevenlabs":
+            excluded.update({"provider", "language", "steps"})
+            provenance = "elevenlabs"
+        identity = hashlib.sha256(request.model_dump_json(exclude=excluded).encode())
+        reference = None
+        if request.provider == chatterbox_tts.PROVIDER:
+            reference = await asyncio.to_thread(self.chatterbox.read_reference, request.voice_id)
+            provenance = f"{chatterbox_tts.MODEL}@{chatterbox_tts.REVISION}"
+            identity.update(f":{provenance}:{chatterbox_tts.VERSION}:".encode())
+            identity.update(reference)
+        digest = identity.hexdigest()
+        source = f"{provenance}:{request.voice_id}:{digest}"
         # Readable, portable filenames with a stable suffix for different takes/settings.
         excerpt = (
             re.sub(r"[^\w]+", "-", unicodedata.normalize("NFKC", request.text), flags=re.UNICODE)
@@ -168,24 +196,31 @@ class Voices:
             )
             if cached:
                 return {"asset": cached, "cached": True}
-            if request.provider == "supertonic":
+            if request.provider != "elevenlabs":
                 path = self.service.store.path(f"uploads/tts-{digest}.wav")
 
                 def synthesize_and_import():
-                    self.local.generate(request, path)
+                    if reference is None:
+                        self.local.generate(request, path)
+                        model = MODEL
+                        license_note = f"Supertonic 3 / OpenRAIL-M: {LICENSE_URL}"
+                    else:
+                        self.chatterbox.generate(request.text, reference, path)
+                        model = chatterbox_tts.MODEL
+                        license_note = f"Chatterbox Turbo / MIT: {chatterbox_tts.LICENSE_URL}"
                     return self.service.import_file(
                         path,
                         label + ".wav",
                         [
                             "voiceover",
                             "tts",
-                            "supertonic-3",
+                            model,
                             "ai-generated",
                             request.language,
                             request.voice_id,
                         ],
                         source,
-                        f"AI-generated audio; Supertonic 3 / OpenRAIL-M: {LICENSE_URL}",
+                        f"AI-generated audio; {license_note}",
                         request.project_id,
                     )
 

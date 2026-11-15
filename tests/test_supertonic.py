@@ -230,6 +230,8 @@ def test_http_contract_status_and_unsupported_language(tmp_path, monkeypatch):
         tools = rpc("tools/list", {})["tools"]
         tool = next(t for t in tools if t["name"] == "generate_voice_take")
         assert "31 supported" in tool["description"]
+        assert "provider=chatterbox" in tool["description"]
+        assert "chatterbox" in schema["properties"]["provider"]["enum"]
         for example in schema["examples"]:
             VoiceRequest.model_validate(example)
         for language in ("na", "zh", "auto"):

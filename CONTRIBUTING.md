@@ -4,7 +4,7 @@ Use Python 3.12, Node from `.nvmrc`, FFmpeg and ffprobe. Follow the development
 setup in [README.md](README.md); root npm tooling and Studio dependencies are
 installed separately. Legacy `requirements.lock` and `requirements-dev.lock` are symlinks to the canonical
 `.txt` pins. Use the standard names for tooling and Windows checkouts without symlink
-support. Dependabot monitors the standard names.
+support.
 Dependencies are locked in `requirements.txt`,
 `requirements-dev.txt`, `package-lock.json` and `apps/studio/package-lock.json`.
 
@@ -25,8 +25,8 @@ run `npm run prepare` to activate the hooks. Hooks use the documented `.venv` an
 Studio/root dependencies; they do not install anything or format files for you.
 The push gate requires clean tracked files and the pushed commit checked out.
 
-Ordinary PRs run only the small title check on GitHub. Browser-created and
-Dependabot changes must be checked out and verified locally before manual merge.
+Ordinary PRs run only the small title check on GitHub. Browser-created changes
+must be checked out and verified locally before manual merge.
 CodeQL is a manual workflow. Main pushes first plan a release; full hosted
 verification runs only when release metadata is ready. Before publication, both
 non-root Linux amd64/arm64 containers must pass rendering, MCP, HTTP/UI and host

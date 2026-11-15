@@ -7557,12 +7557,12 @@ export interface VoiceProvider {
    */
   configured: boolean;
   /** Id */
-  id: "supertonic" | "elevenlabs";
+  id: "supertonic" | "chatterbox" | "elevenlabs";
   /** Input Limit */
   input_limit: number;
   /**
    * Languages
-   * Supertonic's explicit 31-code allowlist. Empty for ElevenLabs, whose model manages languages.
+   * Supported language codes for each local provider. Empty for ElevenLabs, whose model manages languages.
    */
   languages: VoiceChoice[];
   /** License Url */
@@ -7582,7 +7582,7 @@ export interface VoiceProvider {
   upstream_archived: boolean;
   /**
    * Voices
-   * Local preset voices; empty for ElevenLabs, which requires a user's account voice ID.
+   * Supertonic presets or server-configured Chatterbox reference voice IDs. Empty for ElevenLabs, which requires an account voice ID.
    */
   voices: VoiceChoice[];
 }
@@ -7591,7 +7591,7 @@ export interface VoiceProvider {
 export interface VoiceRequest {
   /**
    * Language
-   * Required for Supertonic: exactly one supported ISO code. No auto/na fallback and no translation or language detection. Omit for ElevenLabs.
+   * For Supertonic, select a supported ISO code. Chatterbox accepts only en and defaults to en. Omit for ElevenLabs. No language detection or translation.
    */
   language?:
     | "en"
@@ -7628,7 +7628,7 @@ export interface VoiceRequest {
     | null;
   /**
    * Model Id
-   * Omit for the selected provider's default: supertonic-3 or eleven_multilingual_v2.
+   * Omit for the selected provider's default: supertonic-3, chatterbox-turbo or eleven_multilingual_v2.
    */
   model_id?: string | null;
   /**
@@ -7638,13 +7638,13 @@ export interface VoiceRequest {
   project_id?: string | null;
   /**
    * Provider
-   * Legacy default remains ElevenLabs. Choose supertonic explicitly for offline CPU synthesis.
+   * Legacy default remains ElevenLabs. Choose supertonic or chatterbox explicitly for offline CPU synthesis.
    * @default "elevenlabs"
    */
-  provider?: "elevenlabs" | "supertonic";
+  provider?: "elevenlabs" | "supertonic" | "chatterbox";
   /**
    * Speed
-   * Speech speed multiplier. Supertonic: 0.7–2.0; ElevenLabs: 0.7–1.2.
+   * Speech speed multiplier. Supertonic: 0.7–2.0; Chatterbox: fixed at 1.0; ElevenLabs: 0.7–1.2.
    * @min 0.7
    * @max 2
    * @default 1
@@ -7652,7 +7652,7 @@ export interface VoiceRequest {
   speed?: number;
   /**
    * Stability
-   * ElevenLabs only. Leave at the default for Supertonic.
+   * ElevenLabs only. Leave at the default for local providers.
    * @min 0
    * @max 1
    * @default 0.5
@@ -7660,7 +7660,7 @@ export interface VoiceRequest {
   stability?: number;
   /**
    * Steps
-   * Supertonic inference steps; more steps cost CPU time. Leave at 8 for ElevenLabs.
+   * Supertonic inference steps; more steps cost CPU time. Leave at 8 for the other providers.
    * @min 4
    * @max 16
    * @default 8
@@ -7668,14 +7668,14 @@ export interface VoiceRequest {
   steps?: number;
   /**
    * Text
-   * Text to speak, in the explicitly selected language. Supertonic limit: 1000 characters; ElevenLabs: 5000.
+   * Text to speak. Limits in characters: Supertonic 1000, Chatterbox Turbo 500 (English, allows tags like [chuckle]), ElevenLabs 5000.
    * @minLength 1
    * @maxLength 5000
    */
   text: string;
   /**
    * Voice Id
-   * Supertonic preset F1–F5 or M1–M5, or an ElevenLabs account voice ID.
+   * Supertonic preset F1–F5 or M1–M5, configured Chatterbox reference ID, or ElevenLabs account voice ID. Discover IDs through voice status.
    * @pattern ^[a-zA-Z0-9_-]{1,80}$
    */
   voice_id: string;
@@ -8717,7 +8717,7 @@ export class Api<
       }),
 
     /**
-     * @description Generate speech, not text. Returns {asset,cached} after real audio import. Choose provider=supertonic, voice_id=F1..F5/M1..M5, language=<one of 31 supported ISO codes>, optional steps=4..16 and speed=0.7..2.0; limit 1000 chars. Supertonic runs offline using an explicitly installed pinned model; no na/auto fallback, language detection or translation. Its output must be identified as AI-generated under OpenRAIL-M. Legacy/default provider=elevenlabs requires a real account voice_id and server key, sends text externally and may consume paid credits; authorize that separately. Pass project_id for private media; omit for shared Voiceovers. Never inserts a clip or increments project revision. Duplicate requests reuse existing output in that media scope; language, voice, speed, steps and pinned model revision separate cache entries. Inspect asset duration and add_clip on a voiceover track afterwards.
+     * @description Generate speech and return {asset,cached} after real audio import. Supertonic accepts voice_id=F1..F5/M1..M5, one of 31 supported language codes, optional steps=4..16 and speed=0.7..2.0, and up to 1000 characters. Identify its published output as AI-generated under OpenRAIL-M. Chatterbox Turbo (provider=chatterbox) accepts a configured reference voice ID, language=en (default), and up to 500 characters. Tags like [chuckle] are supported. Leave speed, stability and steps at their defaults. Both local providers require an explicitly installed model and run offline. Legacy/default ElevenLabs requires an account voice_id and server key, sends text externally, and may consume paid credits. Pass project_id for private media; omit for shared Voiceovers. This does not insert clips or increment project revision. Repeating identical synthesis in the same scope reuses its output; replacing a Chatterbox reference changes its cache key. Invalid requests, unavailable providers and synthesis failures return 422.
      *
      * @tags Composition
      * @name GenerateVoice
@@ -9969,7 +9969,7 @@ export class Api<
       }),
 
     /**
-     * @description Discover speech providers, configuration, model IDs, input limits, language allowlists, preset voices, local/external processing and license links. No download, inference or paid request. Use providers[] and default_provider; top-level provider/configured/input_limit retain their legacy ElevenLabs meaning. Supertonic is an archived pinned local model; configured does not guarantee successful inference.
+     * @description Discover speech providers, configuration, model IDs, input limits, supported languages, preset or reference voice IDs, local/external processing and license links. No download, inference or paid request. Use providers[] and default_provider; top-level provider/configured/input_limit retain their legacy ElevenLabs meaning. Configured does not guarantee successful inference.
      *
      * @tags Composition
      * @name VoiceStatus
