@@ -64,18 +64,18 @@ npx shadcn@latest init --template start --base radix --preset nova --no-monorepo
 
 Research and installed-license check: 2026-09-16. All selected building blocks are free; no paid component kit is required. Exact resolved versions are recorded in `package-lock.json`.
 
-| Purpose | Selected library / installed version | License / rationale |
-| --- | --- | --- |
-| Routing, SSR, loaders and functions | TanStack Start 1.168.54 / Router 1.170.36 | MIT; official shadcn Start integration |
-| Server state | TanStack Query 5.103.0 | MIT; official SSR hydration/streaming integration |
-| UI and accessible overlays | shadcn 4.21.0 / Radix UI 1.6.7 | MIT; owned component source and accessible primitives |
-| Forms and validation | React Hook Form 7.88.0 / resolvers 5.9.1 / Zod 4.6.5 | MIT; documented shadcn form pattern |
-| Adjustable panels | react-resizable-panels 4.12.4 | MIT; pointer and keyboard resizing |
-| Track ordering | @dnd-kit/react and helpers 0.5.0 | MIT; current React API with sortable handles |
-| Imports and editor state | react-dropzone 20.1.2 / Zustand 5.0.15 | MIT; retain proven domain behavior |
-| Server-only streaming proxy | Undici 8.10.2 | MIT; preserves public Host for engine origin checks and streams request/response bodies |
-| Node deployment | Nitro 3.0.260903-beta | MIT; current Vite adapter, **pinned prerelease**; verify upgrades with production smoke checks |
-| Icons | lucide-react 1.46.0 | ISC |
-| API generation / formatting | swagger-typescript-api 13.12.6 / Biome 2.5.13 | MIT / MIT OR Apache-2.0; matches repository tooling |
+| Purpose                             | Selected library / installed version                 | License / rationale                                                                            |
+| ----------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Routing, SSR, loaders and functions | TanStack Start 1.168.54 / Router 1.170.36            | MIT; official shadcn Start integration                                                         |
+| Server state                        | TanStack Query 5.103.0                               | MIT; official SSR hydration/streaming integration                                              |
+| UI and accessible overlays          | shadcn 4.21.0 / Radix UI 1.6.7                       | MIT; owned component source and accessible primitives                                          |
+| Forms and validation                | React Hook Form 7.88.0 / resolvers 5.9.1 / Zod 4.6.5 | MIT; documented shadcn form pattern                                                            |
+| Adjustable panels                   | react-resizable-panels 4.12.4                        | MIT; pointer and keyboard resizing                                                             |
+| Track ordering                      | @dnd-kit/react and helpers 0.5.0                     | MIT; current React API with sortable handles                                                   |
+| Imports and editor state            | react-dropzone 20.1.2 / Zustand 5.0.15               | MIT; retain proven domain behavior                                                             |
+| Server-only streaming proxy         | Undici 8.10.2                                        | MIT; preserves public Host for engine origin checks and streams request/response bodies        |
+| Node deployment                     | Nitro 3.0.260903-beta                                | MIT; current Vite adapter, **pinned prerelease**; verify upgrades with production smoke checks |
+| Icons                               | lucide-react 1.46.0                                  | ISC                                                                                            |
+| API generation / formatting         | swagger-typescript-api 13.12.6 / Biome 2.5.13        | MIT / MIT OR Apache-2.0; matches repository tooling                                            |
 
 References: [shadcn Start installation](https://ui.shadcn.com/docs/installation/tanstack), [shadcn RHF forms](https://ui.shadcn.com/docs/forms/react-hook-form), [TanStack Start hosting](https://tanstack.com/start/latest/docs/framework/react/guide/hosting), [TanStack Router Query integration](https://tanstack.com/router/latest/docs/framework/react/guide/external-data-loading), [dnd-kit React](https://dndkit.com/react/quickstart), [resizable panels](https://github.com/bvaughn/react-resizable-panels).

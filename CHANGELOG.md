@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.7.6](https://github.com/dziksu/synkinema/compare/v1.7.5...v1.7.6) (2026-11-03)
+
+### Build and Dependencies
+
+* **deps:** consolidate reviewed dependency updates ([#120](https://github.com/dziksu/synkinema/issues/120)) ([8586ff8](https://github.com/dziksu/synkinema/commit/8586ff86dde79f899d759465ab3b513f02fdd021)), closes [#115](https://github.com/dziksu/synkinema/issues/115) [#117](https://github.com/dziksu/synkinema/issues/117) [#118](https://github.com/dziksu/synkinema/issues/118) [#119](https://github.com/dziksu/synkinema/issues/119)
+
+## [1.7.5](https://github.com/dziksu/synkinema/compare/v1.7.4...v1.7.5) (2026-10-22)
+
+### Bug Fixes
+
+* **docker:** pin Node.js 24.22.1 security release ([#110](https://github.com/dziksu/synkinema/issues/110)) ([2dc2fcb](https://github.com/dziksu/synkinema/commit/2dc2fcbd9175a162c73f448feaabe859414fafc6))
+
 ## [1.7.4](https://github.com/dziksu/synkinema/compare/v1.7.3...v1.7.4) (2026-10-15)
 
 ### Bug Fixes
