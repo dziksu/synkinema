@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 Release notes are generated from Conventional Commits by semantic-release and
 committed through a release pull request after required checks pass.
 
+## [1.8.0](https://github.com/dziksu/synkinema/compare/v1.7.6...v1.8.0) (2026-11-15)
+
+### Features
+
+* **voice:** add optional Chatterbox Turbo synthesis ([1f0c7c3](https://github.com/dziksu/synkinema/commit/1f0c7c3147d4ba352e688bd151f3e7eea52e03bb))
+
 ## [1.7.6](https://github.com/dziksu/synkinema/compare/v1.7.5...v1.7.6) (2026-11-03)
 
 ### Build and Dependencies
