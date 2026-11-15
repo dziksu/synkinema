@@ -42,7 +42,7 @@ and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution.
 
 ## Supply chain
 
-CI uses pinned GitHub Action commits, locked application dependencies, Dependabot,
+CI uses pinned GitHub Action commits, locked application dependencies,
 CodeQL where available, non-root image smoke tests, and image SBOM/provenance.
 Releases are gated on verification and restricted to `main`; fork/PR jobs do not
 publish. Report security issues in release tooling through the same private path.

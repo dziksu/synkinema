@@ -1,4 +1,4 @@
-# Pinned runtime and optional speech dependencies. Dependabot monitors this file.
+# Pinned runtime and optional speech dependencies.
 av==18.1.0
 ctranslate2==4.8.4
 faster-whisper==1.2.1

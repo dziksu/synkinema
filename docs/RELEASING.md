@@ -16,7 +16,7 @@ change source files. Install the documented Python/Studio dependencies first.
 If dependencies were installed with `--ignore-scripts`, run `npm run prepare` once.
 CI/production installs skip hook setup. `HUSKY=0` is an explicit local escape hatch;
 checks are still mandatory before release, and contributors should include local
-verification results in their PRs. Browser-created and Dependabot PRs need a local
+verification results in their PRs. Browser-created PRs need a local
 checkout and `make check` before manual merge because they do not run local hooks.
 
 GitHub runs one small Conventional PR title job for ordinary PRs. The CI workflow
@@ -107,13 +107,8 @@ them. CodeQL runs only when manually dispatched for public repositories; private
 repositories need GitHub Code Security and the `ENABLE_CODEQL=true` repository
 variable.
 Enable private vulnerability reporting in Settings → Security for the advisory
-link in `SECURITY.md`. Dependabot uses the checked-in configuration automatically.
-Routine Dependabot updates run on Mondays at 09:00 Europe/Warsaw and combine
-minor/patch updates into one PR per area: release tooling, Studio, Python,
-containers and GitHub Actions. npm/Python major migrations stay separate, subject
-to the existing migration ignores. Version PR limits are two per npm/Python entry
-and one per Docker/Actions entry. Security updates have their own groups and do
-not wait for the weekly version-update schedule or consume those version limits.
+link in `SECURITY.md`. Update dependency pins and lockfiles through reviewed pull
+requests.
 
 ## Pipeline
 
@@ -135,7 +130,7 @@ PRs never receive publishing credentials. Main runs are serialized and not
 cancelled halfway through publication.
 The release workflow is invoked through `workflow_call` because tags created with
 `GITHUB_TOKEN` do not trigger a second workflow. All third-party actions are pinned
-to full commit SHAs; Dependabot maintains them. Native image caches are best effort
+to full commit SHAs. Native image caches are best effort
 and include intermediate layers for reuse by the final publication of the same
 commit/version.
 The release build does not export a second cache after pushing image tags, so a
