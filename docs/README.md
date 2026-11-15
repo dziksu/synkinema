@@ -11,7 +11,7 @@ checkout is needed only for development and repository examples.
 | Start, update, back up or move an installation | [Deployment](DEPLOYMENT.md) |
 | Edit a video by hand | [Manual editing](MANUAL_EDITING.md) |
 | Choose resolution, aspect ratio, fit/fill and quality | [Export formats](EXPORT_FORMATS.md) |
-| Generate local narration | [Supertonic setup, languages and licensing](SUPERTONIC.md) |
+| Generate local narration | [Supertonic](SUPERTONIC.md) or [Chatterbox Turbo](CHATTERBOX.md) |
 | Understand local access and trust boundaries | [Security policy](../SECURITY.md) |
 
 ## Work with an agent

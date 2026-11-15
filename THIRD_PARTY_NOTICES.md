@@ -18,6 +18,10 @@ Synkinema source code is MIT. This does not relicense bundled dependencies or de
   https://huggingface.co/supertone-oss-archive/supertonic-3/blob/aafc6e32416a594460b32413efc49d7fe4ce6d46/LICENSE
   Preserve this license and its restrictions when redistributing the model or
   making it available through a service. Upstream was archived September 9, 2026.
+- Chatterbox Turbo is an optional provider. Its SDK and model weights are MIT and
+  are installed separately. Retain the upstream license when redistributing.
+  https://github.com/resemble-ai/chatterbox/blob/master/LICENSE
+  https://huggingface.co/ResembleAI/chatterbox-turbo/tree/749d1c1a46eb10492095d68fbcf55691ccf137cd
 - FFmpeg installed by Debian in the image includes GPL components such as libx264.
   FFmpeg is invoked as an independent executable. The Docker distribution is not MIT-only.
   Configuration and version: `docker run --rm --entrypoint ffmpeg synkinema:local -version`.

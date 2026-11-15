@@ -13514,7 +13514,7 @@
             "type": "boolean"
           },
           "id": {
-            "enum": ["supertonic", "elevenlabs"],
+            "enum": ["supertonic", "chatterbox", "elevenlabs"],
             "title": "Id",
             "type": "string"
           },
@@ -13523,7 +13523,7 @@
             "type": "integer"
           },
           "languages": {
-            "description": "Supertonic's explicit 31-code allowlist. Empty for ElevenLabs, whose model manages languages.",
+            "description": "Supported language codes for each local provider. Empty for ElevenLabs, whose model manages languages.",
             "items": {
               "$ref": "#/components/schemas/VoiceChoice"
             },
@@ -13563,7 +13563,7 @@
             "type": "boolean"
           },
           "voices": {
-            "description": "Local preset voices; empty for ElevenLabs, which requires a user's account voice ID.",
+            "description": "Supertonic presets or server-configured Chatterbox reference voice IDs. Empty for ElevenLabs, which requires an account voice ID.",
             "items": {
               "$ref": "#/components/schemas/VoiceChoice"
             },
@@ -13597,6 +13597,12 @@
             "steps": 8,
             "text": "Żółw błotny potrzebuje naszej ochrony.",
             "voice_id": "F1"
+          },
+          {
+            "language": "en",
+            "provider": "chatterbox",
+            "text": "The Moon had a little help [chuckle].",
+            "voice_id": "whyzy"
           },
           {
             "provider": "elevenlabs",
@@ -13648,7 +13654,7 @@
                 "type": "null"
               }
             ],
-            "description": "Required for Supertonic: exactly one supported ISO code. No auto/na fallback and no translation or language detection. Omit for ElevenLabs.",
+            "description": "For Supertonic, select a supported ISO code. Chatterbox accepts only en and defaults to en. Omit for ElevenLabs. No language detection or translation.",
             "title": "Language"
           },
           "model_id": {
@@ -13661,7 +13667,7 @@
                 "type": "null"
               }
             ],
-            "description": "Omit for the selected provider's default: supertonic-3 or eleven_multilingual_v2.",
+            "description": "Omit for the selected provider's default: supertonic-3, chatterbox-turbo or eleven_multilingual_v2.",
             "title": "Model Id"
           },
           "project_id": {
@@ -13680,14 +13686,14 @@
           },
           "provider": {
             "default": "elevenlabs",
-            "description": "Legacy default remains ElevenLabs. Choose supertonic explicitly for offline CPU synthesis.",
-            "enum": ["elevenlabs", "supertonic"],
+            "description": "Legacy default remains ElevenLabs. Choose supertonic or chatterbox explicitly for offline CPU synthesis.",
+            "enum": ["elevenlabs", "supertonic", "chatterbox"],
             "title": "Provider",
             "type": "string"
           },
           "speed": {
             "default": 1,
-            "description": "Speech speed multiplier. Supertonic: 0.7–2.0; ElevenLabs: 0.7–1.2.",
+            "description": "Speech speed multiplier. Supertonic: 0.7–2.0; Chatterbox: fixed at 1.0; ElevenLabs: 0.7–1.2.",
             "maximum": 2.0,
             "minimum": 0.7,
             "title": "Speed",
@@ -13695,7 +13701,7 @@
           },
           "stability": {
             "default": 0.5,
-            "description": "ElevenLabs only. Leave at the default for Supertonic.",
+            "description": "ElevenLabs only. Leave at the default for local providers.",
             "maximum": 1.0,
             "minimum": 0.0,
             "title": "Stability",
@@ -13703,21 +13709,21 @@
           },
           "steps": {
             "default": 8,
-            "description": "Supertonic inference steps; more steps cost CPU time. Leave at 8 for ElevenLabs.",
+            "description": "Supertonic inference steps; more steps cost CPU time. Leave at 8 for the other providers.",
             "maximum": 16.0,
             "minimum": 4.0,
             "title": "Steps",
             "type": "integer"
           },
           "text": {
-            "description": "Text to speak, in the explicitly selected language. Supertonic limit: 1000 characters; ElevenLabs: 5000.",
+            "description": "Text to speak. Limits in characters: Supertonic 1000, Chatterbox Turbo 500 (English, allows tags like [chuckle]), ElevenLabs 5000.",
             "maxLength": 5000,
             "minLength": 1,
             "title": "Text",
             "type": "string"
           },
           "voice_id": {
-            "description": "Supertonic preset F1–F5 or M1–M5, or an ElevenLabs account voice ID.",
+            "description": "Supertonic preset F1–F5 or M1–M5, configured Chatterbox reference ID, or ElevenLabs account voice ID. Discover IDs through voice status.",
             "pattern": "^[a-zA-Z0-9_-]{1,80}$",
             "title": "Voice Id",
             "type": "string"
@@ -23010,7 +23016,7 @@
     },
     "/api/voices/generate": {
       "post": {
-        "description": "Generate speech, not text. Returns {asset,cached} after real audio import. Choose provider=supertonic, voice_id=F1..F5/M1..M5, language=<one of 31 supported ISO codes>, optional steps=4..16 and speed=0.7..2.0; limit 1000 chars. Supertonic runs offline using an explicitly installed pinned model; no na/auto fallback, language detection or translation. Its output must be identified as AI-generated under OpenRAIL-M. Legacy/default provider=elevenlabs requires a real account voice_id and server key, sends text externally and may consume paid credits; authorize that separately. Pass project_id for private media; omit for shared Voiceovers. Never inserts a clip or increments project revision. Duplicate requests reuse existing output in that media scope; language, voice, speed, steps and pinned model revision separate cache entries. Inspect asset duration and add_clip on a voiceover track afterwards.",
+        "description": "Generate speech and return {asset,cached} after real audio import. Supertonic accepts voice_id=F1..F5/M1..M5, one of 31 supported language codes, optional steps=4..16 and speed=0.7..2.0, and up to 1000 characters. Identify its published output as AI-generated under OpenRAIL-M. Chatterbox Turbo (provider=chatterbox) accepts a configured reference voice ID, language=en (default), and up to 500 characters. Tags like [chuckle] are supported. Leave speed, stability and steps at their defaults. Both local providers require an explicitly installed model and run offline. Legacy/default ElevenLabs requires an account voice_id and server key, sends text externally, and may consume paid credits. Pass project_id for private media; omit for shared Voiceovers. This does not insert clips or increment project revision. Repeating identical synthesis in the same scope reuses its output; replacing a Chatterbox reference changes its cache key. Invalid requests, unavailable providers and synthesis failures return 422.",
         "operationId": "generate_voice",
         "requestBody": {
           "content": {
@@ -23106,7 +23112,7 @@
     },
     "/api/voices/status": {
       "get": {
-        "description": "Discover speech providers, configuration, model IDs, input limits, language allowlists, preset voices, local/external processing and license links. No download, inference or paid request. Use providers[] and default_provider; top-level provider/configured/input_limit retain their legacy ElevenLabs meaning. Supertonic is an archived pinned local model; configured does not guarantee successful inference.",
+        "description": "Discover speech providers, configuration, model IDs, input limits, supported languages, preset or reference voice IDs, local/external processing and license links. No download, inference or paid request. Use providers[] and default_provider; top-level provider/configured/input_limit retain their legacy ElevenLabs meaning. Configured does not guarantee successful inference.",
         "operationId": "voice_status",
         "responses": {
           "200": {

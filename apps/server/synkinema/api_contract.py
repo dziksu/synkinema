@@ -156,7 +156,7 @@ class VoiceChoice(Model):
 
 
 class VoiceProvider(Model):
-    id: Literal["supertonic", "elevenlabs"]
+    id: Literal["supertonic", "chatterbox", "elevenlabs"]
     name: str
     local: bool = Field(
         description="True means synthesis is offline on this server; installation downloads are separate."
@@ -167,10 +167,10 @@ class VoiceProvider(Model):
     input_limit: int
     model_id: str
     languages: list[VoiceChoice] = Field(
-        description="Supertonic's explicit 31-code allowlist. Empty for ElevenLabs, whose model manages languages."
+        description="Supported language codes for each local provider. Empty for ElevenLabs, whose model manages languages."
     )
     voices: list[VoiceChoice] = Field(
-        description="Local preset voices; empty for ElevenLabs, which requires a user's account voice ID."
+        description="Supertonic presets or server-configured Chatterbox reference voice IDs. Empty for ElevenLabs, which requires an account voice ID."
     )
     reason: str | None
     license_url: str

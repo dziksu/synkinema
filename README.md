@@ -304,6 +304,8 @@ paid speech provider.
 Supertonic supports 31 declared languages and is an optional, pinned integration
 with an archived upstream. Its weights have a separate OpenRAIL-M license and
 output-disclosure requirements. See [setup and licensing](docs/SUPERTONIC.md).
+Chatterbox Turbo is an optional local English provider for reference voices and
+tags such as `[chuckle]`. See [Chatterbox setup](docs/CHATTERBOX.md).
 ElevenLabs is a separate optional provider using your server-side key and credits.
 
 ## Development

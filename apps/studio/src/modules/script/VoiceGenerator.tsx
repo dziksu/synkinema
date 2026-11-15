@@ -32,6 +32,7 @@ export default function VoiceGenerator({
     choice: VoiceRequest["provider"] | undefined;
     voiceId: string;
     preset: string;
+    referenceVoice: string;
     language: NonNullable<VoiceRequest["language"]> | "";
     speed: number;
     steps: number;
@@ -40,12 +41,14 @@ export default function VoiceGenerator({
       choice: undefined,
       voiceId: "",
       preset: "F1",
+      referenceVoice: "",
       language: "",
       speed: 1,
       steps: 8,
     },
   });
-  const { choice, voiceId, preset, language, speed, steps } = form.watch();
+  const { choice, voiceId, preset, referenceVoice, language, speed, steps } =
+    form.watch();
   const setChoice = (value: typeof choice) =>
     form.setValue("choice", value, { shouldDirty: true });
   const setVoiceId = (value: typeof voiceId) =>
@@ -61,26 +64,39 @@ export default function VoiceGenerator({
 
   const providerId = choice ?? status.data?.default_provider ?? "supertonic";
   const provider = status.data?.providers.find((p) => p.id === providerId);
-  const local = providerId === "supertonic";
+  const supertonic = providerId === "supertonic";
+  const chatterbox = providerId === "chatterbox";
+  const referenceId =
+    provider?.voices.find((voice) => voice.id === referenceVoice)?.id ??
+    (!referenceVoice && provider?.voices.length === 1
+      ? provider.voices[0].id
+      : "");
+  const selectedVoiceId = supertonic
+    ? preset
+    : chatterbox
+      ? referenceId
+      : voiceId.trim();
   const generate = useMutation(writes.voice(query));
   const canGenerate = (text: string) =>
     !!provider?.configured &&
     !!text.trim() &&
     text.length <= provider.input_limit &&
-    (local
+    (supertonic
       ? provider.languages.some((l) => l.id === language) &&
         provider.voices.some((v) => v.id === preset)
-      : !!voiceId.trim());
+      : !!selectedVoiceId);
   const request = (text: string): VoiceRequest => ({
     text,
     provider: providerId,
-    voice_id: local ? preset : voiceId.trim(),
+    voice_id: selectedVoiceId,
     model_id: provider?.model_id,
-    speed,
+    speed: chatterbox ? 1 : speed,
     project_id: projectId,
-    ...(local
+    ...(supertonic
       ? { language: language as NonNullable<VoiceRequest["language"]>, steps }
-      : {}),
+      : chatterbox
+        ? { language: "en" }
+        : {}),
   });
   const pending = busy || generate.isPending;
   return (
@@ -120,7 +136,7 @@ export default function VoiceGenerator({
               ))}
             </NativeSelect>
           </label>
-          {local ? (
+          {supertonic ? (
             <label className="field">
               {tr("Speech language")}
               <NativeSelect
@@ -135,6 +151,31 @@ export default function VoiceGenerator({
                 {provider?.languages.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+          ) : chatterbox ? (
+            <label className="field">
+              {tr("Reference voice")}
+              <NativeSelect
+                value={referenceId}
+                disabled={pending || !provider?.voices.length}
+                onChange={(e) => {
+                  form.setValue("referenceVoice", e.target.value, {
+                    shouldDirty: true,
+                  });
+                  generate.reset();
+                }}
+              >
+                <option value="" disabled>
+                  {provider?.voices.length
+                    ? tr("Select a reference voice")
+                    : tr("No reference voices available")}
+                </option>
+                {provider?.voices.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.name}
                   </option>
                 ))}
               </NativeSelect>
@@ -155,15 +196,19 @@ export default function VoiceGenerator({
           )}
         </div>
         <p className="hint">
-          {local
+          {supertonic
             ? tr(
                 "Speech is generated locally. Choose the language of your text; unsupported languages and automatic fallback are disabled.",
               )
-            : tr(
-                "ElevenLabs sends this text to the provider and uses your account credits.",
-              )}
+            : chatterbox
+              ? tr(
+                  "Chatterbox generates English speech locally from a reference voice. Use tags like [chuckle] or [laugh] in the text.",
+                )
+              : tr(
+                  "ElevenLabs sends this text to the provider and uses your account credits.",
+                )}
         </p>
-        {local && (
+        {supertonic && (
           <div className="field-grid">
             <label className="field">
               {tr("Voice preset")}
@@ -199,22 +244,24 @@ export default function VoiceGenerator({
             </label>
           </div>
         )}
-        <label className="field">
-          {tr("Speech speed")} · {speed.toFixed(2)}×
-          <input
-            aria-label={tr("Speech speed")}
-            type="range"
-            min={0.7}
-            max={local ? 2 : 1.2}
-            step={0.05}
-            value={speed}
-            disabled={pending}
-            onChange={(e) => {
-              setSpeed(Number(e.target.value));
-              generate.reset();
-            }}
-          />
-        </label>
+        {!chatterbox && (
+          <label className="field">
+            {tr("Speech speed")} · {speed.toFixed(2)}×
+            <input
+              aria-label={tr("Speech speed")}
+              type="range"
+              min={0.7}
+              max={supertonic ? 2 : 1.2}
+              step={0.05}
+              value={speed}
+              disabled={pending}
+              onChange={(e) => {
+                setSpeed(Number(e.target.value));
+                generate.reset();
+              }}
+            />
+          </label>
+        )}
         {!children && (
           <div className="voice-generator-actions">
             <Button
@@ -248,13 +295,17 @@ export default function VoiceGenerator({
         )}
         {provider && !provider.configured && (
           <p className="hint">
-            {local
+            {supertonic
               ? tr(
                   "Install the Supertonic SDK and pinned model on the server to enable local speech.",
                 )
-              : tr(
-                  "Set ELEVENLABS_API_KEY in the server environment to enable generation.",
-                )}
+              : chatterbox
+                ? tr(
+                    "Set up the Chatterbox runtime, model and a reference WAV on the server.",
+                  )
+                : tr(
+                    "Set ELEVENLABS_API_KEY in the server environment to enable generation.",
+                  )}
           </p>
         )}
         {generate.isError && (
@@ -279,11 +330,13 @@ export default function VoiceGenerator({
             </small>
           </div>
         )}
-        {local && provider && (
+        {provider?.local && (
           <p className="hint">
-            {tr(
-              "Supertonic is archived upstream. Published audio must be identified as AI-generated.",
-            )}{" "}
+            {chatterbox
+              ? tr("Chatterbox Turbo adds an inaudible watermark.")
+              : tr(
+                  "Supertonic is archived upstream. Published audio must be identified as AI-generated.",
+                )}{" "}
             <a href={provider.license_url} target="_blank" rel="noreferrer">
               {tr("Model license")}
             </a>
